@@ -20,6 +20,7 @@ public class SteamLobby : MonoBehaviour
 
     private CustomNetworkManager networkManager;
     private CSteamID _currentLobbyId;
+    private bool _hasConnected;
 
 
 
@@ -86,16 +87,28 @@ public class SteamLobby : MonoBehaviour
 
     private void OnLobbyDataUpdate(LobbyDataUpdate_t update)
     {
-        if (NetworkServer.active) return;
-        if (new CSteamID(update.m_ulSteamIDLobby) != _currentLobbyId) return;
+        var lobbyId  = new CSteamID(update.m_ulSteamIDLobby);
+        var memberId = new CSteamID(update.m_ulSteamIDMember);
 
-        string hostAddress = SteamMatchmaking.GetLobbyData(_currentLobbyId, "HostAddress");
-        if (string.IsNullOrEmpty(hostAddress))
+        if (lobbyId != _currentLobbyId) return;
+
+        // Member data changed (e.g. ready state) — memberId differs from lobbyId
+        if (memberId != lobbyId)
         {
-            Debug.LogError("HostAddress lobby data is empty.");
+            var controller = FindAnyObjectByType<ReefRunLobbyController>();
+            if (controller == null) return;
+            string val = SteamMatchmaking.GetLobbyMemberData(lobbyId, memberId, "ready");
+            controller.SetReady(memberId, val == "1");
             return;
         }
 
+        // Lobby-level data changed — handle initial client connection only once
+        if (NetworkServer.active || _hasConnected) return;
+
+        string hostAddress = SteamMatchmaking.GetLobbyData(_currentLobbyId, "HostAddress");
+        if (string.IsNullOrEmpty(hostAddress)) { Debug.LogError("HostAddress lobby data is empty."); return; }
+
+        _hasConnected = true;
         networkManager.networkAddress = hostAddress;
         networkManager.StartClient();
         SceneManager.LoadScene(LobbySceneName);
@@ -123,16 +136,18 @@ public class SteamLobby : MonoBehaviour
 
     private void ConstructPlayer(bool isHost, CSteamID steamId)
     {
-        Player player = new Player();
-        player.steamId = SteamUser.GetSteamID();
-        player.name = SteamFriends.GetPersonaName();
-        player.avatar = SteamManager.GetLocalSteamAvatar(steamId);
-        player.isHost = isHost;
+        string name = SteamFriends.GetFriendPersonaName(steamId);
+        Player player = new Player
+        {
+            steamId  = steamId,
+            name     = name,
+            avatar   = SteamManager.GetLocalSteamAvatar(steamId),
+            isHost   = isHost,
+            isYou    = steamId == SteamUser.GetSteamID(),
+        };
         ReefRunLobbyController controller = FindAnyObjectByType<ReefRunLobbyController>();
         if (controller != null)
-        {
             controller.AddPlayer(player);
-        }
         else
             Debug.LogWarning("ReefRunLobbyController not found in the scene.");
     }

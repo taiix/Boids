@@ -230,7 +230,15 @@ namespace ReefRun
         // ===================================================================
         //  ACTIONS
         // ===================================================================
-        void ToggleLocalReady() { var me = Me; if (me != null) SetReady(me.steamId, !me.ready); }
+        void ToggleLocalReady()
+        {
+            var me = Me;
+            if (me == null || SteamLobby.instance == null) return;
+            bool newReady = !me.ready;
+            // broadcast to all lobby members via Steam member data
+            SteamMatchmaking.SetLobbyMemberData(SteamLobby.instance.CurrentLobbyId, "ready", newReady ? "1" : "0");
+            SetReady(me.steamId, newReady); // update locally immediately
+        }
 
         void ReadyCheck()
         {
