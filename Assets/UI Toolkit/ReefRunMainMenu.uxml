@@ -1,0 +1,75 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI%20Toolkit/ReefRunMainMenu.uss?fileID=7433441132597879392&amp;guid=5ad911a4c18773b4286870dda3da6375&amp;type=3#ReefRunMainMenu"/>
+    <ui:VisualElement name="stage" class="mm-stage">
+        <ui:VisualElement name="ambient-mount" picking-mode="Ignore" class="mm-ambient"/>
+        <ui:VisualElement name="ui" class="mm-ui">
+            <ui:VisualElement class="mm-accent"/>
+            <ui:VisualElement class="mm-logo-row">
+                <ui:Label text="REEF" class="mm-logo-white"/>
+                <ui:Label text="RUN" class="mm-logo-aqua"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="nav" class="mm-nav">
+                <ui:Button name="play-btn" text="HOST" class="mm-nav-item"/>
+                <ui:Button name="join-btn" text="JOIN" class="mm-nav-item"/>
+                <ui:Button name="settings-btn" text="SETTINGS" class="mm-nav-item"/>
+                <ui:Button name="quit-btn" text="QUIT" class="mm-nav-item"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="mm-spacer"/>
+            <ui:VisualElement class="mm-footer">
+                <ui:Label name="version-label" text="v0.4.1 — EARLY ACCESS BUILD" class="mm-version"/>
+                <ui:VisualElement class="mm-dive-hint"/>
+                <ui:VisualElement name="player-card" class="mm-player-card" style="border-top-left-radius: 15px; border-top-right-radius: 15px; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px;">
+                    <ui:Image name="player-image" style="height: 54px; width: 57px; margin-right: 11px;"/>
+                    <ui:VisualElement>
+                        <ui:Label name="player-name" text="You" class="mm-player-name"/>
+                        <ui:Label name="player-sub" text="5 friends online" class="mm-player-sub"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="settings-overlay" class="mm-settings-overlay" style="display: none;">
+            <ui:VisualElement class="mm-settings-card mm-glass">
+                <ui:VisualElement class="mm-settings-head">
+                    <ui:Label text="SETTINGS" class="mm-settings-title"/>
+                    <ui:Button name="settings-close" text="✕" class="mm-close-btn"/>
+                </ui:VisualElement>
+                <ui:Label text="AUDIO" class="mm-section-label"/>
+                <ui:VisualElement class="mm-setting-row">
+                    <ui:Label text="Master" class="mm-setting-name"/>
+                    <ui:Slider name="master-slider" low-value="0" high-value="1" value="1" class="mm-slider"/>
+                    <ui:Label name="master-val" text="100%" class="mm-setting-val"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="mm-setting-row">
+                    <ui:Label text="Music" class="mm-setting-name"/>
+                    <ui:Slider name="music-slider" low-value="0" high-value="1" value="1" class="mm-slider"/>
+                    <ui:Label name="music-val" text="100%" class="mm-setting-val"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="mm-setting-row">
+                    <ui:Label text="SFX" class="mm-setting-name"/>
+                    <ui:Slider name="sfx-slider" low-value="0" high-value="1" value="1" class="mm-slider"/>
+                    <ui:Label name="sfx-val" text="100%" class="mm-setting-val"/>
+                </ui:VisualElement>
+                <ui:Label text="DISPLAY" class="mm-section-label"/>
+                <ui:VisualElement class="mm-setting-row">
+                    <ui:Label text="Resolution" class="mm-setting-name"/>
+                    <ui:DropdownField name="resolution-dropdown" class="mm-dropdown"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="mm-setting-row">
+                    <ui:Label text="Quality" class="mm-setting-name"/>
+                    <ui:DropdownField name="quality-dropdown" class="mm-dropdown"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="mm-setting-row">
+                    <ui:Label text="Fullscreen" class="mm-setting-name"/>
+                    <ui:Toggle name="fullscreen-toggle" class="mm-toggle"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="mm-setting-row">
+                    <ui:Label text="VSync" class="mm-setting-name"/>
+                    <ui:Toggle name="vsync-toggle" class="mm-toggle"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="mm-settings-foot">
+                    <ui:Button name="settings-apply" text="Apply" class="mm-btn mm-btn-aqua"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

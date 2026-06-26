@@ -1,0 +1,389 @@
+/* ============================================================
+   REEF RUN — main menu stylesheet (UI Toolkit / USS)
+   Same engine limitations as ReefRunLobby.uss apply.
+   Background gradient + upper-right glow is a baked texture
+   set from ReefRunMainMenuController.
+   ============================================================ */
+
+:root {
+    --text: #eaf6f4;
+    --dim:  #88b4bd;
+    --aqua: #3fe0c5;
+    --glass: rgba(8,40,52,0.55);
+    --border: rgba(99,200,210,0.18);
+    --border-aqua: rgba(63,224,197,0.5);
+}
+
+/* ---------- stage / root ---------- */
+.mm-stage {
+    flex-grow: 1;
+    -unity-background-scale-mode: scale-and-crop;
+    color: var(--text);
+}
+
+.mm-ambient {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+}
+
+.mm-ui {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    flex-direction: column;
+    padding: 44px 56px 32px 56px;
+}
+
+/* ---------- accent line ---------- */
+.mm-accent {
+    width: 30px;
+    height: 2px;
+    background-color: var(--aqua);
+    margin-bottom: 20px;
+}
+
+/* ---------- logo ---------- */
+.mm-logo-row {
+    flex-direction: row;
+    align-items: flex-end;
+    margin-bottom: 48px;
+}
+
+.mm-logo-white {
+    font-size: 76px;
+    -unity-font-style: bold;
+    color: var(--text);
+    margin-right: 14px;
+}
+
+.mm-logo-aqua {
+    font-size: 76px;
+    -unity-font-style: bold;
+    color: var(--aqua);
+}
+
+/* ---------- nav ---------- */
+.mm-nav {
+    flex-direction: column;
+}
+
+.mm-nav-item {
+    align-self: flex-start;
+    background-color: rgba(0,0,0,0);
+    border-width: 0;
+    border-color: rgba(0,0,0,0);
+    border-radius: 0;
+    color: var(--text);
+    -unity-font-style: bold;
+    font-size: 34px;
+    letter-spacing: 3px;
+    padding: 7px 0;
+    margin-bottom: 2px;
+    -unity-text-align: middle-left;
+    transition: color 0.12s ease;
+}
+
+.mm-nav-item:hover {
+    background-color: rgba(0,0,0,0);
+    border-color: rgba(0,0,0,0);
+    color: var(--aqua);
+}
+
+.mm-nav-item:active {
+    color: rgb(95,240,214);
+}
+
+/* ---------- spacer pushes footer to bottom ---------- */
+.mm-spacer {
+    flex-grow: 1;
+}
+
+/* ---------- footer ---------- */
+.mm-footer {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mm-version {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--dim);
+}
+
+/* "PRESS [Enter] TO DIVE" */
+.mm-dive-hint {
+    flex-direction: row;
+    align-items: center;
+}
+
+.mm-hint-text {
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--dim);
+}
+
+.mm-key {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--text);
+    border-width: 1px;
+    border-color: rgba(180,210,220,0.45);
+    border-radius: 3px;
+    padding: 2px 9px;
+    margin: 0 9px;
+    background-color: rgba(255,255,255,0.05);
+}
+
+/* ---------- player card (bottom-right) ---------- */
+.mm-player-card {
+    flex-direction: row;
+    align-items: center;
+    background-color: var(--glass);
+    border-width: 1px;
+    border-color: var(--border);
+    border-radius: 999px;
+    padding: 6px 18px 6px 6px;
+}
+
+.mm-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+.mm-avatar-lbl {
+    color: #06283f;
+    -unity-font-style: bold;
+    font-size: 11px;
+}
+
+.mm-player-name {
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: var(--text);
+}
+
+.mm-player-sub {
+    font-size: 11px;
+    color: var(--dim);
+    margin-top: 1px;
+}
+
+/* ============================================================
+   SHARED UTILITIES (scoped to main menu — mirrors lobby USS)
+   ============================================================ */
+
+.mm-glass {
+    background-color: var(--glass);
+    border-width: 1px;
+    border-color: var(--border);
+}
+
+.mm-btn {
+    font-size: 14px;
+    letter-spacing: 0.4px;
+    -unity-font-style: bold;
+    padding: 11px 28px;
+    border-width: 1px;
+    border-radius: 3px;
+    border-color: rgba(0,0,0,0);
+    margin: 0;
+}
+.mm-btn-aqua { background-color: var(--aqua); color: #06283f; border-color: var(--aqua); }
+.mm-btn-aqua:hover { background-color: rgb(95,240,214); }
+
+/* ============================================================
+   SETTINGS OVERLAY
+   ============================================================ */
+
+.mm-settings-overlay {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background-color: rgba(3,10,16,0.88);
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.22s ease;
+}
+.mm-settings-overlay.show { opacity: 1; }
+
+/* card */
+.mm-settings-card {
+    width: 500px;
+    flex-direction: column;
+    padding: 28px;
+    border-radius: 4px;
+}
+
+/* header row */
+.mm-settings-head {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.mm-settings-title {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: var(--text);
+    letter-spacing: 4px;
+}
+
+.mm-close-btn {
+    background-color: rgba(0,0,0,0);
+    border-width: 1px;
+    border-color: var(--border);
+    border-radius: 3px;
+    color: var(--dim);
+    font-size: 13px;
+    padding: 4px 10px;
+}
+.mm-close-btn:hover { border-color: var(--border-aqua); color: var(--text); }
+
+/* section dividers */
+.mm-section-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--dim);
+    margin-top: 14px;
+    margin-bottom: 8px;
+    border-bottom-width: 1px;
+    border-bottom-color: var(--border);
+    padding-bottom: 6px;
+}
+
+/* setting row */
+.mm-setting-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 40px;
+    margin-bottom: 4px;
+}
+
+.mm-setting-name {
+    width: 96px;
+    font-size: 13px;
+    color: var(--text);
+    flex-shrink: 0;
+}
+
+/* ---- sliders ---- */
+.mm-slider {
+    flex-grow: 1;
+    margin: 0 10px;
+}
+
+.mm-slider .unity-base-slider__drag-container {
+    height: 20px;
+}
+
+.mm-slider .unity-base-slider__tracker {
+    background-color: rgba(99,200,210,0.20);
+    height: 3px;
+    border-width: 0;
+    border-radius: 2px;
+}
+
+.mm-slider .unity-base-slider__dragger {
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    background-color: var(--aqua);
+    border-width: 0;
+}
+.mm-slider .unity-base-slider__dragger:hover { background-color: rgb(95,240,214); }
+
+.mm-setting-val {
+    width: 42px;
+    font-size: 12px;
+    color: var(--dim);
+    -unity-text-align: middle-right;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+/* ---- dropdowns ---- */
+.mm-dropdown {
+    flex-grow: 1;
+    margin: 0;
+}
+
+.mm-dropdown .unity-base-field__label { display: none; }
+
+.mm-dropdown .unity-dropdown-field__input {
+    background-color: rgba(8,40,52,0.8);
+    border-width: 1px;
+    border-color: var(--border);
+    border-radius: 3px;
+    padding: 8px 12px;
+    flex-grow: 1;
+}
+.mm-dropdown .unity-dropdown-field__input:hover { border-color: var(--border-aqua); }
+
+.mm-dropdown .unity-base-dropdown__label {
+    color: var(--text);
+    font-size: 13px;
+    flex-grow: 1;
+}
+.mm-dropdown .unity-dropdown-field__arrow {
+    -unity-background-image-tint-color: var(--dim);
+    width: 12px;
+    height: 12px;
+}
+
+/* ---- toggles (pill switch style) ---- */
+.mm-toggle {
+    flex-grow: 1;
+    justify-content: flex-end;
+    flex-direction: row;
+    margin: 0;
+}
+.mm-toggle .unity-toggle__label { display: none; }
+
+.mm-toggle .unity-toggle__input {
+    width: 40px;
+    height: 22px;
+    border-radius: 11px;
+    background-color: rgba(99,200,210,0.15);
+    border-width: 1px;
+    border-color: var(--border);
+    align-items: flex-start;
+    justify-content: center;
+    padding: 3px;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.mm-toggle .unity-toggle__input:checked {
+    background-color: var(--aqua);
+    border-color: var(--aqua);
+}
+
+.mm-toggle .unity-toggle__checkmark {
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    background-color: var(--dim);
+    background-image: none;
+    border-width: 0;
+    translate: 0 0;
+    transition: translate 0.15s ease, background-color 0.15s ease;
+}
+.mm-toggle .unity-toggle__input:checked .unity-toggle__checkmark {
+    background-color: #06283f;
+    translate: 17px 0;
+}
+
+/* ---- settings footer ---- */
+.mm-settings-foot {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top-width: 1px;
+    border-top-color: var(--border);
+}

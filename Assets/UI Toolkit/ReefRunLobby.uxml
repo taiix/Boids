@@ -1,0 +1,72 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/ReefRunLobby.uss?fileID=7433441132597879392&amp;guid=ada4da68531a1b147af51e9b359537ff&amp;type=3#ReefRunLobby"/>
+    <ui:VisualElement name="stage" class="stage">
+        <ui:VisualElement name="ambient-mount" picking-mode="Ignore" class="ambient-mount"/>
+        <ui:VisualElement name="ui" class="ui">
+            <ui:VisualElement class="header">
+                <ui:VisualElement class="brand">
+                    <ui:VisualElement class="emblem" style="height: 47px;">
+                        <ui:Label text="▶" class="emblem-glyph"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement>
+                        <ui:Label text="REEF RUN · LOBBY" class="eyebrow"/>
+                        <ui:Label text="Coral Canyon" class="title"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="header-right">
+                    <ui:VisualElement class="pill lobby-pill" style="border-top-left-radius: 15px; border-bottom-left-radius: 15px; border-top-right-radius: 15px; border-bottom-right-radius: 15px;">
+                        <ui:VisualElement name="live-dot" class="live-dot"/>
+                        <ui:Label name="lobby-count" text="1" class="pill-strong"/>
+                        <ui:Label text="/8 in lobby" class="pill-dim"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="body">
+                <ui:VisualElement class="roster-col glass" style="border-top-left-radius: 15px; border-top-right-radius: 15px; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px;">
+                    <ui:VisualElement class="roster-head">
+                        <ui:Label text="PLAYERS IN LOBBY" class="label"/>
+                        <ui:Button name="invite-btn" text="Invite a friend" class="btn btn-ghost btn-sm"/>
+                    </ui:VisualElement>
+                    <ui:ScrollView name="roster-list" class="roster-list"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="side-col">
+                    <ui:VisualElement class="activity-card glass">
+                        <ui:Label text="ACTIVITY" class="label"/>
+                        <ui:ScrollView name="feed" class="feed"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="footer glass" style="border-top-left-radius: 15px; border-top-right-radius: 15px; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; border-left-color: rgba(99, 200, 210, 0.314); border-right-color: rgba(99, 200, 210, 0.314); border-top-color: rgba(99, 200, 210, 0.314); border-bottom-color: rgba(99, 200, 210, 0.314); background-color: rgba(8, 40, 52, 0);">
+                <ui:VisualElement class="ready-wrap">
+                    <ui:VisualElement class="ready-row">
+                        <ui:Label text="READY" class="label"/>
+                        <ui:Label name="ready-count" text="0/1" class="ready-count"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="bar">
+                        <ui:VisualElement name="bar-fill" class="bar-fill"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="actions">
+                    <ui:Button name="ready-btn" text="Ready up" class="btn btn-aqua"/>
+                    <ui:Button name="ready-check-btn" text="Ready check" class="btn btn-ghost"/>
+                    <ui:Button name="start-btn" text="Start match" class="btn btn-blue"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="overlay" class="overlay" style="display: none;">
+            <ui:VisualElement class="ov-inner">
+                <ui:Label text="REEF RUN" class="ov-eyebrow"/>
+                <ui:VisualElement class="ov-title-row">
+                    <ui:Label text="DESCENDING" class="ov-title"/>
+                    <ui:VisualElement class="ov-dots">
+                        <ui:VisualElement class="ov-dot"/>
+                        <ui:VisualElement class="ov-dot"/>
+                        <ui:VisualElement class="ov-dot"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label name="ov-line-1" text="One of you is the shark" class="ov-line ov-line-1"/>
+                <ui:Label name="ov-line-2" text="Roles are being dealt in secret. Trust no fin." class="ov-line ov-line-2"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
