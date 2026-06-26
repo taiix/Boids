@@ -1,3 +1,4 @@
+using Mirror;
 using ReefRun;
 using Steamworks;
 using System;
@@ -15,6 +16,7 @@ public class SteamLobby : MonoBehaviour
     protected Callback<GameLobbyJoinRequested_t> gameLobbyJoinRequested;
     protected Callback<LobbyEnter_t> lobbyEntered;
     protected Callback<LobbyChatUpdate_t> lobbyChatUpdate;
+    protected Callback<LobbyDataUpdate_t> lobbyDataUpdate;
 
     private CustomNetworkManager networkManager;
     private CSteamID _currentLobbyId;
@@ -40,10 +42,11 @@ public class SteamLobby : MonoBehaviour
 
     private void OnEnable()
     {
-        lobbyCreated = Callback<LobbyCreated_t>.Create(OnLobbyCreated);
+        lobbyCreated           = Callback<LobbyCreated_t>.Create(OnLobbyCreated);
         gameLobbyJoinRequested = Callback<GameLobbyJoinRequested_t>.Create(OnGameLobbyJoinRequested);
-        lobbyEntered = Callback<LobbyEnter_t>.Create(OnLobbyEntered);
-        lobbyChatUpdate = Callback<LobbyChatUpdate_t>.Create(OnLobbyChatUpdate);
+        lobbyEntered           = Callback<LobbyEnter_t>.Create(OnLobbyEntered);
+        lobbyChatUpdate        = Callback<LobbyChatUpdate_t>.Create(OnLobbyChatUpdate);
+        lobbyDataUpdate        = Callback<LobbyDataUpdate_t>.Create(OnLobbyDataUpdate);
     }
 
     private void OnLobbyChatUpdate(LobbyChatUpdate_t update)
@@ -69,17 +72,42 @@ public class SteamLobby : MonoBehaviour
 
     private void OnGameLobbyJoinRequested(GameLobbyJoinRequested_t param)
     {
-
+        SteamMatchmaking.JoinLobby(param.m_steamIDLobby);
     }
 
     private void OnLobbyEntered(LobbyEnter_t lobby)
     {
-        Debug.Log($"Joined lobby: {lobby.m_ulSteamIDLobby}");
+        _currentLobbyId = new CSteamID(lobby.m_ulSteamIDLobby);
+        if (NetworkServer.active) return; // host — already handled in OnLobbyCreated
+
+        // Lobby metadata may not have arrived yet — request it and connect in OnLobbyDataUpdate
+        SteamMatchmaking.RequestLobbyData(_currentLobbyId);
+    }
+
+    private void OnLobbyDataUpdate(LobbyDataUpdate_t update)
+    {
+        if (NetworkServer.active) return;
+        if (new CSteamID(update.m_ulSteamIDLobby) != _currentLobbyId) return;
+
+        string hostAddress = SteamMatchmaking.GetLobbyData(_currentLobbyId, "HostAddress");
+        if (string.IsNullOrEmpty(hostAddress))
+        {
+            Debug.LogError("HostAddress lobby data is empty.");
+            return;
+        }
+
+        networkManager.networkAddress = hostAddress;
+        networkManager.StartClient();
+        SceneManager.LoadScene(LobbySceneName);
     }
 
     private void OnLobbyCreated(LobbyCreated_t lobby)
     {
+        if (lobby.m_eResult != EResult.k_EResultOK) { Debug.LogError("Failed to create lobby."); return; }
+
         _currentLobbyId = new CSteamID(lobby.m_ulSteamIDLobby);
+        networkManager.StartHost();
+        SteamMatchmaking.SetLobbyData(_currentLobbyId, "HostAddress", SteamUser.GetSteamID().ToString());
         SceneManager.LoadScene(LobbySceneName);
     }
 
