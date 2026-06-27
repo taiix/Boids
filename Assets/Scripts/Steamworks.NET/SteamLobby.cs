@@ -90,7 +90,6 @@ public class SteamLobby : MonoBehaviour
 
         if (lobbyId != _currentLobbyId) return;
 
-        // Member data changed (e.g. ready state) — memberId differs from lobbyId
         if (memberId != lobbyId)
         {
             var controller = FindAnyObjectByType<ReefRunLobbyController>();
@@ -100,12 +99,14 @@ public class SteamLobby : MonoBehaviour
             return;
         }
 
-        if (!NetworkServer.active && SteamMatchmaking.GetLobbyData(lobbyId, "starting") == "1") { 
-            var controller = FindAnyObjectByType<ReefRunLobbyController>();
-            controller?.PlayLauchOverlay();
+        // Host pressed Start — play the launch overlay on every client. Mirror
+        // will pull clients into the game scene right after (host's StartMatch).
+        if (!NetworkServer.active && SteamMatchmaking.GetLobbyData(lobbyId, "starting") == "1")
+        {
+            LaunchOverlay.Instance?.Play();
+            return;
         }
 
-        // Lobby-level data changed — handle initial client connection only once
         if (NetworkServer.active || _hasConnected) return;
 
         string hostAddress = SteamMatchmaking.GetLobbyData(_currentLobbyId, "HostAddress");

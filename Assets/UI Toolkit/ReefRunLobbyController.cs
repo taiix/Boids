@@ -39,11 +39,11 @@ namespace ReefRun
         readonly List<Player> _demoQueue = new(); // not-yet-joined (demo only)
         float _start;
 
-        VisualElement _root, _barFill, _overlay;
+        VisualElement _root, _barFill;
         ScrollView _list, _feed;
 
         Label _lobbyCount, _readyCount;
-        Button _readyBtn, _startBtn, _inviteBtn, _readyCheckBtn;
+        Button _readyBtn, _startBtn, _inviteBtn;
 
         Player Me => _players.Find(p => p.isYou);
 
@@ -81,16 +81,13 @@ namespace ReefRun
             _list = _root.Q<ScrollView>("roster-list");
             _feed = _root.Q<ScrollView>("feed");
             _barFill = _root.Q<VisualElement>("bar-fill");
-            _overlay = _root.Q<VisualElement>("overlay");
             _lobbyCount = _root.Q<Label>("lobby-count");
             _readyCount = _root.Q<Label>("ready-count");
             _readyBtn = _root.Q<Button>("ready-btn");
             _startBtn = _root.Q<Button>("start-btn");
             _inviteBtn = _root.Q<Button>("invite-btn");
-            _readyCheckBtn = _root.Q<Button>("ready-check-btn");
 
             _readyBtn.clicked += ToggleLocalReady;
-            _readyCheckBtn.clicked += ReadyCheck;
             _startBtn.clicked += StartMatch;
             _inviteBtn.clicked += InviteNext;
 
@@ -242,17 +239,6 @@ namespace ReefRun
             SetReady(me.steamId, newReady); // update locally immediately
         }
 
-        void ReadyCheck()
-        {
-            var todo = _players.FindAll(p => !p.ready);
-            if (todo.Count == 0) { Log("The whole shoal is ready", Hex("3FE0C5")); return; }
-            for (int i = 0; i < todo.Count; i++)
-            {
-                var p = todo[i];
-                _root.schedule.Execute(() => SetReady(p.steamId, true)).StartingIn(240 * (i + 1));
-            }
-        }
-
         void InviteNext()
         {
             SteamFriends.ActivateGameOverlayInviteDialog(SteamLobby.instance.CurrentLobbyId);
@@ -260,28 +246,16 @@ namespace ReefRun
 
         void StartMatch()
         {
-            if (!NetworkServer.active) return;
+            // Host only, and only once everyone is ready (button is otherwise disabled/hidden).
+            if (!NetworkServer.active || !_startBtn.enabledSelf) return;
 
+            // Tell every client to play the launch overlay (lobby-level data).
             SteamMatchmaking.SetLobbyData(SteamLobby.instance.CurrentLobbyId, "starting", "1");
-            PlayLauchOverlay();
-      
-            _root.schedule.Execute(() => CustomNetworkManager.singleton.ServerChangeScene("Island")).StartingIn(6200);
-        }
+            LaunchOverlay.Instance?.Play();
 
-        public void PlayLauchOverlay()
-        {
-            if (_startBtn.enabledSelf == false) return;
-            _overlay.style.display = DisplayStyle.Flex;
-            _overlay.schedule.Execute(() => _overlay.AddToClassList("show")).StartingIn(16);
-            _overlay.schedule.Execute(() => _overlay.AddToClassList("phase1")).StartingIn(1700);
-            _overlay.schedule.Execute(() => _overlay.AddToClassList("phase2")).StartingIn(3000);
-            _overlay.schedule.Execute(() => _overlay.RemoveFromClassList("show")).StartingIn(5500);
-            _overlay.schedule.Execute(() =>
-            {
-                _overlay.style.display = DisplayStyle.None;
-                _overlay.RemoveFromClassList("phase1");
-                _overlay.RemoveFromClassList("phase2");
-            }).StartingIn(6200);
+            // After the animation, pull everyone into the game scene over Mirror.
+            // The overlay persists the load and fades out once Island is active.
+            _root.schedule.Execute(() => CustomNetworkManager.singleton.ServerChangeScene("Island")).StartingIn(6200);
         }
 
         void FlashRow(int index)

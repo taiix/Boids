@@ -1,0 +1,32 @@
+/* ============================================================
+   REEF RUN — launch overlay stylesheet (UI Toolkit / USS)
+   ------------------------------------------------------------
+   Standalone copy of the overlay styles so the overlay can live
+   on its own persistent UIDocument and survive the lobby->game
+   scene change. CSS variables don't cross UIDocuments, so the
+   ones the overlay needs are redeclared here.
+   ============================================================ */
+
+:root{
+    --text:#eaf6f4; --dim:#88b4bd; --aqua:#3fe0c5;
+}
+
+/* ---------- overlay ---------- */
+.overlay{
+    position:absolute; left:0; top:0; right:0; bottom:0;
+    align-items:center; justify-content:center;
+    background-color:rgba(3,16,24,1);
+    opacity:0; transition: opacity 0.6s ease;
+}
+.overlay.show{ opacity:1; }
+.ov-inner{ align-items:center; }
+.ov-eyebrow{ font-size:12px; letter-spacing:6px; color:var(--aqua); margin-bottom:18px; }
+.ov-title-row{ flex-direction:row; align-items:center; }
+.ov-title{ -unity-font-style:bold; font-size:60px; letter-spacing:5px; color:var(--text); }
+.ov-dots{ flex-direction:row; align-items:center; margin-left:14px; }
+.ov-dot{ width:9px; height:9px; border-radius:5px; background-color:var(--aqua); margin-left:7px; opacity:0.3; }
+.ov-line{ margin-top:22px; opacity:0; transition: opacity 0.6s ease; }
+.ov-line-1{ font-size:22px; color:var(--text); }
+.ov-line-2{ font-size:15px; color:var(--dim); margin-top:12px; }
+.overlay.phase1 .ov-line-1{ opacity:1; }
+.overlay.phase2 .ov-line-2{ opacity:1; }

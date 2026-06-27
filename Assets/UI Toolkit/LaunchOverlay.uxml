@@ -1,0 +1,18 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="LaunchOverlay.uss"/>
+    <ui:VisualElement name="overlay" class="overlay" style="display: none;">
+        <ui:VisualElement class="ov-inner">
+            <ui:Label text="REEF RUN" class="ov-eyebrow"/>
+            <ui:VisualElement class="ov-title-row">
+                <ui:Label text="DESCENDING" class="ov-title"/>
+                <ui:VisualElement class="ov-dots">
+                    <ui:VisualElement class="ov-dot"/>
+                    <ui:VisualElement class="ov-dot"/>
+                    <ui:VisualElement class="ov-dot"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:Label name="ov-line-1" text="One of you is the shark" class="ov-line ov-line-1"/>
+            <ui:Label name="ov-line-2" text="Roles are being dealt in secret. Trust no fin." class="ov-line ov-line-2"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
