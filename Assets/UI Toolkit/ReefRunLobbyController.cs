@@ -1,3 +1,4 @@
+using Mirror;
 using Steamworks;
 using System.Collections.Generic;
 using UnityEngine;
@@ -42,7 +43,7 @@ namespace ReefRun
         ScrollView _list, _feed;
 
         Label _lobbyCount, _readyCount;
-        Button _readyBtn, _startBtn, _inviteBtn, _readyCheckBtn, _copyBtn;
+        Button _readyBtn, _startBtn, _inviteBtn, _readyCheckBtn;
 
         Player Me => _players.Find(p => p.isYou);
 
@@ -51,8 +52,6 @@ namespace ReefRun
 
         void OnEnable()
         {
-            _list = new();
-
             _doc = GetComponent<UIDocument>();
             StartCoroutine(BuildNextFrame());
         }
@@ -89,7 +88,6 @@ namespace ReefRun
             _startBtn = _root.Q<Button>("start-btn");
             _inviteBtn = _root.Q<Button>("invite-btn");
             _readyCheckBtn = _root.Q<Button>("ready-check-btn");
-            _copyBtn = _root.Q<Button>("copy-btn");
 
             _readyBtn.clicked += ToggleLocalReady;
             _readyCheckBtn.clicked += ReadyCheck;
@@ -97,9 +95,13 @@ namespace ReefRun
             _inviteBtn.clicked += InviteNext;
 
             _start = Time.realtimeSinceStartup;
+
+            _startBtn.style.display = NetworkServer.active ? DisplayStyle.Flex : DisplayStyle.None;
+
             PopulateSteamLobby();
             Rebuild();
         }
+
         void PopulateSteamLobby()
         {
             if (!SteamManager.Initialized || SteamLobby.instance == null) return;
@@ -258,6 +260,16 @@ namespace ReefRun
 
         void StartMatch()
         {
+            if (!NetworkServer.active) return;
+
+            SteamMatchmaking.SetLobbyData(SteamLobby.instance.CurrentLobbyId, "starting", "1");
+            PlayLauchOverlay();
+      
+            _root.schedule.Execute(() => CustomNetworkManager.singleton.ServerChangeScene("Island")).StartingIn(6200);
+        }
+
+        public void PlayLauchOverlay()
+        {
             if (_startBtn.enabledSelf == false) return;
             _overlay.style.display = DisplayStyle.Flex;
             _overlay.schedule.Execute(() => _overlay.AddToClassList("show")).StartingIn(16);
@@ -272,7 +284,6 @@ namespace ReefRun
             }).StartingIn(6200);
         }
 
-      
         void FlashRow(int index)
         {
             if (index < 0 || index >= _list.childCount) return;

@@ -1,8 +1,6 @@
 using Mirror;
 using ReefRun;
 using Steamworks;
-using System;
-using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -100,6 +98,11 @@ public class SteamLobby : MonoBehaviour
             string val = SteamMatchmaking.GetLobbyMemberData(lobbyId, memberId, "ready");
             controller.SetReady(memberId, val == "1");
             return;
+        }
+
+        if (!NetworkServer.active && SteamMatchmaking.GetLobbyData(lobbyId, "starting") == "1") { 
+            var controller = FindAnyObjectByType<ReefRunLobbyController>();
+            controller?.PlayLauchOverlay();
         }
 
         // Lobby-level data changed — handle initial client connection only once
