@@ -24,7 +24,7 @@ MonoBehaviour:
   m_MinSize: {x: 300, y: 112}
   m_MaxSize: {x: 24288, y: 16192}
   vertical: 0
-  controlID: 5123
+  controlID: 244
   draggingID: 0
 --- !u!114 &2
 MonoBehaviour:
@@ -156,7 +156,7 @@ MonoBehaviour:
   m_MinSize: {x: 200, y: 112}
   m_MaxSize: {x: 16192, y: 16192}
   vertical: 1
-  controlID: 5124
+  controlID: 245
   draggingID: 0
 --- !u!114 &4
 MonoBehaviour:
@@ -254,19 +254,11 @@ MonoBehaviour:
   m_SceneHierarchy:
     m_TreeViewState:
       scrollPos: {x: 0, y: 0}
-      m_SelectedIDs:
-      - m_rawData: 568105584918858642
+      m_SelectedIDs: []
       m_LastClickedID:
         m_rawData: 568105584918858642
       m_ExpandedIDs:
-      - m_rawData: 568105589213688712
-      - m_rawData: 568105589213689638
-      - m_rawData: 568105589213752476
-      - m_rawData: 568105589213752492
-      - m_rawData: 568105589213752496
-      - m_rawData: 568105589213752500
-      - m_rawData: 568105589213752508
-      - m_rawData: 568105589213756066
+      - m_rawData: 568105589213756070
       m_RenameOverlay:
         m_UserAcceptedRename: 0
         m_Name: 
@@ -342,10 +334,10 @@ MonoBehaviour:
     m_TextWithWhitespace: "Scene\u200B"
   m_Pos:
     serializedVersion: 2
-    x: 300
+    x: 251
     y: 79
-    width: 964
-    height: 469
+    width: 1282
+    height: 584
   m_SerializedDataModeController:
     m_DataMode: 0
     m_PreferredDataMode: 0
@@ -946,9 +938,9 @@ MonoBehaviour:
   m_AudioPlay: 0
   m_DebugDrawModesUseInteractiveLightBakingData: 0
   m_Position:
-    m_Target: {x: 6.4948125, y: -5.160461, z: -62.21786}
+    m_Target: {x: 31.848846, y: -9.852631, z: -164.62387}
     speed: 2
-    m_Value: {x: 6.4948125, y: -5.160461, z: -62.21786}
+    m_Value: {x: 31.848846, y: -9.852631, z: -164.62387}
   m_RenderMode: 0
   m_CameraMode:
     drawMode: 0
@@ -995,13 +987,13 @@ MonoBehaviour:
     m_gridOpacity: 0.5
     m_NearestPlaneToHandleMode: 0
   m_Rotation:
-    m_Target: {x: -0.082943715, y: -0.35520357, z: 0.03166324, w: -0.9305637}
+    m_Target: {x: -0.114927314, y: -0.75126606, z: 0.13585502, w: -0.63555914}
     speed: 2
-    m_Value: {x: -0.08299109, y: -0.35380724, z: 0.03153878, w: -0.93109524}
+    m_Value: {x: -0.11492726, y: -0.7512657, z: 0.13585496, w: -0.63555884}
   m_Size:
-    m_Target: 10
+    m_Target: 0.2532659
     speed: 2
-    m_Value: 10
+    m_Value: 0.2532659
   m_Ortho:
     m_Target: 0
     speed: 2
@@ -1053,9 +1045,9 @@ MonoBehaviour:
   m_Position:
     serializedVersion: 2
     x: 0
-    y: 495
-    width: 1266
-    height: 438
+    y: 610
+    width: 1535
+    height: 323
   m_MinSize: {x: 231, y: 276}
   m_MaxSize: {x: 10001, y: 10026}
   m_ActualView: {fileID: 10}
@@ -1118,7 +1110,7 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Assets/Prefabs
+    - Assets/Scenes
     m_Globs: []
     m_ProductIds: 
     m_AnyWithAssetOrigin: 0
@@ -1128,7 +1120,7 @@ MonoBehaviour:
   m_ViewMode: 1
   m_StartGridSize: 62
   m_LastFolders:
-  - Assets/Prefabs
+  - Assets/Scenes
   m_LastFoldersGridSize: 62
   m_LastProjectPath: D:\GameJams\FishGame\Boids
   m_LockTracker:
@@ -1137,16 +1129,19 @@ MonoBehaviour:
   m_FolderTreeState:
     scrollPos: {x: 0, y: 0}
     m_SelectedIDs:
-    - m_rawData: 568105584918848726
+    - m_rawData: 568105584918848634
     m_LastClickedID:
-      m_rawData: 568105584918848726
+      m_rawData: 568105584918848634
     m_ExpandedIDs:
-    - m_rawData: 568105589213754148
+    - m_rawData: 568105589213750758
     - m_rawData: 0
-    - m_rawData: 568105584918848422
-    - m_rawData: 568105584918848732
-    - m_rawData: 568105584918851876
-    - m_rawData: 568105584918851878
+    - m_rawData: 568105584918846286
+    - m_rawData: 568105584918846288
+    - m_rawData: 568105584918846290
+    - m_rawData: 568105584918846292
+    - m_rawData: 568105584918846294
+    - m_rawData: 568105584918846296
+    - m_rawData: 568105584918846298
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -1179,12 +1174,14 @@ MonoBehaviour:
     m_LastClickedID:
       m_rawData: 0
     m_ExpandedIDs:
-    - m_rawData: 568105589213754148
     - m_rawData: 0
-    - m_rawData: 568105584918848422
-    - m_rawData: 568105584918848732
-    - m_rawData: 568105584918851876
-    - m_rawData: 568105584918851878
+    - m_rawData: 568105584918846286
+    - m_rawData: 568105584918846288
+    - m_rawData: 568105584918846290
+    - m_rawData: 568105584918846292
+    - m_rawData: 568105584918846294
+    - m_rawData: 568105584918846296
+    - m_rawData: 568105584918846298
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -1212,11 +1209,10 @@ MonoBehaviour:
       m_Icon: {fileID: 0}
       m_ResourceFile: 
   m_ListAreaState:
-    m_SelectedInstanceIDs:
-    - m_rawData: 568105584918858642
+    m_SelectedInstanceIDs: []
     m_LastClickedEntityId:
-      m_rawData: 568105584918858642
-    m_HadKeyboardFocusLastEvent: 1
+      m_rawData: 0
+    m_HadKeyboardFocusLastEvent: 0
     m_ExpandedInstanceIDs: []
     m_RenameOverlay:
       m_UserAcceptedRename: 0
