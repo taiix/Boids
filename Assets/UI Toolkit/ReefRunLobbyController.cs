@@ -182,7 +182,7 @@ namespace ReefRun
             _inviteBtn.SetEnabled(!full);
             _inviteBtn.text = full ? "Lobby full" : "Invite a friend";
 
-            _startBtn.SetEnabled(n >= 2 && ready == n);
+            _startBtn.SetEnabled(n >= 1 && ready == n);
         }
 
         VisualElement BuildRow(Player p)

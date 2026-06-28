@@ -242,7 +242,6 @@ MonoBehaviour:
   evaluationMethod: 0
   evaluationInterval: 3
   timeInterpolationGui: 0
-  startPoint: {fileID: 0}
 --- !u!114 &9116207
 MonoBehaviour:
   m_ObjectHideFlags: 0
