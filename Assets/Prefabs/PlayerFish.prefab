@@ -493,6 +493,7 @@ GameObject:
   - component: {fileID: 4051003876013962377}
   - component: {fileID: 5898891536474935678}
   - component: {fileID: 5507476645205561390}
+  - component: {fileID: 7649348071467224804}
   m_Layer: 0
   m_Name: PlayerFish
   m_TagString: Untagged
@@ -654,6 +655,18 @@ MonoBehaviour:
   rotationSensitivity: 0.01
   positionPrecision: 0.01
   scalePrecision: 0.01
+--- !u!114 &7649348071467224804
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5638104583358399087}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7ae84711ca970f48a849cb708f7d1f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
 --- !u!1 &6744179510574502864
 GameObject:
   m_ObjectHideFlags: 0
