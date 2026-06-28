@@ -63,7 +63,8 @@ namespace ReefRun
             if (_overlay == null || _playing) return;
             _playing = true;
             _overlay.style.display = DisplayStyle.Flex;
-            _overlay.schedule.Execute(() => _overlay.AddToClassList("show")).StartingIn(16);
+            _overlay.style.opacity = 1f;   // instant full-dark cover (no lobby flash)
+            // text reveals still animate via USS .ov-line transitions
             _overlay.schedule.Execute(() => _overlay.AddToClassList("phase1")).StartingIn(1700);
             _overlay.schedule.Execute(() => _overlay.AddToClassList("phase2")).StartingIn(3000);
         }
@@ -71,16 +72,33 @@ namespace ReefRun
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (!_playing || _overlay == null || scene.name != GameSceneName) return;
+            StartCoroutine(FadeOutWhenSettled(0.6f));
+        }
 
-            // .overlay has `transition: opacity 0.6s` — removing "show" fades it out.
-            _overlay.RemoveFromClassList("show");
-            _overlay.schedule.Execute(() =>
+        // Fade the cover out once the new scene is up. We DON'T use the USS opacity
+        // transition here: sceneLoaded fires while Island is still doing its heavy
+        // first frame, and that single long frame swallows the whole transition so
+        // it looks instant. Instead we wait a few frames for the load to settle,
+        // then interpolate opacity ourselves on unscaled time.
+        System.Collections.IEnumerator FadeOutWhenSettled(float dur)
+        {
+            yield return null;
+            yield return null;
+            yield return null;
+
+            float t = 0f;
+            while (t < dur)
             {
-                _overlay.style.display = DisplayStyle.None;
-                _overlay.RemoveFromClassList("phase1");
-                _overlay.RemoveFromClassList("phase2");
-                _playing = false;
-            }).StartingIn(700);
+                t += Time.unscaledDeltaTime;
+                _overlay.style.opacity = Mathf.Clamp01(1f - t / dur);
+                yield return null;
+            }
+
+            _overlay.style.opacity = 0f;
+            _overlay.style.display = DisplayStyle.None;
+            _overlay.RemoveFromClassList("phase1");
+            _overlay.RemoveFromClassList("phase2");
+            _playing = false;
         }
     }
 }

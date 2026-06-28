@@ -4,6 +4,7 @@
     "com.rlabrecque.steamworks.net": "https://github.com/rlabrecque/Steamworks.NET.git?path=/com.rlabrecque.steamworks.net#2025.163.0",
     "com.unity.collab-proxy": "2.12.4",
     "com.unity.feature.development": "1.0.2",
+    "com.unity.inputsystem": "1.19.0",
     "com.unity.multiplayer.center": "1.0.1",
     "com.unity.nuget.newtonsoft-json": "3.2.2",
     "com.unity.render-pipelines.high-definition": "17.5.0",
