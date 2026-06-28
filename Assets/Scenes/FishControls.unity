@@ -6763,6 +6763,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: PlayerFish
       objectReference: {fileID: 0}
+    - target: {fileID: 5898891536474935678, guid: 187eee53fb84ed24b9f31e1a7ead2052,
+        type: 3}
+      propertyPath: sceneId
+      value: 1110173499
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
