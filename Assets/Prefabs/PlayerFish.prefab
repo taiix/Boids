@@ -494,6 +494,7 @@ GameObject:
   - component: {fileID: 5898891536474935678}
   - component: {fileID: 5507476645205561390}
   - component: {fileID: 7649348071467224804}
+  - component: {fileID: -6376916493546265328}
   m_Layer: 0
   m_Name: PlayerFish
   m_TagString: Untagged
@@ -667,6 +668,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7ae84711ca970f48a849cb708f7d1f8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  camera: {fileID: 0}
+--- !u!114 &-6376916493546265328
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5638104583358399087}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65ea312ca8e08d347b75a618611d8e12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GrassDistortion
+  playerTransform: {fileID: 2163479463908767922}
+  grass: {fileID: 2100000, guid: 3def0d64bd65ffc4da4a1efa2c4b8ffc, type: 2}
 --- !u!1 &6744179510574502864
 GameObject:
   m_ObjectHideFlags: 0
