@@ -18,6 +18,9 @@ namespace FishGame
         [Header("Target")]
         [Tooltip("The fish to follow. If empty, uses this object's parent.")]
         [SerializeField] Transform target;
+        [Tooltip("Unparent from the fish on play so the camera follows purely by script (smooth). " +
+                 "Parenting to the fish's interpolated Rigidbody causes jitter on fast turns. Keep ON.")]
+        [SerializeField] bool detachFromParentOnStart = true;
 
         [Header("Look")]
         [SerializeField] float mouseSensitivity = 0.12f;
@@ -53,6 +56,24 @@ namespace FishGame
         [Tooltip("How far ahead of the fish the camera looks (keeps the nose lower on screen).")]
         [SerializeField] float lookAheadHeight = 0.5f;
 
+        [Header("Collision (don't clip into ground/terrain)")]
+        [Tooltip("Pull the camera in toward the fish when geometry is between them.")]
+        [SerializeField] bool avoidClipping = true;
+        [Tooltip("Layers that block the camera (seabed, terrain, reefs). Narrow this if it catches things it shouldn't.")]
+        [SerializeField] LayerMask collisionMask = ~0;
+        [Tooltip("Thickness of the camera probe so it pulls in before the lens actually touches a surface.")]
+        [SerializeField] float collisionRadius = 0.3f;
+        [Tooltip("Closest the camera will zoom toward the fish when fully blocked.")]
+        [SerializeField] float minDistance = 0.8f;
+        [Tooltip("Extra gap kept between the camera and whatever it hit.")]
+        [SerializeField] float collisionBuffer = 0.2f;
+        [Tooltip("How fast the camera zooms back OUT after the obstacle clears. Pull-in is always instant " +
+                 "(so it never clips); this only smooths the recovery.")]
+        [SerializeField] float zoomReturnSharpness = 8f;
+
+        readonly RaycastHit[] _camHits = new RaycastHit[8];
+        float _currentDistance;
+
         InputAction _lookAction;
         InputAction _freeLookAction;
         InputAction _turnAction; // keyboard steering: x = yaw (A/D), y = pitch (Up/Down arrows)
@@ -69,6 +90,8 @@ namespace FishGame
 
         void Awake()
         {
+            _currentDistance = distance;
+
             if (target == null && transform.parent != null)
                 target = transform.parent;
 
@@ -117,6 +140,13 @@ namespace FishGame
 
         void Start()
         {
+            // Follow the fish by reference, not by parenting -> no parented-Rigidbody jitter.
+            if (detachFromParentOnStart && transform.parent != null)
+            {
+                if (target == null) target = transform.parent;
+                transform.SetParent(null, true);
+            }
+
             if (lockCursor)
             {
                 Cursor.lockState = CursorLockMode.Locked;
@@ -189,18 +219,49 @@ namespace FishGame
         void LateUpdate()
         {
             if (target == null) return;
+            float dt = Time.deltaTime;
 
-            // Camera position uses steering + free-look offset; the fish only ever sees the
+            // Camera orientation uses steering + free-look offset; the fish only ever sees the
             // steering angles via AimDirection, so orbiting never turns the fish.
             Quaternion camRot = Quaternion.Euler(_pitch + _freePitch, _yaw + _freeYaw, 0f);
-            Vector3 desiredPos = target.position
-                                 - (camRot * Vector3.forward) * distance
-                                 + Vector3.up * height;
+            Vector3 pivot = target.position + Vector3.up * height;   // top of the spring arm
+            Vector3 backDir = -(camRot * Vector3.forward);            // fish -> camera
 
+            // Spring arm: cast along the IDEAL arm direction from the stable pivot (NOT from the
+            // jittery camera position) so the result doesn't feed back into itself and shake.
+            float targetDist = distance;
+            if (avoidClipping)
+            {
+                int n = Physics.SphereCastNonAlloc(pivot, collisionRadius, backDir, _camHits, distance,
+                                                   collisionMask, QueryTriggerInteraction.Ignore);
+                float nearest = distance;
+                for (int i = 0; i < n; i++)
+                {
+                    if (_camHits[i].collider.transform.IsChildOf(target)) continue; // ignore the fish itself
+                    if (_camHits[i].distance < nearest) nearest = _camHits[i].distance;
+                }
+                if (nearest < targetDist)
+                    targetDist = Mathf.Max(minDistance, nearest - collisionBuffer);
+            }
+
+            // Pull IN instantly (never clip); ease back OUT smoothly. This asymmetry is what
+            // kills the in/out chatter when you push the camera against the ground.
+            if (targetDist < _currentDistance)
+                _currentDistance = targetDist;
+            else
+                _currentDistance = Mathf.Lerp(_currentDistance, targetDist, 1f - Mathf.Exp(-zoomReturnSharpness * dt));
+
+            // Smooth the follow (lag as the fish moves), then place the camera along the arm.
+            Vector3 desiredPos = pivot + backDir * _currentDistance;
             transform.position = Vector3.SmoothDamp(transform.position, desiredPos, ref _posVelocity, followSmoothTime);
 
+            // Look at the fish. Guard against a near-zero direction when zoomed in tight, which
+            // would make the rotation jitter — fall back to the orbit direction instead.
             Vector3 lookTarget = target.position + Vector3.up * lookAheadHeight;
-            transform.rotation = Quaternion.LookRotation(lookTarget - transform.position, Vector3.up);
+            Vector3 lookDir = lookTarget - transform.position;
+            transform.rotation = lookDir.sqrMagnitude > 0.0004f
+                ? Quaternion.LookRotation(lookDir, Vector3.up)
+                : camRot;
         }
     }
 }
