@@ -1,7 +1,6 @@
 using FishGame;
 using Mirror;
 using UnityEngine;
-using UnityEngine.InputSystem.XR;
 
 [RequireComponent(typeof(FishController))]
 public class FishPlayer : NetworkBehaviour
