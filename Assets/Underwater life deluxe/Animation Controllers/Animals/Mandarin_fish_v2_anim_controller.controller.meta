@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: e63460484a5362d4d9f3deb044559406
+timeCreated: 1520871224
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Animation Controllers/Animals/Mandarin_fish_v2_anim_controller.controller
+  uploadId: 238907

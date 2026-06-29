@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: c2a8d83255163a54a9a50badc638279a
+timeCreated: 1520514744
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Prefabs/Animals/Trout_prefab.prefab
+  uploadId: 238907

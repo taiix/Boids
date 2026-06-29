@@ -31,6 +31,18 @@ namespace FishGame
         [Tooltip("How fast the camera eases back behind the fish after you release free-look.")]
         [SerializeField] float freeLookReturnSpeed = 8f;
 
+        [Header("Steering mode")]
+        [Tooltip("ON = turn with the keyboard (A/D yaw, Up/Down arrows pitch). OFF = steer with the mouse. " +
+                 "Toggle at runtime with the toggle key.")]
+        [SerializeField] bool keyboardSteering = false;
+        [Tooltip("Key that flips between mouse and keyboard steering.")]
+        [SerializeField] Key toggleSteeringKey = Key.T;
+        [SerializeField] float keyboardYawSpeed = 120f;   // deg/sec
+        [SerializeField] float keyboardPitchSpeed = 90f;  // deg/sec
+
+        /// <summary>True while the fish is being turned by the keyboard instead of the mouse.</summary>
+        public bool KeyboardSteering => keyboardSteering;
+
         [Header("Follow rig")]
         [Tooltip("Distance the camera sits behind the fish.")]
         [SerializeField] float distance = 5f;
@@ -43,6 +55,7 @@ namespace FishGame
 
         InputAction _lookAction;
         InputAction _freeLookAction;
+        InputAction _turnAction; // keyboard steering: x = yaw (A/D), y = pitch (Up/Down arrows)
         float _yaw;        // steering yaw the fish follows
         float _pitch;      // steering pitch the fish follows
         float _freeYaw;    // camera-only orbit offset while free-looking
@@ -68,6 +81,13 @@ namespace FishGame
             _freeLookAction.AddBinding("<Mouse>/rightButton");
             _freeLookAction.AddBinding("<Gamepad>/leftShoulder");
 
+            _turnAction = new InputAction("KeyboardTurn", InputActionType.Value, expectedControlType: "Vector2");
+            _turnAction.AddCompositeBinding("2DVector")
+                .With("Left", "<Keyboard>/a")
+                .With("Right", "<Keyboard>/d")
+                .With("Up", "<Keyboard>/upArrow")
+                .With("Down", "<Keyboard>/downArrow");
+
             // Start aligned with the target's current heading.
             if (target != null)
             {
@@ -85,12 +105,14 @@ namespace FishGame
         {
             _lookAction.Enable();
             _freeLookAction.Enable();
+            _turnAction.Enable();
         }
 
         void OnDisable()
         {
             _lookAction.Disable();
             _freeLookAction.Disable();
+            _turnAction.Disable();
         }
 
         void Start()
@@ -104,6 +126,14 @@ namespace FishGame
 
         void Update()
         {
+            // Flip steering mode on the toggle key.
+            var kb = Keyboard.current;
+            if (kb != null && kb[toggleSteeringKey].wasPressedThisFrame)
+            {
+                keyboardSteering = !keyboardSteering;
+                Debug.Log($"[FishOrbitCamera] Steering = {(keyboardSteering ? "KEYBOARD (A/D yaw, Up/Down arrows pitch)" : "MOUSE")}");
+            }
+
             // Mouse delta is already per-frame movement, so we DON'T multiply by deltaTime.
             // Gamepad is a sustained axis, so that one is time-scaled.
             Vector2 look = _lookAction.ReadValue<Vector2>();
@@ -134,9 +164,20 @@ namespace FishGame
             }
             else
             {
-                // Normal: mouse steers the fish.
-                _yaw += dx;
-                _pitch = Mathf.Clamp(_pitch + pitchDelta, -pitchLimit, pitchLimit);
+                if (keyboardSteering)
+                {
+                    // Keyboard steers the fish: A/D = yaw, Up/Down arrows = pitch. Mouse is ignored.
+                    Vector2 turn = _turnAction.ReadValue<Vector2>();
+                    _yaw += turn.x * keyboardYawSpeed * Time.deltaTime;
+                    float kp = turn.y * keyboardPitchSpeed * Time.deltaTime;
+                    _pitch = Mathf.Clamp(_pitch + (invertY ? -kp : kp), -pitchLimit, pitchLimit);
+                }
+                else
+                {
+                    // Mouse steers the fish.
+                    _yaw += dx;
+                    _pitch = Mathf.Clamp(_pitch + pitchDelta, -pitchLimit, pitchLimit);
+                }
 
                 // Ease the orbit offset back to zero -> camera swings home behind the fish.
                 float k = 1f - Mathf.Exp(-freeLookReturnSpeed * Time.deltaTime);

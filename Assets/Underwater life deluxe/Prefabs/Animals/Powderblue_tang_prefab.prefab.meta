@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: bf0df99db0e69374787db1930f12d96c
+timeCreated: 1520514636
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Prefabs/Animals/Powderblue_tang_prefab.prefab
+  uploadId: 238907

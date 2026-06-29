@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 43b111cde02506b4da8ad39b7b66f7b6
+timeCreated: 1520940665
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Animation Controllers/Animals/Siganus_anim_controller.controller
+  uploadId: 238907

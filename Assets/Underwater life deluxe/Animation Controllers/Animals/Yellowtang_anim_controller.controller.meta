@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 70d4f70fc0a7dcb48928dd3b73c5c25c
+timeCreated: 1520940713
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Animation Controllers/Animals/Yellowtang_anim_controller.controller
+  uploadId: 238907

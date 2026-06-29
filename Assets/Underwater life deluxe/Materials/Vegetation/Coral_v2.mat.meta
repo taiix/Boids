@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 0bdd0ab28901de045a77475554f5629c
+timeCreated: 1520419828
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Materials/Vegetation/Coral_v2.mat
+  uploadId: 238907

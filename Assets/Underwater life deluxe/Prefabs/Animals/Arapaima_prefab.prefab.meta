@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: bd52fe591dcea5a4ba689c55c42d29eb
+timeCreated: 1520514335
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Prefabs/Animals/Arapaima_prefab.prefab
+  uploadId: 238907
