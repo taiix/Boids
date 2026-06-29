@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: fe0c873a2a759c0438344d613c040169
+timeCreated: 1520514700
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Prefabs/Animals/Siganus_javus_prefab.prefab
+  uploadId: 238907

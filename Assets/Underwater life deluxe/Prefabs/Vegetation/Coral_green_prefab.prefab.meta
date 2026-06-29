@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 97859990efd0bc746aa9a423aad03cef
+timeCreated: 1520510744
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Prefabs/Vegetation/Coral_green_prefab.prefab
+  uploadId: 238907

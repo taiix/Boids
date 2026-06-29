@@ -69,7 +69,9 @@ namespace FishGame
 
             Vector2 move = _moveAction.ReadValue<Vector2>();
             float throttle = allowReverse ? move.y : Mathf.Max(0f, move.y);
-            float strafe = move.x;
+            // When the camera is in keyboard-steering mode, A/D turns the fish instead of strafing.
+            bool keyboardSteering = aimCamera != null && aimCamera.KeyboardSteering;
+            float strafe = keyboardSteering ? 0f : move.x;
 
             float ascend = (_ascendAction.IsPressed() ? 1f : 0f) - (_descendAction.IsPressed() ? 1f : 0f);
             bool boost = _boostAction.IsPressed();

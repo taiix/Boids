@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: b841088b6a9740446b43ad2824369e89
+timeCreated: 1520445709
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Materials/Animals/Mesh_default_materials/06
+    - Default.mat
+  uploadId: 238907

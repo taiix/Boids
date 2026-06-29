@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 979d5793be1d764468209edd5f010027
+timeCreated: 1520510810
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Prefabs/Vegetation/Underwater_plant1_prefab.prefab
+  uploadId: 238907

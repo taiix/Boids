@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 39dc7904ad516e646be4c55e4ecbcbf5
+timeCreated: 1520436660
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Materials/Animals/Oyster_material.mat
+  uploadId: 238907

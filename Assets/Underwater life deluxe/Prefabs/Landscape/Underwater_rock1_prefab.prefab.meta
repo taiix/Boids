@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 516297390df3ed8418567a6788a822e7
+timeCreated: 1520512604
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Prefabs/Landscape/Underwater_rock1_prefab.prefab
+  uploadId: 238907

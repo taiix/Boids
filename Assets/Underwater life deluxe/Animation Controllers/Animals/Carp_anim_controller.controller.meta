@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: bc08b87027a2e2e40b3dd66c4153c0ba
+timeCreated: 1520863995
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Animation Controllers/Animals/Carp_anim_controller.controller
+  uploadId: 238907

@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 582a9efcc51756d408578acd7eca45d2
+timeCreated: 1520422256
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Materials/Animals/Mandarin_fish_v2_material.mat
+  uploadId: 238907

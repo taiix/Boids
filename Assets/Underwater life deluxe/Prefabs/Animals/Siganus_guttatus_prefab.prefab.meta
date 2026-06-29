@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: f5ab06702d794544ab0d1fa0d4885473
+timeCreated: 1520514690
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Prefabs/Animals/Siganus_guttatus_prefab.prefab
+  uploadId: 238907

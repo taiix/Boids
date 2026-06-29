@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 428bbdf30777be043a92558682b7757a
+timeCreated: 1520514499
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 100100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Prefabs/Animals/Mackerel_prefab.prefab
+  uploadId: 238907

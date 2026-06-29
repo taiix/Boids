@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 781d0535df246fe42997e1a9e1280552
+timeCreated: 1520871423
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Animation Controllers/Animals/Rainbow_cichlid_anim_controller.controller
+  uploadId: 238907
