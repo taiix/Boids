@@ -1,13 +1,11 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
-    <Style src="project://database/Assets/ReefRunLobby.uss?fileID=7433441132597879392&amp;guid=ada4da68531a1b147af51e9b359537ff&amp;type=3#ReefRunLobby"/>
+    <Style src="project://database/Assets/UI%20Toolkit/ReefRunLobby.uss?fileID=7433441132597879392&amp;guid=ada4da68531a1b147af51e9b359537ff&amp;type=3#ReefRunLobby"/>
     <ui:VisualElement name="stage" class="stage">
         <ui:VisualElement name="ambient-mount" picking-mode="Ignore" class="ambient-mount"/>
         <ui:VisualElement name="ui" class="ui">
             <ui:VisualElement class="header">
                 <ui:VisualElement class="brand">
-                    <ui:VisualElement class="emblem" style="height: 47px;">
-                        <ui:Label text="▶" class="emblem-glyph"/>
-                    </ui:VisualElement>
+                    <ui:Button name="back-btn" text="← Back" class="btn btn-ghost btn-sm" style="margin-left: 18px; height: 56px; width: 85px; padding-right: 7px; margin-right: 27px;"/>
                     <ui:VisualElement>
                         <ui:Label text="REEF RUN · LOBBY" class="eyebrow"/>
                         <ui:Label text="Coral Canyon" class="title"/>
@@ -25,14 +23,13 @@
                 <ui:VisualElement class="roster-col glass" style="border-top-left-radius: 15px; border-top-right-radius: 15px; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px;">
                     <ui:VisualElement class="roster-head">
                         <ui:Label text="PLAYERS IN LOBBY" class="label"/>
-                        <ui:Button name="invite-btn" text="Invite a friend" class="btn btn-ghost btn-sm"/>
                     </ui:VisualElement>
                     <ui:ScrollView name="roster-list" class="roster-list"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="side-col">
-                    <ui:VisualElement class="activity-card glass">
-                        <ui:Label text="ACTIVITY" class="label"/>
-                        <ui:ScrollView name="feed" class="feed"/>
+                    <ui:VisualElement class="activity-card glass" style="position: absolute; height: 836px; width: 357px;">
+                        <ui:Label text="FRIENDS" class="label"/>
+                        <ui:ScrollView name="friends-list" class="feed"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
@@ -48,7 +45,6 @@
                 </ui:VisualElement>
                 <ui:VisualElement class="actions">
                     <ui:Button name="ready-btn" text="Ready up" class="btn btn-aqua"/>
-                    <ui:Button name="ready-check-btn" text="Ready check" class="btn btn-ghost"/>
                     <ui:Button name="start-btn" text="Start match" class="btn btn-blue"/>
                 </ui:VisualElement>
             </ui:VisualElement>

@@ -41,11 +41,11 @@ public class SteamLobby : MonoBehaviour
 
     private void OnEnable()
     {
-        lobbyCreated           = Callback<LobbyCreated_t>.Create(OnLobbyCreated);
+        lobbyCreated = Callback<LobbyCreated_t>.Create(OnLobbyCreated);
         gameLobbyJoinRequested = Callback<GameLobbyJoinRequested_t>.Create(OnGameLobbyJoinRequested);
-        lobbyEntered           = Callback<LobbyEnter_t>.Create(OnLobbyEntered);
-        lobbyChatUpdate        = Callback<LobbyChatUpdate_t>.Create(OnLobbyChatUpdate);
-        lobbyDataUpdate        = Callback<LobbyDataUpdate_t>.Create(OnLobbyDataUpdate);
+        lobbyEntered = Callback<LobbyEnter_t>.Create(OnLobbyEntered);
+        lobbyChatUpdate = Callback<LobbyChatUpdate_t>.Create(OnLobbyChatUpdate);
+        lobbyDataUpdate = Callback<LobbyDataUpdate_t>.Create(OnLobbyDataUpdate);
     }
 
     private void OnLobbyChatUpdate(LobbyChatUpdate_t update)
@@ -71,6 +71,9 @@ public class SteamLobby : MonoBehaviour
 
     private void OnGameLobbyJoinRequested(GameLobbyJoinRequested_t param)
     {
+        if (_currentLobbyId.IsValid() && _currentLobbyId != (CSteamID)param.m_steamIDLobby)
+            LeaveLobby();
+
         SteamMatchmaking.JoinLobby(param.m_steamIDLobby);
     }
 
@@ -85,7 +88,7 @@ public class SteamLobby : MonoBehaviour
 
     private void OnLobbyDataUpdate(LobbyDataUpdate_t update)
     {
-        var lobbyId  = new CSteamID(update.m_ulSteamIDLobby);
+        var lobbyId = new CSteamID(update.m_ulSteamIDLobby);
         var memberId = new CSteamID(update.m_ulSteamIDMember);
 
         if (lobbyId != _currentLobbyId) return;
@@ -129,6 +132,25 @@ public class SteamLobby : MonoBehaviour
     }
 
     #region Helpers
+    // Leave the current Steam lobby and stop Mirror networking. The caller is
+    // responsible for loading the menu scene afterwards (offlineScene is unset).
+    public void LeaveLobby()
+    {
+        if (_currentLobbyId.IsValid())
+        {
+            SteamMatchmaking.LeaveLobby(_currentLobbyId);
+            _currentLobbyId = CSteamID.Nil;
+        }
+
+        if (networkManager != null)
+        {
+            if (NetworkServer.active) networkManager.StopHost();   // host = server + local client
+            else if (NetworkClient.active) networkManager.StopClient();
+        }
+
+        _hasConnected = false;
+    }
+
     public void CreateLobby()
     {
         if (SteamManager.Initialized)
@@ -143,17 +165,22 @@ public class SteamLobby : MonoBehaviour
         string name = SteamFriends.GetFriendPersonaName(steamId);
         Player player = new Player
         {
-            steamId  = steamId,
-            name     = name,
-            avatar   = SteamManager.GetLocalSteamAvatar(steamId),
-            isHost   = isHost,
-            isYou    = steamId == SteamUser.GetSteamID(),
+            steamId = steamId,
+            name = name,
+            avatar = SteamManager.GetLocalSteamAvatar(steamId),
+            isHost = isHost,
+            isYou = steamId == SteamUser.GetSteamID(),
         };
         ReefRunLobbyController controller = FindAnyObjectByType<ReefRunLobbyController>();
         if (controller != null)
             controller.AddPlayer(player);
         else
             Debug.LogWarning("ReefRunLobbyController not found in the scene.");
+    }
+
+    private void OnApplicationQuit()
+    {
+        LeaveLobby();
     }
     #endregion
 }

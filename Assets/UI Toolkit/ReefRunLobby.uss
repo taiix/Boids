@@ -76,15 +76,17 @@
 .copy-btn.copied{ border-color:var(--aqua); color:var(--aqua); }
 
 /* ---------- body ---------- */
-.body{ flex-direction:row; flex-grow:1; }
-.roster-col{ flex-grow:1; flex-direction:column; padding:18px; margin-right:16px; }
+/* min-* :0 lets the columns shrink to the body so their ScrollViews scroll
+   internally instead of growing the panel to fit their content. */
+.body{ flex-direction:row; flex-grow:1; min-height:0; }
+.roster-col{ flex-grow:1; flex-direction:column; padding:18px; margin-right:16px; min-width:0; min-height:0; }
 .roster-head{ flex-direction:row; justify-content:space-between; align-items:center; margin-bottom:12px; }
 .label{ font-size:11px; letter-spacing:2px; color:var(--dim); }
-.roster-list{ flex-grow:1; }
+.roster-list{ flex-grow:1; min-height:0; }
 
 /* a player row */
 .row{
-    flex-direction:row; align-items:center;
+    flex-direction:row; align-items:center; flex-shrink:0;
     padding:8px 12px; min-height:48px; margin-bottom:7px;
     background-color:var(--glass-2);
     border-width:1px; border-color:var(--border);
@@ -96,14 +98,14 @@
     transition:none;            /* snap bright, then base transition fades back */
 }
 .avatar{
-    width:34px; height:34px; border-radius:17px; margin-right:12px;
+    width:34px; height:34px; border-radius:17px; margin-right:12px; flex-shrink:0;
     align-items:center; justify-content:center;
     -unity-background-scale-mode:scale-and-crop;
 }
 .avatar Label{ color:#06283f; -unity-font-style:bold; font-size:12px; }
-.who{ flex-grow:1; }
-.name-line{ flex-direction:row; align-items:center; }
-.name{ -unity-font-style:bold; font-size:15px; color:var(--text); }
+.who{ flex-grow:1; min-width:0; }
+.name-line{ flex-direction:row; align-items:center; min-width:0; }
+.name{ -unity-font-style:bold; font-size:15px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .tag{
     font-size:9px; letter-spacing:1px; padding:1px 5px; margin-left:8px;
     border-width:1px; border-color:var(--border); color:var(--dim);
@@ -119,7 +121,7 @@
 
 /* open slot */
 .row-open{
-    flex-direction:row; align-items:center; justify-content:center;
+    flex-direction:row; align-items:center; justify-content:center; flex-shrink:0;
     padding:8px 12px; min-height:48px; margin-bottom:7px;
     background-color:rgba(0,0,0,0);
     border-width:1px; border-color:rgba(99,200,210,0.22);
@@ -129,10 +131,10 @@
 .row-open:hover{ border-color:var(--border-aqua); }
 .row-open Label{ color:var(--dim); }
 .row-open:hover Label{ color:var(--aqua); }
-.ghost-av{ width:34px; height:34px; border-radius:17px; border-width:1px; border-color:rgba(99,200,210,0.3); margin-right:11px; }
+.ghost-av{ width:34px; height:34px; border-radius:17px; border-width:1px; border-color:rgba(99,200,210,0.3); margin-right:11px; flex-shrink:0; }
 
 /* ---------- side ---------- */
-.side-col{ width:360px; flex-direction:column; }
+.side-col{ width:360px; flex-shrink:0; flex-direction:column; min-width:0; min-height:0; }
 .shark-card{ padding:17px; margin-bottom:16px; border-left-width:2px; border-left-color:rgba(255,93,108,0.55); }
 .card-head{ flex-direction:row; align-items:center; margin-bottom:13px; }
 .card-title{ -unity-font-style:bold; font-size:18px; color:var(--text); }
@@ -145,12 +147,32 @@
 .chip Label{ -unity-font-style:bold; font-size:13px; }
 .shark-copy{ font-size:13px; color:var(--dim); white-space:normal; }
 
-.activity-card{ padding:17px; flex-grow:1; flex-direction:column; }
-.feed{ flex-grow:1; margin-top:2px; }
+.activity-card{ padding:17px; flex-grow:1; flex-direction:column; min-height:0; }
+.feed{ flex-grow:1; margin-top:2px; min-height:0; }
 .feed-line{ flex-direction:row; align-items:center; margin-bottom:10px; }
 .feed-dot{ width:7px; height:7px; border-radius:4px; margin-right:10px; }
 .feed-text{ flex-grow:1; font-size:13px; color:var(--text); white-space:normal; }
 .feed-time{ font-size:10px; letter-spacing:1px; color:var(--dim); margin-left:8px; }
+
+/* friends list (invite from lobby) */
+.friend-row{
+    flex-direction:row; align-items:center; flex-shrink:0;
+    padding:6px 10px; min-height:42px; margin-bottom:6px;
+    background-color:var(--glass-2);
+    border-width:1px; border-color:var(--border);
+}
+.friend-row:hover{ border-color:var(--border-aqua); }
+.friend-status{ font-size:10px; letter-spacing:0.5px; color:var(--dim); margin-top:2px; white-space:nowrap; }
+.friend-status.online{ color:var(--fish); }
+.invite-icon{
+    width:30px; height:30px; padding:0; margin-left:8px; flex-shrink:0;
+    -unity-font-style:bold; font-size:18px;
+    background-color:var(--glass-2); color:var(--aqua);
+    border-width:1px; border-color:var(--border); border-radius:4px;
+}
+.invite-icon:hover{ border-color:var(--border-aqua); background-color:rgba(63,224,197,0.15); }
+.invite-icon:disabled{ opacity:0.4; color:var(--dim); }
+.friend-empty{ font-size:12px; color:var(--dim); margin-top:6px; white-space:normal; }
 
 /* ---------- footer ---------- */
 .footer{ flex-direction:row; align-items:center; padding:15px 20px; margin-top:16px; }
