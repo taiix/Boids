@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: fc828e30e67dfdf4b908bde2cef26ead
+timeCreated: 1520871152
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Animation Controllers/Animals/Mackerel_anim_controller.controller
+  uploadId: 238907

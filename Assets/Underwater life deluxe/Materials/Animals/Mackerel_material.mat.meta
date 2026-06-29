@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 4310db73255a21e4da8ece2ef277ad7a
+timeCreated: 1520422137
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Materials/Animals/Mackerel_material.mat
+  uploadId: 238907

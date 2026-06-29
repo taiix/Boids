@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 120f3af7266bdfd4d8f6bf1ec5773280
+timeCreated: 1520871376
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Animation Controllers/Animals/Perch_fish_anim_controller.controller
+  uploadId: 238907

@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 436275a13d4459746955fc6db5953473
+MonoImporter:
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Scripts/GhostFreeRoamCamera/Scripts/GhostFreeRoamCamera.cs
+  uploadId: 238907

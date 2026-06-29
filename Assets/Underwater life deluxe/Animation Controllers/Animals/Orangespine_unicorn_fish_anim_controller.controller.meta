@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: f7985b766f5aee742b77d4ac50f68fac
+timeCreated: 1520871333
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Animation Controllers/Animals/Orangespine_unicorn_fish_anim_controller.controller
+  uploadId: 238907

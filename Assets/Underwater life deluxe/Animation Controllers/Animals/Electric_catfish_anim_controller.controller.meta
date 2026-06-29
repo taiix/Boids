@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: ca787d242deb2ae47ac9129cfc463319
+timeCreated: 1520870412
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Animation Controllers/Animals/Electric_catfish_anim_controller.controller
+  uploadId: 238907

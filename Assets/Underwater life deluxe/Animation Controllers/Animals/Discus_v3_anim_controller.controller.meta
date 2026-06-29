@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 4877d6a5bc0bef44f980317f7c2fffc1
+timeCreated: 1520864164
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 9100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Animation Controllers/Animals/Discus_v3_anim_controller.controller
+  uploadId: 238907

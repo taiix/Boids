@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 2e51cc95817f8a64ab269fe60c71968d
+timeCreated: 1520425724
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Materials/Animals/Piranha_material.mat
+  uploadId: 238907

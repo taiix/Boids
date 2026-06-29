@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: f5af586f9770eba43a8354eb00fed323
+timeCreated: 1520420610
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Materials/Animals/Arapaima_material.mat
+  uploadId: 238907

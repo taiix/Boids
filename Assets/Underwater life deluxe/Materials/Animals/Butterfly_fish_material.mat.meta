@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 83b6229c1a9e63346906633d728be88e
+timeCreated: 1520421629
+licenseType: Store
+NativeFormatImporter:
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 115733
+  packageName: Underwater life deluxe
+  packageVersion: 1.0
+  assetPath: Assets/Underwater life deluxe/Materials/Animals/Butterfly_fish_material.mat
+  uploadId: 238907
