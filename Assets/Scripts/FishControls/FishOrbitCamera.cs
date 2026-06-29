@@ -76,7 +76,11 @@ namespace FishGame
                 _pitch = 0f;
             }
         }
-
+        public void SetTarget(Transform t)
+        {
+            target = t;
+            if (t != null) _yaw = t.eulerAngles.y;
+        }
         void OnEnable()
         {
             _lookAction.Enable();

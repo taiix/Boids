@@ -37,13 +37,17 @@ namespace ReefRun
 
         readonly List<Player> _players = new();   // present players, in join order
         readonly List<Player> _demoQueue = new(); // not-yet-joined (demo only)
-        float _start;
+
+        // friend-row avatar slots, keyed by steam id, so the AvatarImageLoaded
+        // callback can fill in pictures that weren't cached when the row was built.
+        readonly Dictionary<CSteamID, VisualElement> _friendAvatars = new();
+        Callback<AvatarImageLoaded_t> _avatarLoaded;
 
         VisualElement _root, _barFill;
-        ScrollView _list, _feed;
+        ScrollView _list, _friends;
 
         Label _lobbyCount, _readyCount;
-        Button _readyBtn, _startBtn, _inviteBtn;
+        Button _readyBtn, _startBtn, _backBtn;
 
         Player Me => _players.Find(p => p.isYou);
 
@@ -53,7 +57,25 @@ namespace ReefRun
         void OnEnable()
         {
             _doc = GetComponent<UIDocument>();
+            if (SteamManager.Initialized)
+                _avatarLoaded = Callback<AvatarImageLoaded_t>.Create(OnAvatarLoaded);
             StartCoroutine(BuildNextFrame());
+        }
+
+        void OnDisable()
+        {
+            _avatarLoaded?.Dispose();
+            _avatarLoaded = null;
+        }
+
+        // Steam loads avatars asynchronously: GetLargeFriendAvatar returns -1 the first
+        // time and fires this callback once the image is ready. Fill in the matching
+        // friend row's picture when that happens.
+        void OnAvatarLoaded(AvatarImageLoaded_t e)
+        {
+            if (!_friendAvatars.TryGetValue(e.m_steamID, out var av) || av == null) return;
+            var tex = SteamManager.GetLocalSteamAvatar(e.m_steamID);
+            if (tex != null) av.style.backgroundImage = new StyleBackground(tex);
         }
 
         // Wait one frame so UIDocument finishes building its tree before we
@@ -79,24 +101,105 @@ namespace ReefRun
 
             // grab elements
             _list = _root.Q<ScrollView>("roster-list");
-            _feed = _root.Q<ScrollView>("feed");
+            _friends = _root.Q<ScrollView>("friends-list");
             _barFill = _root.Q<VisualElement>("bar-fill");
             _lobbyCount = _root.Q<Label>("lobby-count");
             _readyCount = _root.Q<Label>("ready-count");
             _readyBtn = _root.Q<Button>("ready-btn");
             _startBtn = _root.Q<Button>("start-btn");
-            _inviteBtn = _root.Q<Button>("invite-btn");
+            _backBtn = _root.Q<Button>("back-btn");
 
             _readyBtn.clicked += ToggleLocalReady;
             _startBtn.clicked += StartMatch;
-            _inviteBtn.clicked += InviteNext;
-
-            _start = Time.realtimeSinceStartup;
+            if (_backBtn != null) _backBtn.clicked += LeaveLobby;
 
             _startBtn.style.display = NetworkServer.active ? DisplayStyle.Flex : DisplayStyle.None;
 
             PopulateSteamLobby();
             Rebuild();
+            PopulateFriends();
+        }
+
+        // Fill the FRIENDS panel with every Steam friend (online first). Each row has
+        // an invite icon that sends a direct lobby invite via InviteUserToLobby — no
+        // Steam overlay required. Friends already in the lobby show "In lobby" and a
+        // disabled icon. Called on build and whenever lobby membership changes.
+        void PopulateFriends()
+        {
+            if (_friends == null) return;
+            _friends.Clear();
+            _friendAvatars.Clear();
+            if (!SteamManager.Initialized) return;
+
+            CSteamID lobbyId = SteamLobby.instance != null ? SteamLobby.instance.CurrentLobbyId : CSteamID.Nil;
+
+            int count = SteamFriends.GetFriendCount(EFriendFlags.k_EFriendFlagImmediate);
+            var ids = new List<CSteamID>(count);
+            for (int i = 0; i < count; i++)
+                ids.Add(SteamFriends.GetFriendByIndex(i, EFriendFlags.k_EFriendFlagImmediate));
+
+            // online friends first, then alphabetical by name
+            ids.Sort((a, b) =>
+            {
+                int oa = SteamFriends.GetFriendPersonaState(a) == EPersonaState.k_EPersonaStateOffline ? 1 : 0;
+                int ob = SteamFriends.GetFriendPersonaState(b) == EPersonaState.k_EPersonaStateOffline ? 1 : 0;
+                if (oa != ob) return oa - ob;
+                return string.Compare(SteamFriends.GetFriendPersonaName(a),
+                                      SteamFriends.GetFriendPersonaName(b),
+                                      System.StringComparison.OrdinalIgnoreCase);
+            });
+
+            foreach (var id in ids)
+            {
+                bool online  = SteamFriends.GetFriendPersonaState(id) != EPersonaState.k_EPersonaStateOffline;
+                bool inLobby = _players.Exists(p => p.steamId == id);
+                _friends.Add(BuildFriendRow(id, online, inLobby, lobbyId));
+            }
+
+            if (ids.Count == 0)
+                _friends.Add(Lbl("No friends found.", "friend-empty"));
+        }
+
+        VisualElement BuildFriendRow(CSteamID id, bool online, bool inLobby, CSteamID lobbyId)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("friend-row");
+
+            var av = new VisualElement();
+            av.AddToClassList("avatar");
+            var avatar = SteamManager.GetLocalSteamAvatar(id);
+            if (avatar != null) av.style.backgroundImage = new StyleBackground(avatar);
+            _friendAvatars[id] = av;   // filled in later if not yet cached (OnAvatarLoaded)
+            row.Add(av);
+
+            var who = new VisualElement(); who.AddToClassList("who");
+            who.Add(Lbl(SteamFriends.GetFriendPersonaName(id), "name"));
+            var status = Lbl(inLobby ? "In lobby" : (online ? "Online" : "Offline"), "friend-status");
+            if (online && !inLobby) status.AddToClassList("online");
+            who.Add(status);
+            row.Add(who);
+
+            var invite = new Button { text = "+" };
+            invite.AddToClassList("invite-icon");
+            invite.tooltip = "Invite to lobby";
+            if (inLobby)
+            {
+                invite.SetEnabled(false);
+            }
+            else
+            {
+                invite.clicked += () =>
+                {
+                    if (!lobbyId.IsValid()) { Debug.LogWarning("[ReefRun] Invite ignored: no valid lobby yet."); return; }
+                    if (!SteamMatchmaking.InviteUserToLobby(lobbyId, id))
+                    { Debug.LogWarning($"[ReefRun] InviteUserToLobby failed for {id}."); return; }
+                    invite.text = "✓";   // ✓
+                    invite.SetEnabled(false);
+                };
+            }
+            row.Add(invite);
+
+            return row;
         }
 
         void PopulateSteamLobby()
@@ -133,6 +236,7 @@ namespace ReefRun
             _players.Add(p);
 
             Rebuild();
+            PopulateFriends();   // refresh "In lobby" badges / disabled invite icons
             FlashRow(index);
         }
 
@@ -150,10 +254,9 @@ namespace ReefRun
         {
             int i = _players.FindIndex(x => x.steamId == id);
             if (i < 0) return;
-            var p = _players[i];
             _players.RemoveAt(i);
             Rebuild();
-            Log($"<b>{p.name}</b> left the lobby", Hex("88B4BD"));
+            PopulateFriends();   // re-enable invite icon for the player who left
         }
 
         // ===================================================================
@@ -179,10 +282,8 @@ namespace ReefRun
             _readyBtn.EnableInClassList("btn-ghost", meReady);
 
             bool full = _demoQueue.Count == 0 && n >= MaxSlots;
-            _inviteBtn.SetEnabled(!full);
-            _inviteBtn.text = full ? "Lobby full" : "Invite a friend";
 
-            _startBtn.SetEnabled(n >= 2 && ready == n);
+            _startBtn.SetEnabled(n >= 1 && ready == n);
         }
 
         VisualElement BuildRow(Player p)
@@ -222,7 +323,6 @@ namespace ReefRun
             var ghost = new VisualElement(); ghost.AddToClassList("ghost-av");
             row.Add(ghost);
             row.Add(Lbl("Open slot — invite a friend", null));
-            row.RegisterCallback<ClickEvent>(_ => InviteNext());
             return row;
         }
 
@@ -239,9 +339,12 @@ namespace ReefRun
             SetReady(me.steamId, newReady); // update locally immediately
         }
 
-        void InviteNext()
+        // Back button: tear down the lobby (leave Steam lobby + stop host/client)
+        // and return to the main menu.
+        void LeaveLobby()
         {
-            SteamFriends.ActivateGameOverlayInviteDialog(SteamLobby.instance.CurrentLobbyId);
+            SteamLobby.instance?.LeaveLobby();
+            UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
         }
 
         void StartMatch()
@@ -264,25 +367,6 @@ namespace ReefRun
             var row = _list[index];
             row.AddToClassList("joined");
             row.schedule.Execute(() => row.RemoveFromClassList("joined")).StartingIn(200);
-        }
-
-        void Log(string text, Color color)
-        {
-            if (_feed == null) return;
-            var line = new VisualElement(); line.AddToClassList("feed-line");
-            var dot = new VisualElement(); dot.AddToClassList("feed-dot");
-            dot.style.backgroundColor = color;
-            line.Add(dot);
-            var t = Lbl(text, "feed-text"); t.enableRichText = true; line.Add(t);
-            line.Add(Lbl(Stamp(), "feed-time"));
-            _feed.Add(line);
-            _feed.schedule.Execute(() => _feed.ScrollTo(line)).StartingIn(50);
-        }
-
-        string Stamp()
-        {
-            int s = Mathf.FloorToInt(Time.realtimeSinceStartup - _start);
-            return $"{s / 60:00}:{s % 60:00}";
         }
 
         static Label Lbl(string text, string cls)
