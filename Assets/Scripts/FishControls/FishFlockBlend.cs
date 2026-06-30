@@ -35,6 +35,7 @@ namespace FishGame
         InputAction _blendAction;
         Rigidbody _rb;
         Boid _boid;
+        BoidsManager _activeManager; // the flock we're currently blended into
         bool _blending;
         float _timer;
         RigidbodyInterpolation _prevInterpolation;
@@ -87,15 +88,18 @@ namespace FishGame
                 return;
             }
 
-            if (_blendAction.WasPressedThisFrame() && IsNearFlock())
-                StartBlend();
+            if (_blendAction.WasPressedThisFrame())
+            {
+                var flock = FindNearestFlock();
+                if (flock != null) StartBlend(flock);
+            }
         }
 
-        void StartBlend()
+        void StartBlend(BoidsManager mgr)
         {
-            var mgr = BoidsManager.instance;
             if (mgr == null) return;
 
+            _activeManager = mgr;
             _blending = true;
             _timer = blendDuration;
 
@@ -132,12 +136,13 @@ namespace FishGame
                 _scaleActive = true;
             }
 
-            // Become a real member so the boids align/cohere/avoid with us...
-            mgr.Join(gameObject);
+            // Register so the flock (Burst sim) reacts to us, and read its snapshot to school with it.
+            mgr.RegisterInfluencer(transform);
 
-            // ...and run the SAME Boid logic the flock uses, so we move identically.
+            // ...and run the managed Boid steering (tied to THIS flock) so we move with it.
             if (_boid == null) _boid = GetComponent<Boid>();
             if (_boid == null) _boid = gameObject.AddComponent<Boid>();
+            _boid.SetManager(mgr);
             _boid.enabled = true;
         }
 
@@ -147,8 +152,8 @@ namespace FishGame
 
             if (_boid != null) _boid.enabled = false;
 
-            var mgr = BoidsManager.instance;
-            if (mgr != null) mgr.Leave(gameObject);
+            var mgr = _activeManager;
+            if (mgr != null) mgr.UnregisterInfluencer(transform);
 
             // Grow back to our real size (Update finishes the lerp).
             if (_scaleActive) _targetScale = _originalScale;
@@ -174,6 +179,7 @@ namespace FishGame
                 motor.SetVelocity(transform.forward * exitSpeed);
             }
             if (controller != null) controller.enabled = true;
+            _activeManager = null;
         }
 
         // Scale the player so its rendered size matches a flock fish, independent of model/mesh.
@@ -200,19 +206,24 @@ namespace FishGame
             return r != null ? r.bounds.size.magnitude : 0f;
         }
 
-        bool IsNearFlock()
+        // Among ALL flocks, return the one with a fish closest to us within joinRange (or null).
+        BoidsManager FindNearestFlock()
         {
-            var mgr = BoidsManager.instance;
-            if (mgr == null || mgr.allFish == null) return false;
-
-            float r2 = joinRange * joinRange;
+            BoidsManager best = null;
+            float bestDist = joinRange;
             Vector3 pos = transform.position;
-            foreach (var fish in mgr.allFish)
+
+            foreach (var mgr in BoidsManager.All)
             {
-                if (fish == null) continue;
-                if ((fish.transform.position - pos).sqrMagnitude <= r2) return true;
+                if (mgr == null || mgr.allFish == null) continue;
+                foreach (var fish in mgr.allFish)
+                {
+                    if (fish == null || fish == gameObject) continue;
+                    float d = Vector3.Distance(fish.transform.position, pos);
+                    if (d <= bestDist) { bestDist = d; best = mgr; }
+                }
             }
-            return false;
+            return best;
         }
 
         void OnDrawGizmosSelected()

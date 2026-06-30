@@ -1,122 +1,104 @@
 using UnityEngine;
 
+// NOTE: The many flock fish are now simulated by BoidsManager's Burst job (this component is
+// disabled on them). This managed Boid is used ONLY by the player while blended into a flock:
+// it reads the flock's snapshot to school with it, using the same weights so it matches.
 public class Boid : MonoBehaviour
 {
     private BoidsManager manager;
-
     private float speed;
-    private bool turning;
+    private Transform _t;
 
-    void Start()
-    {
-        manager = BoidsManager.instance;
-        speed = Random.Range(manager.minSpeed, manager.maxSpeed);
-    }
+    public void SetManager(BoidsManager m) => manager = m;
 
+    void Awake() => _t = transform;
 
     void Update()
     {
-        Bounds b = new Bounds(manager.transform.position, manager.area);
+        if (manager == null) return;
+        if (speed <= 0f) speed = Random.Range(manager.minSpeed, manager.maxSpeed); // lazy init (manager set after AddComponent)
+        float dt = Time.deltaTime;
+        Vector3 pos = _t.position;
 
-        if (!b.Contains(transform.position))
-        {
-            turning = true;
-        }
-        else turning = false;
+        Vector3[] sp = manager.SnapshotPositions;
+        Vector3[] sf = manager.SnapshotForwards;
+        int count = manager.SnapshotCount;
 
-        if (turning)
+        float nd2 = manager.neighbourDist * manager.neighbourDist;
+        float sepDist = manager.separationDist;
+        float sep2 = sepDist * sepDist;
+
+        Vector3 align = Vector3.zero, center = Vector3.zero, separation = Vector3.zero;
+        int neighbours = 0, sepCount = 0;
+
+        for (int i = 0; i < count; i++)
         {
-            Vector3 dir = manager.transform.position - transform.position;
-            transform.rotation = Quaternion.Slerp(transform.rotation,
-                Quaternion.LookRotation(dir),
-                manager.rotationSpeed * Time.deltaTime);
-        }
-        else
-        {
-            if (Random.Range(0, 100) < 10)
+            Vector3 offset = sp[i] - pos;
+            float d2 = offset.sqrMagnitude;
+            if (d2 > nd2 || d2 < 1e-6f) continue;
+
+            align += sf[i];
+            center += sp[i];
+            neighbours++;
+            if (d2 < sep2)
             {
-                speed = Random.Range(manager.minSpeed, manager.maxSpeed);
-            }
-            if (Random.Range(0, 100) < 40)
-            {
-                //ApplyRules();
-                Vector3 result = ApplySettings() + manager.goalPos;
-
-                transform.rotation = Quaternion.Slerp(transform.rotation,
-                Quaternion.LookRotation(result), manager.rotationSpeed * Time.deltaTime);
+                float d = Mathf.Sqrt(d2);
+                separation -= (offset / d) * (1f - d / sepDist);
+                sepCount++;
             }
         }
-        AvoidObstacles();
-        this.transform.Translate(0, 0, speed * Time.deltaTime);
+
+        Vector3 steer = Vector3.zero;
+        if (neighbours > 0)
+        {
+            align /= neighbours;
+            if (align.sqrMagnitude > 1e-6f) steer += align.normalized * manager.alignmentWeight;
+            Vector3 toCenter = (center / neighbours) - pos;
+            if (toCenter.sqrMagnitude > 1e-6f) steer += toCenter.normalized * manager.cohesionWeight;
+        }
+        if (sepCount > 0 && separation.sqrMagnitude > 1e-6f) steer += separation.normalized * manager.separationWeight;
+
+        Vector3 toGoal = manager.goalPos - pos;
+        if (toGoal.sqrMagnitude > 1e-4f) steer += toGoal.normalized * manager.goalWeight;
+
+        Bounds bounds = new Bounds(manager.transform.position, manager.area);
+        if (!bounds.Contains(pos))
+        {
+            Vector3 toC = manager.transform.position - pos;
+            if (toC.sqrMagnitude > 1e-6f) steer += toC.normalized * manager.boundaryWeight;
+        }
+
+        steer += AvoidObstacles();
+
+        if (steer.sqrMagnitude > 1e-6f)
+        {
+            Quaternion target = Quaternion.LookRotation(steer.normalized, Vector3.up);
+            _t.rotation = Quaternion.Slerp(_t.rotation, target, manager.rotationSpeed * dt);
+        }
+
+        _t.position += _t.forward * (speed * dt);
+
+        // Stay below the water surface, same as the flock.
+        float ceiling = manager.WaterCeiling;
+        if (_t.position.y > ceiling)
+        {
+            var p = _t.position; p.y = ceiling; _t.position = p;
+        }
     }
 
-    private Vector3 ApplySettings()
+    Vector3 AvoidObstacles()
     {
-        GameObject[] _allFishes = manager.allFish;
+        if (manager.avoidWeight <= 0f) return Vector3.zero;
+        float lookAhead = manager.avoidDistance + speed * 0.3f;
 
-        Vector3 align = Vector3.zero;
-        Vector3 cohesion = Vector3.zero;
-        Vector3 avoidance = Vector3.zero;
-
-        float nDist = manager.neighbourDist;
-        int neighbourCount = 0;
-
-        foreach (var fish in _allFishes)
+        if (Physics.SphereCast(_t.position, manager.avoidRadius, _t.forward,
+                out RaycastHit hit, lookAhead, manager.obstacleMask, QueryTriggerInteraction.Ignore))
         {
-            if (fish == this.gameObject) continue;
-            float distance = (fish.transform.position - this.transform.position).magnitude;
-
-            if (distance <= nDist)
-            {
-                align += fish.transform.forward;
-                cohesion += fish.transform.position;
-
-                if (distance <= 1f)
-                {
-                    Vector3 diff = (this.transform.position - fish.transform.position).normalized;
-                    avoidance += diff;
-                }
-
-                neighbourCount++;
-            }
+            Vector3 along = Vector3.ProjectOnPlane(_t.forward, hit.normal);
+            if (along.sqrMagnitude < 1e-4f) along = hit.normal;
+            float strength = 1f - hit.distance / lookAhead;
+            return along.normalized * (manager.avoidWeight * (1f + 3f * strength));
         }
-        if (neighbourCount > 0)
-        {
-            align /= neighbourCount;
-            cohesion /= neighbourCount;
-            avoidance /= neighbourCount;
-        }
-
-        Vector3 alignResult = align - this.transform.forward;
-        Vector3 cohesionResult = cohesion - this.transform.position;
-        Vector3 avoidResult = avoidance - this.transform.position;
-
-        return alignResult + cohesionResult + avoidResult;
+        return Vector3.zero;
     }
-
-    private void AvoidObstacles()
-    {
-        int startAngle = -110;
-        int endAngle = 110;
-
-        float raycastDist = 1f;
-        for (int i = startAngle; i < endAngle; i += 10)
-        {
-            var currentPointPosition = Quaternion.AngleAxis(i, transform.up) * transform.forward;
-
-            Ray ray = new Ray(this.transform.position, currentPointPosition);
-
-            if (Physics.Raycast(ray, out RaycastHit hit, raycastDist))
-            {
-                Vector3 avoidDir = (this.transform.position - hit.point).normalized;
-
-                float distanceFactor = 1.0f - (hit.distance / raycastDist);
-                float rotationSpeed = manager.rotationSpeed * distanceFactor * Time.deltaTime;
-
-                transform.rotation = Quaternion.Slerp(transform.rotation,
-                    Quaternion.LookRotation(avoidDir), rotationSpeed);
-            }
-        }
-    }
-
 }

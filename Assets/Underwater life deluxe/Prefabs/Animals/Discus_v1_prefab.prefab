@@ -567,6 +567,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4157532111668778}
   - component: {fileID: 95936676413352192}
+  - component: {fileID: 136956980497699326}
   m_Layer: 0
   m_Name: Discus_v1_prefab
   m_TagString: Untagged
@@ -584,8 +585,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 4366668144008552}
   - {fileID: 4394940360420094}
@@ -599,7 +600,7 @@ Animator:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1935673931770608}
-  m_Enabled: 1
+  m_Enabled: 0
   m_Avatar: {fileID: 9000000, guid: 34319379a41f3d74aa2f13489db187fc, type: 3}
   m_Controller: {fileID: 9100000, guid: 7d84ba00f2691164c8d90a3dd503dfb0, type: 2}
   m_CullingMode: 1
@@ -613,6 +614,18 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &136956980497699326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1935673931770608}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc3098dd181fe0242ab362457cd348cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Boid
 --- !u!1 &1952014544214714
 GameObject:
   m_ObjectHideFlags: 0
