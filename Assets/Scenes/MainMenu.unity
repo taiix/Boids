@@ -519,9 +519,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5229cd8a1d1320843b0da6feb3fef013, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ReefRun.ReefRunMainMenuController
-  PlayerName: You
-  PlayerInitials: YO
-  PlayerColor: {r: 0.247, g: 0.878, b: 0.773, a: 1}
   FriendsText: 5 friends online
   Version: "v0.4.1 \u2014 EARLY ACCESS BUILD"
   LobbySceneName: ReefRunLobby

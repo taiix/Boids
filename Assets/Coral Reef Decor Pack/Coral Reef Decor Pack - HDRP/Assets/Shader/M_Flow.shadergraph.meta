@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 98630997a01acf24fb54e42dcd4fa186
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 625f186215c104763be7675aa2d941aa, type: 3}
+AssetOrigin:
+  serializedVersion: 1
+  productId: 247331
+  packageName: Coral Reef Decor Pack
+  packageVersion: 2026.2
+  assetPath: Assets/Coral Reef Decor Pack/Coral Reef Decor Pack - HDRP/Assets/Shader/M_Flow.shadergraph
+  uploadId: 873026
