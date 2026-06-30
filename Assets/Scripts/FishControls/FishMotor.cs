@@ -90,6 +90,9 @@ namespace FishGame
         float _dashSpeed;
         float _dashSteer;
 
+        // Temporary cruise-speed cap (e.g. while blended into the flock). 0 = no override.
+        float _speedLimit;
+
 
         public Vector3 Velocity => _velocity;
 
@@ -105,8 +108,19 @@ namespace FishGame
         //Called by the driver (player/AI) every frame to set intent.
         public void SetInput(in ControlInput input) => _input = input;
 
+        /// <summary>Force the internal velocity, e.g. when resuming control after an external
+        /// takeover (flock blend) so the motor continues smoothly instead of snapping.</summary>
+        public void SetVelocity(Vector3 v) => _velocity = v;
+
         /// <summary>True while a dash/lunge is in progress.</summary>
         public bool IsDashing => _dashTimer > 0f;
+
+        /// <summary>Cruise top speed (m/s) at full throttle.</summary>
+        public float MaxSpeed => maxSpeed;
+
+        /// <summary>Temporarily cap cruise speed (e.g. to match the flock's pace). 0 clears it.</summary>
+        public void SetSpeedLimit(float limit) => _speedLimit = Mathf.Max(0f, limit);
+        public void ClearSpeedLimit() => _speedLimit = 0f;
 
         /// <summary>
         /// Burst forward along the current heading. Used for the shark's attack dash and big lunge.
@@ -148,8 +162,6 @@ namespace FishGame
             _rb = GetComponent<Rigidbody>();
             _rb.useGravity = false;
 
-            // Height queries (ProjectPointOnWaterSurface) only work if the surface has
-            // Script Interactions enabled - turn it on so we don't depend on the inspector.
             if (waterSurface != null && !waterSurface.scriptInteractions)
                 waterSurface.scriptInteractions = true;
         }
@@ -199,7 +211,8 @@ namespace FishGame
             _rb.angularVelocity = Vector3.zero; // we own rotation; kill any spin from collisions
 
             // --- Velocity: thrust along forward, plus drag + momentum --------------------
-            float maxSpd = dashing ? _dashSpeed : (boosting ? boostSpeed : maxSpeed);
+            float cruiseMax = _speedLimit > 0f ? _speedLimit : maxSpeed;
+            float maxSpd = dashing ? _dashSpeed : (boosting ? boostSpeed : cruiseMax);
             float accel = dashing ? dashAcceleration : (boosting ? boostAcceleration : acceleration);
             float throttle = dashing ? 1f : _input.Throttle; // dash forces full forward
 

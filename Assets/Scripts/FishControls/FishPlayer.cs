@@ -6,6 +6,7 @@ using UnityEngine;
 public class FishPlayer : NetworkBehaviour
 {
     private FishController _fishController;
+    private FishFlockBlend _flockBlend;
     public GameObject camera;
 
     private void Awake()
@@ -13,11 +14,13 @@ public class FishPlayer : NetworkBehaviour
         _fishController = GetComponent<FishController>();
         _fishController.enabled = false;
 
+        // Local-player-only ability; disabled on remotes so they don't react to the key.
+        if (TryGetComponent(out _flockBlend))
+            _flockBlend.enabled = false;
+
         var cam = GetComponentInChildren<Camera>();
 
         camera = cam != null ? cam.gameObject : null;
-
-        _fishController.enabled = false;
 
         if (cam != null)
             camera.SetActive(false);
@@ -37,6 +40,7 @@ public class FishPlayer : NetworkBehaviour
         }
 
         _fishController.enabled = true;
+        if (_flockBlend != null) _flockBlend.enabled = true;
 
         var orbit = camera != null ? camera.GetComponent<FishOrbitCamera>() : null;
         if (orbit == null && Camera.main != null) orbit = Camera.main.GetComponent<FishOrbitCamera>();
