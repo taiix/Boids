@@ -107,6 +107,32 @@ public class BoidsManager : MonoBehaviour
         }
     }
 
+    // Register an EXISTING object (e.g. a blending player) into the flock so the boids
+    // align/cohere/avoid with it too. It is not instantiated or destroyed by the manager.
+    public void Join(GameObject fish)
+    {
+        if (fish == null || allFish == null) return;
+        for (int i = 0; i < allFish.Length; i++)
+            if (allFish[i] == fish) return; // already a member
+
+        System.Array.Resize(ref allFish, allFish.Length + 1);
+        allFish[allFish.Length - 1] = fish;
+    }
+
+    // Remove a member previously added with Join (without destroying it).
+    public void Leave(GameObject fish)
+    {
+        if (fish == null || allFish == null) return;
+        int idx = -1;
+        for (int i = 0; i < allFish.Length; i++)
+            if (allFish[i] == fish) { idx = i; break; }
+        if (idx < 0) return;
+
+        for (int i = idx; i < allFish.Length - 1; i++)
+            allFish[i] = allFish[i + 1];
+        System.Array.Resize(ref allFish, allFish.Length - 1);
+    }
+
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;
