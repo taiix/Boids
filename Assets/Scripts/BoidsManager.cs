@@ -21,6 +21,9 @@ public class BoidsManager : MonoBehaviour
     /// <summary>Every active flock, so things like the player's blend can find the nearest one.</summary>
     public static readonly List<BoidsManager> All = new List<BoidsManager>();
 
+    /// <summary>Predators (sharks) the schools flee from. A Predator component registers here.</summary>
+    public static readonly List<Transform> Predators = new List<Transform>();
+
     public Vector3 area;
     [SerializeField] private GameObject prefab;
     [SerializeField] private int fishCount;
@@ -50,6 +53,14 @@ public class BoidsManager : MonoBehaviour
     public float avoidDistance = 2.5f;
     public float avoidRadius = 0.4f;
     public float avoidWeight = 2.0f;
+
+    [Header("Predator avoidance")]
+    [Tooltip("Fish flee from a predator (shark) within this distance.")]
+    public float fleeRadius = 5f;
+    [Tooltip("How hard fish flee. High so panic overrides schooling and the group parts around the shark.")]
+    public float fleeWeight = 6f;
+    [Tooltip("Top speed while fleeing (panic burst) - usually higher than Max Speed.")]
+    public float fleeSpeed = 9f;
 
     [Header("Water ceiling")]
     [Tooltip("Keep the school below the water surface.")]
@@ -82,6 +93,7 @@ public class BoidsManager : MonoBehaviour
     NativeParallelMultiHashMap<int, int> _grid;
     TransformAccessArray _tArray;
     NativeArray<float3> _influencers;                  // player positions the flock reacts to
+    NativeArray<float3> _predators;                    // shark positions the flock flees from
     int _count;
     bool _dirty = true;
 
@@ -99,6 +111,7 @@ public class BoidsManager : MonoBehaviour
     public void UnregisterInfluencer(Transform t) { _influencerTransforms.Remove(t); }
 
     const int MaxInfluencers = 16;
+    const int MaxPredators = 16;
 
     private void OnEnable() { if (!All.Contains(this)) All.Add(this); }
     private void OnDisable() { All.Remove(this); }
@@ -166,6 +179,11 @@ public class BoidsManager : MonoBehaviour
         for (int i = 0; i < _influencerTransforms.Count && infl < MaxInfluencers; i++)
             if (_influencerTransforms[i] != null) _influencers[infl++] = (float3)_influencerTransforms[i].position;
 
+        // Gather predator (shark) positions the flock flees from.
+        int pred = 0;
+        for (int i = 0; i < Predators.Count && pred < MaxPredators; i++)
+            if (Predators[i] != null) _predators[pred++] = (float3)Predators[i].position;
+
         // Batched obstacle sphere-casts (job).
         JobHandle castDep = default;
         if (avoidWeight > 0f)
@@ -182,6 +200,7 @@ public class BoidsManager : MonoBehaviour
         {
             positions = _posA, headings = _hdgA,
             grid = _grid, hits = _hits, influencers = _influencers, influencerCount = infl,
+            predators = _predators, predatorCount = pred, fleeRadius = fleeRadius, fleeWeight = fleeWeight, fleeSpeed = fleeSpeed,
             dt = Time.deltaTime, cellSize = cellSize,
             minSpeed = minSpeed, maxSpeed = maxSpeed, speedMatch = speedMatch,
             neighbourDist = neighbourDist, separationDist = separationDist, rotationSpeed = rotationSpeed,
@@ -226,6 +245,7 @@ public class BoidsManager : MonoBehaviour
         _hits = new NativeArray<RaycastHit>(math.max(1, n), Allocator.Persistent);
         _grid = new NativeParallelMultiHashMap<int, int>(math.max(1, n), Allocator.Persistent);
         _influencers = new NativeArray<float3>(MaxInfluencers, Allocator.Persistent);
+        _predators = new NativeArray<float3>(MaxPredators, Allocator.Persistent);
         _tArray = new TransformAccessArray(n);
 
         int k = 0;
@@ -252,6 +272,7 @@ public class BoidsManager : MonoBehaviour
         if (_hits.IsCreated) _hits.Dispose();
         if (_grid.IsCreated) _grid.Dispose();
         if (_influencers.IsCreated) _influencers.Dispose();
+        if (_predators.IsCreated) _predators.Dispose();
         if (_tArray.isCreated) _tArray.Dispose();
     }
 
@@ -298,6 +319,9 @@ public class BoidsManager : MonoBehaviour
         [ReadOnly] public NativeArray<RaycastHit> hits;
         [ReadOnly] public NativeArray<float3> influencers;
         public int influencerCount;
+        [ReadOnly] public NativeArray<float3> predators;
+        public int predatorCount;
+        public float fleeRadius, fleeWeight, fleeSpeed;
 
         public float dt, cellSize, neighbourDist, separationDist, rotationSpeed;
         public float alignmentWeight, cohesionWeight, separationWeight, goalWeight, boundaryWeight, avoidWeight, avoidDistance;
@@ -366,6 +390,22 @@ public class BoidsManager : MonoBehaviour
             float3 toGoal = goalPos - pos;
             if (math.lengthsq(toGoal) > 1e-4f) steer += math.normalize(toGoal) * goalWeight;
 
+            // Flee predators (sharks): a strong radial escape that overrides schooling, so the
+            // group parts/splits around the shark and rejoins (via cohesion) once it passes.
+            bool fleeing = false;
+            float fr2 = fleeRadius * fleeRadius;
+            for (int p = 0; p < predatorCount; p++)
+            {
+                float3 away = pos - predators[p];
+                float d2 = math.lengthsq(away);
+                if (d2 < fr2 && d2 > 1e-6f)
+                {
+                    float d = math.sqrt(d2);
+                    steer += math.normalize(away) * (fleeWeight * (1f - d / fleeRadius)); // closer = flee harder
+                    fleeing = true;
+                }
+            }
+
             float3 d2c = pos - areaCenter;
             if (math.abs(d2c.x) > areaHalf.x || math.abs(d2c.y) > areaHalf.y || math.abs(d2c.z) > areaHalf.z)
             {
@@ -411,6 +451,7 @@ public class BoidsManager : MonoBehaviour
                 float ahead = math.dot(toLocalCenter, newFwd); // >0 = center is in front (we're behind)
                 effSpeed = math.clamp(baseSpeed + ahead * speedMatch, minSpeed, maxSpeed);
             }
+            if (fleeing) effSpeed = fleeSpeed; // panic burst (faster than cruise)
             float3 newPos = pos + newFwd * (effSpeed * dt);
 
             // Hard clamp so a fish can never cross the surface even if steering lags.

@@ -61,6 +61,23 @@ public class Boid : MonoBehaviour
         Vector3 toGoal = manager.goalPos - pos;
         if (toGoal.sqrMagnitude > 1e-4f) steer += toGoal.normalized * manager.goalWeight;
 
+        // Flee predators with the school.
+        bool fleeing = false;
+        float fr2 = manager.fleeRadius * manager.fleeRadius;
+        var preds = BoidsManager.Predators;
+        for (int i = 0; i < preds.Count; i++)
+        {
+            if (preds[i] == null) continue;
+            Vector3 away = pos - preds[i].position;
+            float d2 = away.sqrMagnitude;
+            if (d2 < fr2 && d2 > 1e-6f)
+            {
+                float d = Mathf.Sqrt(d2);
+                steer += away.normalized * (manager.fleeWeight * (1f - d / manager.fleeRadius));
+                fleeing = true;
+            }
+        }
+
         Bounds bounds = new Bounds(manager.transform.position, manager.area);
         if (!bounds.Contains(pos))
         {
@@ -76,7 +93,8 @@ public class Boid : MonoBehaviour
             _t.rotation = Quaternion.Slerp(_t.rotation, target, manager.rotationSpeed * dt);
         }
 
-        _t.position += _t.forward * (speed * dt);
+        float moveSpeed = fleeing ? manager.fleeSpeed : speed;
+        _t.position += _t.forward * (moveSpeed * dt);
 
         // Stay below the water surface, same as the flock.
         float ceiling = manager.WaterCeiling;
