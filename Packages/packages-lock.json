@@ -5,7 +5,7 @@
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "d414366a036fdd9756c8ad82a5e095553470ca02"
+      "hash": "156afd8b5f285af76d56633f8e503b3a839dddb7"
     },
     "com.rlabrecque.steamworks.net": {
       "version": "https://github.com/rlabrecque/Steamworks.NET.git?path=/com.rlabrecque.steamworks.net#2025.163.0",
