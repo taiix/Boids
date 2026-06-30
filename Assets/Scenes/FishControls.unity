@@ -466,6 +466,8 @@ MonoBehaviour:
   avoidDistance: 2.5
   avoidRadius: 0.4
   avoidWeight: 2
+  fleeRadius: 5
+  fleeWeight: 10
   keepBelowWater: 1
   waterLevel: 0
   waterSurface: {fileID: 1146493789}
@@ -6271,6 +6273,7 @@ GameObject:
   - component: {fileID: 1128508806}
   - component: {fileID: 1128508805}
   - component: {fileID: 1128508810}
+  - component: {fileID: 1128508811}
   m_Layer: 3
   m_Name: PlayerShark
   m_TagString: Untagged
@@ -6416,6 +6419,18 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   biteTrigger: Bite
+--- !u!114 &1128508811
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1128508804}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fee30b4c3a1e16947bb617a29772520d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.Predator
 --- !u!1 &1146493788
 GameObject:
   m_ObjectHideFlags: 0
@@ -7666,6 +7681,8 @@ MonoBehaviour:
   avoidDistance: 2.5
   avoidRadius: 0.4
   avoidWeight: 2
+  fleeRadius: 5
+  fleeWeight: 6
   keepBelowWater: 1
   waterLevel: 0
   waterSurface: {fileID: 1146493789}
