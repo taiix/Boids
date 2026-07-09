@@ -48,8 +48,22 @@ namespace FishGame
         [Tooltip("Which layers can contain prey. Leave as Everything and filter by the Edible component.")]
         [SerializeField] LayerMask preyMask = ~0;
 
+        [Header("Devour")]
+        [Tooltip("Empty transform at the shark's mouth (parent it to the jaw bone). A caught fish is pulled here.")]
+        [SerializeField] Transform mouthAnchor;
+        [Tooltip("Also eat ambient NPC flock fish (detected via BoidsManager, since they have no colliders).")]
+        [SerializeField] bool eatFlockFish = true;
+        [Range(0f, 1f)]
+        [Tooltip("Fraction of the shark's speed kept when it catches a fish. 1 = full momentum, 0 = stop dead.")]
+        [SerializeField] float momentumOnCatch = 0.85f;
+
         [Header("Animator")]
         [SerializeField] string biteTrigger = "Bite";
+        [Tooltip("Trigger for the devour/eat clip, played when a fish is actually caught.")]
+        [SerializeField] string devourTrigger = "Devour";
+
+        /// <summary>The shark's mouth anchor, so a networked eat handler can pass it to Edible.Devour.</summary>
+        public Transform MouthAnchor => mouthAnchor;
 
         /// <summary>
         /// Raised on the owner client the instant a bite connects with an <see cref="Edible"/>.
@@ -65,6 +79,7 @@ namespace FishGame
         float _lungeCd;
         float _eatWindow; // > 0 while a dash can connect into a bite
         int _biteId;
+        int _devourId;
         readonly Collider[] _hits = new Collider[8];
 
         public bool AttackReady => _attackCd <= 0f;
@@ -75,6 +90,7 @@ namespace FishGame
             if (motor == null) motor = GetComponent<FishMotor>();
             if (animator == null) animator = GetComponentInChildren<Animator>();
             _biteId = Animator.StringToHash(biteTrigger);
+            _devourId = Animator.StringToHash(devourTrigger);
 
             _attackAction = new InputAction("Attack", InputActionType.Button);
             _attackAction.AddBinding("<Mouse>/leftButton");
@@ -134,23 +150,46 @@ namespace FishGame
 
         void TryEat()
         {
-            Vector3 mouth = transform.position + transform.forward * mouthOffset;
+            // Eat where the mouth actually is (the anchor bone), falling back to a forward offset.
+            Vector3 mouth = mouthAnchor != null ? mouthAnchor.position : transform.position + transform.forward * mouthOffset;
+
+            // 1) Players / anything with a collider + Edible.
             int count = Physics.OverlapSphereNonAlloc(mouth, eatRadius, _hits, preyMask, QueryTriggerInteraction.Collide);
             for (int i = 0; i < count; i++)
             {
                 var edible = _hits[i].GetComponentInParent<Edible>();
                 if (edible == null || edible.IsEaten || edible.gameObject == gameObject) continue;
-
-                // Instant local feedback so the bite feels responsive even before the server confirms.
-                motor.CancelDash(0f); // stop so we don't overshoot
-                TriggerBite();
-                _eatWindow = 0f;
-
-                if (CaughtPrey != null)
-                    CaughtPrey.Invoke(edible);   // networked: server validates + devours
-                else
-                    edible.Devour(gameObject);   // single-player / test fallback
+                Consume(edible.gameObject, edible);
                 return;
+            }
+
+            // 2) Ambient NPC flock fish (no colliders) — found via the BoidsManager positions.
+            if (eatFlockFish)
+            {
+                var npc = BoidsManager.EatNearestFish(mouth, eatRadius);
+                if (npc != null) Consume(npc, npc.GetComponent<Edible>());
+            }
+        }
+
+        void Consume(GameObject fish, Edible edible)
+        {
+            // Keep most of the shark's momentum so it eats on the move instead of stopping dead.
+            motor.CancelDash(momentumOnCatch);
+            TriggerDevour();      // the eat/devour clip
+            _eatWindow = 0f;
+
+            if (edible != null)
+            {
+                if (CaughtPrey != null)
+                    CaughtPrey.Invoke(edible);              // networked: server validates + devours
+                else
+                    edible.Devour(gameObject, mouthAnchor); // single-player / test fallback
+            }
+            else
+            {
+                // Ambient NPC fish (no Edible): give it one so it gets the SAME smooth
+                // pull-into-the-mouth treatment as the player prey, then it despawns itself.
+                fish.AddComponent<Edible>().Devour(gameObject, mouthAnchor);
             }
         }
 
@@ -158,6 +197,12 @@ namespace FishGame
         {
             if (animator != null && !string.IsNullOrEmpty(biteTrigger))
                 animator.SetTrigger(_biteId);
+        }
+
+        void TriggerDevour()
+        {
+            if (animator != null && !string.IsNullOrEmpty(devourTrigger))
+                animator.SetTrigger(_devourId);
         }
 
         void OnDrawGizmosSelected()

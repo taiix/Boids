@@ -303,6 +303,42 @@ public class BoidsManager : MonoBehaviour
         }
     }
 
+    /// <summary>Pull a fish out of the flock (so the sim stops driving it) and return it.</summary>
+    public GameObject RemoveAt(int index)
+    {
+        if (allFish == null || index < 0 || index >= allFish.Length) return null;
+        var fish = allFish[index];
+        for (int i = index; i < allFish.Length - 1; i++) allFish[i] = allFish[i + 1];
+        System.Array.Resize(ref allFish, allFish.Length - 1);
+        _dirty = true; // rebuild native arrays / TransformAccessArray next sim step
+        return fish;
+    }
+
+    /// <summary>Find the nearest flock fish (across ALL flocks) within <paramref name="radius"/>
+    /// of <paramref name="pos"/>, remove it from its flock, and return it — or null if none.
+    /// Used by the shark to eat NPC fish, which have no colliders.</summary>
+    public static GameObject EatNearestFish(Vector3 pos, float radius)
+    {
+        BoidsManager bestMgr = null;
+        int bestIdx = -1;
+        float best = radius * radius;
+
+        for (int m = 0; m < All.Count; m++)
+        {
+            var mgr = All[m];
+            if (mgr == null || mgr.allFish == null) continue;
+            var a = mgr.allFish;
+            for (int i = 0; i < a.Length; i++)
+            {
+                if (a[i] == null) continue;
+                float d2 = (a[i].transform.position - pos).sqrMagnitude;
+                if (d2 < best) { best = d2; bestMgr = mgr; bestIdx = i; }
+            }
+        }
+
+        return bestMgr != null ? bestMgr.RemoveAt(bestIdx) : null;
+    }
+
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;
