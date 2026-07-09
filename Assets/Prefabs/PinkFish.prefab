@@ -169,6 +169,7 @@ GameObject:
   - component: {fileID: 4325107133766104}
   - component: {fileID: 95713850578013842}
   - component: {fileID: -3524338082078240404}
+  - component: {fileID: 1074295728344286264}
   m_Layer: 0
   m_Name: PinkFish
   m_TagString: Untagged
@@ -230,6 +231,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dc3098dd181fe0242ab362457cd348cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1074295728344286264
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1318662798089844}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 482e51b30ba90f248b1d62deb29f608f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.Edible
+  disableOnEaten: []
+  disableCollidersOnEaten: 0
+  animator: {fileID: 95713850578013842}
+  eatenTrigger: Eaten
+  pullInTime: 0.2
+  despawnDelay: 2
+  OnDevoured:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1350163589957252
 GameObject:
   m_ObjectHideFlags: 0
@@ -345,6 +367,8 @@ SkinnedMeshRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -366,9 +390,11 @@ SkinnedMeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   serializedVersion: 2
   m_Quality: 0
   m_UpdateWhenOffscreen: 0
