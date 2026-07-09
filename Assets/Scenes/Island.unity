@@ -1305,74 +1305,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   waterSurface: {fileID: 1146493789}
   decalGameObject: {fileID: 987506203}
---- !u!1001 &215458702
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 6168856366308021608, guid: f33950c157170b54e900ef1b850da3ba,
-        type: 3}
-      propertyPath: m_Name
-      value: FPX_Seabed_001
-      objectReference: {fileID: 0}
-    - target: {fileID: 6168856366308021621, guid: f33950c157170b54e900ef1b850da3ba,
-        type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -105.254074
-      objectReference: {fileID: 0}
-    - target: {fileID: 6168856366308021621, guid: f33950c157170b54e900ef1b850da3ba,
-        type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 24.308
-      objectReference: {fileID: 0}
-    - target: {fileID: 6168856366308021621, guid: f33950c157170b54e900ef1b850da3ba,
-        type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -533.529
-      objectReference: {fileID: 0}
-    - target: {fileID: 6168856366308021621, guid: f33950c157170b54e900ef1b850da3ba,
-        type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.7071068
-      objectReference: {fileID: 0}
-    - target: {fileID: 6168856366308021621, guid: f33950c157170b54e900ef1b850da3ba,
-        type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0.7071068
-      objectReference: {fileID: 0}
-    - target: {fileID: 6168856366308021621, guid: f33950c157170b54e900ef1b850da3ba,
-        type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6168856366308021621, guid: f33950c157170b54e900ef1b850da3ba,
-        type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6168856366308021621, guid: f33950c157170b54e900ef1b850da3ba,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: -90
-      objectReference: {fileID: 0}
-    - target: {fileID: 6168856366308021621, guid: f33950c157170b54e900ef1b850da3ba,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6168856366308021621, guid: f33950c157170b54e900ef1b850da3ba,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: f33950c157170b54e900ef1b850da3ba, type: 3}
 --- !u!1 &232639628
 GameObject:
   m_ObjectHideFlags: 0
@@ -2564,7 +2496,7 @@ Transform:
   m_GameObject: {fileID: 409611308}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.2, y: -12, z: -521.2}
+  m_LocalPosition: {x: -0.2, y: -72.5, z: -521.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -2763,7 +2695,7 @@ MonoBehaviour:
   scatterFolderPrefabs: 1
   prefabFolder: Assets/Coral Reef Decor Pack/Coral Reef Decor Pack - HDRP/Assets/Prefabs
   folderPrefabs: []
-  folderScatterCount: 1500
+  folderScatterCount: 5000
   folderScatterRadius: 1.5
   folderScatterSpacing: 1
   folderScaleRange: {x: 0.8, y: 1.2}
@@ -3631,7 +3563,7 @@ Transform:
   m_GameObject: {fileID: 570975981}
   serializedVersion: 2
   m_LocalRotation: {x: 0.6128453, y: -0, z: -0, w: 0.790203}
-  m_LocalPosition: {x: 0, y: 39.9, z: 0}
+  m_LocalPosition: {x: 0, y: 39.8, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3789,7 +3721,7 @@ Light:
   serializedVersion: 13
   m_Type: 0
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 7039.1045
+  m_Intensity: 186833.52
   m_Range: 195.12727
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -5175,7 +5107,7 @@ Light:
   serializedVersion: 13
   m_Type: 1
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
-  m_Intensity: 100000
+  m_Intensity: 130000
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 0
@@ -5218,7 +5150,7 @@ Light:
   m_LightShadowCasterMode: 2
   m_AreaSize: {x: 0.5, y: 0.5}
   m_BounceIntensity: 1
-  m_ColorTemperature: 6570
+  m_ColorTemperature: 5901
   m_UseColorTemperature: 1
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
@@ -6344,7 +6276,7 @@ MonoBehaviour:
   tessellationFactorFadeRange: 1850
   refractionColor: {r: 0.14083776, g: 0.72538227, b: 0.8562991, a: 1}
   maxRefractionDistance: 2
-  absorptionDistance: 20
+  absorptionDistance: 72.5
   scatteringColor: {r: 0, g: 0.10753616, b: 0.3812781, a: 1}
   ambientScattering: 0.446
   heightScattering: 0.5
@@ -6369,7 +6301,7 @@ MonoBehaviour:
   waterFoamDebugMode: 0
   underWater: 1
   volumeBounds: {fileID: 0}
-  volumeDepth: 50
+  volumeDepth: 100
   volumeHeight: 5
   volumePrority: 0
   absorptionDistanceMultiplier: 0.84
@@ -14663,4 +14595,3 @@ SceneRoots:
   - {fileID: 84868646}
   - {fileID: 1027598619}
   - {fileID: 2143507956}
-  - {fileID: 215458702}
