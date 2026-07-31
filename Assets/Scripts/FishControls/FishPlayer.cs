@@ -12,7 +12,7 @@ public class FishPlayer : NetworkBehaviour
     private void Awake()
     {
         _fishController = GetComponent<FishController>();
-        _fishController.enabled = false;
+        //_fishController.enabled = false;
 
         // Local-player-only ability; disabled on remotes so they don't react to the key.
         if (TryGetComponent(out _flockBlend))
@@ -20,10 +20,10 @@ public class FishPlayer : NetworkBehaviour
 
         var cam = GetComponentInChildren<Camera>();
 
-        camera = cam != null ? cam.gameObject : null;
+        //camera = cam != null ? cam.gameObject : null;
 
-        if (cam != null)
-            camera.SetActive(false);
+        //if (cam != null)
+            //camera.SetActive(false);
     }
 
     public override void OnStartLocalPlayer()
@@ -54,5 +54,10 @@ public class FishPlayer : NetworkBehaviour
         // The camera was detached from this fish, so it won't be destroyed with us. Clean it up.
         if (camera != null)
             Destroy(camera);
+    }
+    void OnDisable()
+    {
+        Debug.Log($"{gameObject.name} was disabled.", this);
+        Debug.Log(System.Environment.StackTrace);
     }
 }
