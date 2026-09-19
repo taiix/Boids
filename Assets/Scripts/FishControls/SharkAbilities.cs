@@ -163,6 +163,16 @@ namespace FishGame
                 return;
             }
 
+            // 1b) Food pellets in mouth range — the shark can snack on food too (works offline).
+            //     Fish are checked first above, so prey takes priority over pellets.
+            for (int i = 0; i < count; i++)
+            {
+                var pellet = _hits[i] != null ? _hits[i].GetComponentInParent<FoodPellet>() : null;
+                if (pellet == null || pellet.IsEaten) continue;
+                pellet.Consume(GetComponent<FishVitals>());
+                return;
+            }
+
             // 2) Ambient NPC flock fish (no colliders) — found via the BoidsManager positions.
             if (eatFlockFish)
             {

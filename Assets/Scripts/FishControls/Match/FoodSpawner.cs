@@ -37,7 +37,13 @@ namespace FishGame
 
         void Update()
         {
-            if (!NetworkServer.active || foodPrefab == null) return;
+            if (foodPrefab == null) return;
+
+            // Spawn when we're the authority: the server (host) in networked play, or the local
+            // instance when fully offline (single-player testing). A pure client never spawns —
+            // the server's pellets are replicated to it.
+            bool offline = !NetworkServer.active && !NetworkClient.active;
+            if (!offline && !NetworkServer.active) return;
 
             _timer -= Time.deltaTime;
             if (_timer > 0f) return;
@@ -51,16 +57,23 @@ namespace FishGame
                 areaCenter.z + Random.Range(-areaSize.y * 0.5f, areaSize.y * 0.5f));
 
             GameObject go = Instantiate(foodPrefab, pos, Random.rotation);
-            NetworkServer.Spawn(go);
+            if (NetworkServer.active) NetworkServer.Spawn(go); // networked: replicate to clients; offline: local only
         }
 
         static int CountAlive() =>
             FindObjectsByType<FoodPellet>(FindObjectsSortMode.None).Length;
 
-        void OnDrawGizmosSelected()
+        // Always-on gizmo so the spawn area is visible without selecting the object. Pellets spawn
+        // at a random (x, z) inside this rectangle, at areaCenter.y (the water surface), then sink.
+        void OnDrawGizmos()
         {
-            Gizmos.color = new Color(0.3f, 0.8f, 1f, 0.35f);
-            Gizmos.DrawCube(areaCenter, new Vector3(areaSize.x, 0.1f, areaSize.y));
+            Vector3 size = new Vector3(areaSize.x, 0.1f, areaSize.y);
+            Gizmos.color = new Color(0.3f, 0.85f, 1f, 0.12f);
+            Gizmos.DrawCube(areaCenter, size);       // translucent fill
+            Gizmos.color = new Color(0.3f, 0.85f, 1f, 0.95f);
+            Gizmos.DrawWireCube(areaCenter, size);   // bright outline
+            // A small marker at the center.
+            Gizmos.DrawWireSphere(areaCenter, 0.6f);
         }
     }
 }
