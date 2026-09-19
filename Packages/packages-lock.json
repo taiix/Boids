@@ -144,7 +144,6 @@
       },
       "url": "https://packages.unity.com"
     },
-<<<<<<< HEAD
     "com.unity.profiling.core": {
       "version": "1.0.3",
       "depth": 2,
@@ -152,8 +151,6 @@
       "dependencies": {},
       "url": "https://packages.unity.com"
     },
-=======
->>>>>>> origin/FishHunger
     "com.unity.render-pipelines.core": {
       "version": "17.6.0",
       "depth": 1,
