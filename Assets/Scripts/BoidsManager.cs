@@ -359,6 +359,7 @@ public class BoidsManager : MonoBehaviour
         public int predatorCount;
         public float fleeRadius, fleeWeight, fleeSpeed;
 
+
         public float dt, cellSize, neighbourDist, separationDist, rotationSpeed;
         public float alignmentWeight, cohesionWeight, separationWeight, goalWeight, boundaryWeight, avoidWeight, avoidDistance;
         public float minSpeed, maxSpeed, speedMatch;
