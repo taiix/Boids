@@ -48,8 +48,12 @@ namespace FishGame
             _rb.angularDamping = 0.5f;
         }
 
-        // Physics runs on the server; on remote clients the NetworkTransform drives the pose, so
-        // make the body kinematic there to avoid it fighting the synced motion.
+        // Fully offline (no server AND no client) -> simulate locally for single-player testing.
+        // With a server running, only the server simulates; remote clients just follow the
+        // NetworkTransform, so their body is made kinematic to avoid fighting the synced motion.
+        bool Offline => !NetworkServer.active && !NetworkClient.active;
+        bool Authority => Offline || isServer;
+
         public override void OnStartServer() => _rb.isKinematic = false;
         public override void OnStartClient()
         {
@@ -58,7 +62,7 @@ namespace FishGame
 
         void FixedUpdate()
         {
-            if (!isServer || IsEaten) return;
+            if (!Authority || IsEaten) return;
 
             // Ease the downward velocity toward the sink speed (buoyant drift).
             Vector3 v = _rb.linearVelocity;
@@ -67,25 +71,33 @@ namespace FishGame
             _rb.linearVelocity = v;
 
             _age += Time.fixedDeltaTime;
-            if (_age >= lifetime) { NetworkServer.Destroy(gameObject); return; }
+            if (_age >= lifetime) { Despawn(); return; }
 
             // Once it has effectively stopped descending (resting on the bottom), start a despawn timer.
             if (Mathf.Abs(_rb.linearVelocity.y) < 0.05f)
             {
                 _restTimer += Time.fixedDeltaTime;
-                if (_restTimer >= restDespawnDelay) NetworkServer.Destroy(gameObject);
+                if (_restTimer >= restDespawnDelay) Despawn();
             }
             else _restTimer = 0f;
         }
 
-        /// <summary>Server-side consume: feed the eater and despawn. Returns false if already eaten.</summary>
-        [Server]
+        void Despawn()
+        {
+            if (NetworkServer.active) NetworkServer.Destroy(gameObject);
+            else Destroy(gameObject); // offline / single-player test
+        }
+
+        /// <summary>
+        /// Consume the pellet: feed the eater (if any) and despawn. Runs on the server in networked
+        /// play, or locally when offline. Returns false if already eaten or not the authority.
+        /// </summary>
         public bool Consume(FishVitals eater)
         {
-            if (IsEaten) return false;
+            if (IsEaten || !Authority) return false;
             IsEaten = true;
             if (eater != null) eater.Feed(nutrition);
-            NetworkServer.Destroy(gameObject);
+            Despawn();
             return true;
         }
     }

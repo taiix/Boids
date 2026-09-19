@@ -25,7 +25,9 @@ Shader "HDRP/Frosted Glass"
         _RimColor            ("Rim Color", Color) = (0.80, 0.95, 1.0, 1)
         _RimPower            ("Rim Power", Range(0.5,16)) = 4
         _RimStrength         ("Rim Strength", Range(0,2)) = 0.4
-        _IntersectionFade    ("Intersection Fade (m)", Float) = 1.5
+        _IntersectionFade    ("Contact Width (m)", Float) = 1.5
+        _ContactBlend        ("Contact Blend", Range(0,1)) = 1
+        _ContactNormalMerge  ("Contact Normal Merge", Range(0,1)) = 0.8
         _DetailFadeDistance  ("Detail Fade Distance (m, 0 = off)", Float) = 0
     }
 
@@ -62,9 +64,32 @@ Shader "HDRP/Frosted Glass"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariables.hlsl"
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/ShaderLibrary/ShaderVariablesFunctions.hlsl"
+            // Note: HDRP does not bind _NormalBufferTexture during the transparent forward pass —
+            // reading it here returns a constant. The scene normal is reconstructed from depth
+            // derivatives below instead.
 
             TEXTURE2D(_NormalMap);
             SAMPLER(sampler_NormalMap);
+
+            // Baked distance field of the scenery around this pane, fed per-renderer by
+            // GlassSdfVolume. Declared outside UnityPerMaterial because it arrives through a
+            // MaterialPropertyBlock, which is per-renderer rather than per-material.
+            TEXTURE3D(_SdfTex);
+            SAMPLER(sampler_SdfTex);
+            float4x4 _SdfWorldToUvw;
+            float    _HasSdf;
+
+            // Wall-segment description of this pane and its neighbours, fed per-renderer by
+            // GlassPaneNetwork. xyz is a centreline endpoint; w carries half thickness on A and
+            // half height on B.
+            #define MAX_PANE_NEIGHBOURS 8
+            float4 _OwnSegA;
+            float4 _OwnSegB;
+            float4 _OtherSegA[MAX_PANE_NEIGHBOURS];
+            float4 _OtherSegB[MAX_PANE_NEIGHBOURS];
+            float  _OtherCount;
+            float  _CornerRadius;
+            float  _PaneNetworkOn;
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _Tint;
@@ -83,6 +108,8 @@ Shader "HDRP/Frosted Glass"
                 float  _RimPower;
                 float  _RimStrength;
                 float  _IntersectionFade;
+                float  _ContactBlend;
+                float  _ContactNormalMerge;
                 float  _DetailFadeDistance;
                 float  _ProceduralFrost;
             CBUFFER_END
@@ -173,6 +200,94 @@ Shader "HDRP/Frosted Glass"
             #endif
             }
 
+            // Distance to one wall segment: a slab of given thickness and height swept along a
+            // centreline. The cross-section is round in plan and flat in height, so a trimmed end
+            // carries a round cap — which is what makes two segments meeting at a point produce a
+            // rounded outer corner without any corner geometry.
+            float SdWallSegment(float3 p, float3 a, float3 b, float halfThickness, float halfHeight, float corner)
+            {
+                float3 ab = b - a;
+                float  t  = saturate(dot(p - a, ab) / max(dot(ab, ab), 1e-6));
+                float3 d  = p - (a + ab * t);
+
+                // Rounding insets the extents and adds the radius back, so the outer size is
+                // unchanged — growing instead would re-inflate a stub past the point it was
+                // trimmed to. A wall end can be no rounder than a half-circle of its own
+                // half thickness, so the radius is capped there.
+                float r = min(corner, min(halfThickness, halfHeight));
+                float2 q = float2(length(d.xz) - (halfThickness - r), abs(d.y) - (halfHeight - r));
+                return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
+            }
+
+            // True distance from a world point to the baked scenery, in metres.
+            //
+            // This is the information screen space cannot supply: the depth buffer only knows the
+            // surface along each ray, so it cannot tell how far the glass is from terrain that is
+            // off to one side, which is exactly the case at an intersection seen at a grazing
+            // angle. Returns a negative sentinel when there is no field or the point is outside it.
+            float SampleContactSdf(float3 positionAWS)
+            {
+                if (_HasSdf < 0.5) return -1.0;
+                float3 uvw = mul(_SdfWorldToUvw, float4(positionAWS, 1.0)).xyz;
+                if (any(uvw < 0.0) || any(uvw > 1.0)) return -1.0;
+                return abs(SAMPLE_TEXTURE3D_LOD(_SdfTex, sampler_SdfTex, uvw, 0).r);
+            }
+
+            // World position of the opaque surface under a pixel, from the depth buffer alone.
+            float3 ScenePositionAt(float2 positionSS)
+            {
+                float2 sp = clamp(positionSS, float2(0.0, 0.0), _ScreenSize.xy - 1.0);
+                float deviceDepth = LoadCameraDepth(uint2(sp));
+                return ComputeWorldSpacePosition((sp + 0.5) * _ScreenSize.zw, deviceDepth, UNITY_MATRIX_I_VP);
+            }
+
+            // Scene normal from depth derivatives. Each axis takes whichever neighbour is closer
+            // in depth, so the frame does not smear across a silhouette where the two sides
+            // belong to completely different surfaces.
+            float3 ReconstructSceneNormal(float2 positionSS, float3 centre, float3 V)
+            {
+                float3 px = ScenePositionAt(positionSS + float2(1, 0));
+                float3 mx = ScenePositionAt(positionSS - float2(1, 0));
+                float3 py = ScenePositionAt(positionSS + float2(0, 1));
+                float3 my = ScenePositionAt(positionSS - float2(0, 1));
+
+                float3 dx = length(px - centre) < length(centre - mx) ? px - centre : centre - mx;
+                float3 dy = length(py - centre) < length(centre - my) ? py - centre : centre - my;
+
+                float3 n = cross(dy, dx);
+                float len = length(n);
+                if (len < 1e-9) return V;                 // degenerate, fall back to facing us
+                n /= len;
+                return dot(n, V) < 0.0 ? -n : n;          // always point back toward the camera
+            }
+
+            // Nearest opaque surface to this point, searched in a screen-space neighbourhood.
+            //
+            // A single depth tap only knows what lies along this pixel's own ray, so where
+            // terrain occludes the pane the tap returns something far beyond it and the join is
+            // missed. The search radius has to cover `width` world units at this depth, which is
+            // why the pixel cap is generous — clamping it tightly silently limits how far the
+            // contact band can ever reach, regardless of the width that was asked for.
+            float NearestSurfaceDistance(float2 positionSS, float3 posRWS, float eyeDepth, float width)
+            {
+                float pixelsPerMeter = _ScreenSize.y * 0.5 * UNITY_MATRIX_P._m11 / max(eyeDepth, 1e-3);
+                float radius = clamp(width * pixelsPerMeter, 1.0, 256.0);
+
+                float best = width;
+                float jitter = InterleavedGradientNoise(positionSS, 0) * TWO_PI;
+
+                [unroll]
+                for (int i = 0; i < 16; i++)
+                {
+                    float  a = jitter + TWO_PI * (i / 16.0);
+                    // Vary the ring radius so the taps cover the disc rather than only its rim.
+                    float  r = radius * (0.25 + 0.75 * frac(i * 0.61803399));
+                    float3 p = ScenePositionAt(positionSS + float2(cos(a), sin(a)) * r);
+                    best = min(best, distance(p, posRWS));
+                }
+                return best;
+            }
+
             Varyings Vert(Attributes input)
             {
                 Varyings output;
@@ -198,16 +313,70 @@ Shader "HDRP/Frosted Glass"
                 float3 V = GetWorldSpaceNormalizeViewDir(input.positionRWS);
                 float3 positionAWS = GetAbsolutePositionWS(input.positionRWS);
 
+                // --- pane network: make overlapping panes read as one continuous wall ---
+                if (_PaneNetworkOn > 0.5)
+                {
+                    const float kSkin = 0.02;
+
+                    // Beyond this pane's trimmed end: the stub that used to poke out past the joint.
+                    float own = SdWallSegment(positionAWS, _OwnSegA.xyz, _OwnSegB.xyz,
+                                              _OwnSegA.w, _OwnSegB.w, _CornerRadius);
+                    clip(kSkin - own);
+
+                    // Buried inside a neighbour: an interior face of the merged wall, which is
+                    // what shows up as the two panes crossing through each other.
+                    float others = 1e9;
+                    int count = (int)_OtherCount;
+                    for (int s = 0; s < count; s++)
+                    {
+                        others = min(others, SdWallSegment(positionAWS,
+                            _OtherSegA[s].xyz, _OtherSegB[s].xyz,
+                            _OtherSegA[s].w, _OtherSegB[s].w, _CornerRadius));
+                    }
+                    clip(others + kSkin);
+                }
+
                 float2 screenUV = input.positionCS.xy * _ScreenSize.zw;
 
                 float glassEye = LinearEyeDepth(input.positionCS.z, _ZBufferParams);
-                float sceneEye = LinearEyeDepth(LoadCameraDepth(uint2(input.positionCS.xy)), _ZBufferParams);
+                float sceneDepthRaw = LoadCameraDepth(uint2(input.positionCS.xy));
+                float sceneEye = LinearEyeDepth(sceneDepthRaw, _ZBufferParams);
                 float behind   = max(sceneEye - glassEye, 0.0);
+
+                // --- contact merge: make the intersection a shared edge, not a cut ---
+                float3 sceneP = ScenePositionAt(input.positionCS.xy);
+                float3 sceneN = ReconstructSceneNormal(input.positionCS.xy, sceneP, V);
+
+                // Treat the surface under this pixel as a plane and measure the perpendicular
+                // distance to it. Unlike a screen-space radius search this has no reach limit,
+                // so a wide contact band costs the same as a narrow one, and it stays correct at
+                // grazing angles where a raw depth difference blows up.
+                float planeDist = abs(dot(input.positionRWS - sceneP, sceneN));
+
+                // Prefer the baked field wherever it covers this point: it is the only source
+                // that knows the real 3D distance. The screen-space pair is the fallback for
+                // panes with no bake, and is only trustworthy when the glass runs roughly
+                // parallel to the surface it meets.
+                float sdfDist = SampleContactSdf(positionAWS);
+                float nearest = sdfDist >= 0.0
+                    ? sdfDist
+                    : min(planeDist, NearestSurfaceDistance(input.positionCS.xy, input.positionRWS,
+                                                            glassEye, _IntersectionFade));
+
+                float contact = _IntersectionFade > 0.0
+                    ? smoothstep(0.0, 1.0, 1.0 - saturate(nearest / _IntersectionFade))
+                    : 0.0;
+
+                // Bend the glass normal into the surface it meets, so shading, refraction and the
+                // rim all run continuously across the join instead of stopping dead at it.
+                N = normalize(lerp(N, sceneN, contact * _ContactNormalMerge));
 
                 // Refraction offset: deviation of the frosted normal from the flat one, in view space.
                 float3 frostN = FrostNormal(positionAWS, N);
                 float3 devVS  = mul((float3x3)UNITY_MATRIX_V, frostN - N);
-                float2 refrUV = saturate(screenUV + devVS.xy * _Distortion);
+                // Stop distorting as the join is approached, or the surface appears to slide
+                // against itself right where the two are supposed to read as one.
+                float2 refrUV = saturate(screenUV + devVS.xy * (_Distortion * (1.0 - contact)));
 
                 // Never pull in a sample that sits in front of the glass, or foreground objects
                 // smear across the pane.
@@ -224,6 +393,9 @@ Shader "HDRP/Frosted Glass"
                     : floor(log2(max(min(_ScreenSize.x, _ScreenSize.y) / 8.0, 1.0)));
                 // Past ~7 the mip is a handful of pixels: the pane turns into a flat colour
                 // rather than frosted glass, so cap it well short of the top of the chain.
+                // Sharpen into the join: a blurred surface next to a sharp one reads as two
+                // separate things no matter how well the alpha is faded.
+                blur01 *= 1.0 - contact;
                 float lod = blur01 * min(pyramidLods, 7.0);
 
                 // A ring of taps hides the blockiness of the pyramid. The radius is one texel of
@@ -254,9 +426,8 @@ Shader "HDRP/Frosted Glass"
                 float fresnel = pow(saturate(1.0 - saturate(dot(N, V))), _RimPower);
                 glass += _RimColor.rgb * (fresnel * _RimStrength * detailFade);
 
-                float alpha = _Opacity;
-                if (_IntersectionFade > 0.0)
-                    alpha *= saturate(behind / _IntersectionFade);
+                // Dissolve into the surface across the contact band so the two share one edge.
+                float alpha = _Opacity * (1.0 - contact * _ContactBlend);
 
                 return float4(glass, saturate(alpha));
             }

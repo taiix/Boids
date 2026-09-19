@@ -30,23 +30,25 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Blur: 0.62
-    - _BlurSpread: 1.9
+    - _Blur: 1
+    - _BlurSpread: 3.37
+    - _ContactBlend: 0.65
+    - _ContactNormalMerge: 0.8
     - _DetailFadeDistance: 0
-    - _DistanceBlur: 0.518
+    - _DistanceBlur: 1
     - _DistanceBlurRange: 25
-    - _Distortion: 0.163
+    - _Distortion: 0.25
     - _FrostTiling: 0.35
-    - _IntersectionFade: 1.5
-    - _Milkiness: 0.05
+    - _IntersectionFade: 3
+    - _Milkiness: 0.101
     - _NormalStrength: 4
-    - _Opacity: 0.369
+    - _Opacity: 0.52
     - _ProceduralFrost: 1
     - _RimPower: 4
     - _RimStrength: 0.08
-    - _TintStrength: 0.168
+    - _TintStrength: 0.358
     m_Colors:
     - _RimColor: {r: 0.8, g: 0.95, b: 1, a: 1}
-    - _Tint: {r: 0.54999995, g: 0.78, b: 0.82, a: 1}
+    - _Tint: {r: 0.18729973, g: 0.58374864, b: 0.6509434, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
