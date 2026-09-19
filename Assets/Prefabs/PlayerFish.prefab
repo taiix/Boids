@@ -507,6 +507,7 @@ GameObject:
   - component: {fileID: 5898891536474935678}
   - component: {fileID: 5507476645205561390}
   - component: {fileID: 7649348071467224804}
+  - component: {fileID: 7517325213802545162}
   m_Layer: 0
   m_Name: PlayerFish
   m_TagString: Untagged
@@ -691,6 +692,28 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   camera: {fileID: 0}
+  Role: 1
+--- !u!114 &7517325213802545162
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5638104583358399087}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2b3e686230bd5f4f9a5650e7780c0b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.FishVitals
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  maxHealth: 100
+  starveDamagePerSecond: 0.5
+  maxHunger: 100
+  hungerDrainPerSecond: 0.6
+  feedRestore: 30
+  disableOnDeath: []
 --- !u!1 &6744179510574502864
 GameObject:
   m_ObjectHideFlags: 0

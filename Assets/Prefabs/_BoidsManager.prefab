@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &8483018894792730702
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8109930906783163824}
+  - component: {fileID: 4296905877772418115}
+  - component: {fileID: 3453949771749277036}
+  m_Layer: 0
+  m_Name: _BoidsManager
+  m_TagString: Untagged
+  m_Icon: {fileID: -964228994112308473, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8109930906783163824
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8483018894792730702}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.2, y: -22.32, z: -74.36}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4296905877772418115
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8483018894792730702}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 617fc5226aa9f6244baa5f31f0c568ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  area: {x: 15, y: 4.3, z: 15}
+  prefab: {fileID: 1318662798089844, guid: 06a4036ceebb544e494c30d599b9d2c1, type: 3}
+  fishCount: 500
+  allFish: []
+  minSpeed: 2
+  maxSpeed: 4.83
+  neighbourDist: 3.5
+  rotationSpeed: 2.54
+  separationDist: 1.3
+  separationWeight: 1.8
+  alignmentWeight: 1
+  cohesionWeight: 1
+  goalWeight: 0.25
+  boundaryWeight: 2
+  speedMatch: 1.5
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 8
+  avoidDistance: 2.5
+  avoidRadius: 0.4
+  avoidWeight: 2
+  fleeRadius: 5
+  fleeWeight: 6
+  fleeSpeed: 9
+  keepBelowWater: 1
+  waterLevel: 0
+  waterSurface: {fileID: 0}
+  waterMargin: 0.5
+  goalPos: {x: 0, y: 0, z: 0}
+  OnMinSpeedChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnMaxSpeedChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnNeighbourDistChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnRotationSpeedChanged:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &3453949771749277036
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8483018894792730702}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8098eaefa0fd7d9418446d5ffe068d94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoidsUIController
+  boidsManager: {fileID: 4296905877772418115}
+  targetObject: {fileID: 0}
