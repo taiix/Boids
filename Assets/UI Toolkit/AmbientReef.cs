@@ -13,7 +13,7 @@ namespace ReefRun
     /// </summary>
     public class AmbientReef : VisualElement
     {
-        public new class UxmlFactory : UxmlFactory<AmbientReef> { }
+        //public class UxmlFactory : UxmlFactory<AmbientReef> { }
 
         struct Fish  { public float x, y, s, sp, op, ph; }
         struct Bubble{ public float x, y, r, sp, op, ph; }
@@ -43,7 +43,7 @@ namespace ReefRun
             });
             RegisterCallback<DetachFromPanelEvent>(_ => _ticker?.Pause());
         }
-
+         
         void Seed()
         {
             float W = Mathf.Max(1, contentRect.width);
