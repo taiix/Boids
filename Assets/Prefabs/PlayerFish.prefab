@@ -374,16 +374,29 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishGame.FishOrbitCamera
   target: {fileID: 2163479463908767922}
+  detachFromParentOnStart: 1
   mouseSensitivity: 0.12
   gamepadSensitivity: 180
   pitchLimit: 85
   invertY: 0
   lockCursor: 1
   freeLookReturnSpeed: 8
+  keyboardSteering: 0
+  toggleSteeringKey: 34
+  keyboardYawSpeed: 120
+  keyboardPitchSpeed: 90
   distance: 5
   height: 1.4
   followSmoothTime: 0.08
   lookAheadHeight: 0.5
+  avoidClipping: 1
+  collisionMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  collisionRadius: 0.3
+  minDistance: 0.8
+  collisionBuffer: 0.2
+  zoomReturnSharpness: 8
 --- !u!1 &4069941180028754496
 GameObject:
   m_ObjectHideFlags: 0
@@ -494,7 +507,6 @@ GameObject:
   - component: {fileID: 5898891536474935678}
   - component: {fileID: 5507476645205561390}
   - component: {fileID: 7649348071467224804}
-  - component: {fileID: -6376916493546265328}
   m_Layer: 0
   m_Name: PlayerFish
   m_TagString: Untagged
@@ -567,6 +579,13 @@ MonoBehaviour:
   boostTurnResponsiveness: 4
   strafeAcceleration: 6
   verticalAcceleration: 8
+  dashAcceleration: 90
+  overspeedDecel: 22
+  waterSurface: {fileID: 0}
+  airGravity: 16
+  airDrag: 0.05
+  exitOffset: 0
+  airOrientResponsiveness: 4
 --- !u!114 &2298218796463452618
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -672,20 +691,6 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   camera: {fileID: 0}
---- !u!114 &-6376916493546265328
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5638104583358399087}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 65ea312ca8e08d347b75a618611d8e12, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GrassDistortion
-  playerTransform: {fileID: 2163479463908767922}
-  grass: {fileID: 2100000, guid: 3def0d64bd65ffc4da4a1efa2c4b8ffc, type: 2}
 --- !u!1 &6744179510574502864
 GameObject:
   m_ObjectHideFlags: 0
@@ -697,6 +702,8 @@ GameObject:
   - component: {fileID: 2735622867745661962}
   - component: {fileID: 824863573538054113}
   - component: {fileID: 5914650825058905066}
+  - component: {fileID: 1252348583133602054}
+  - component: {fileID: 4872700105220872038}
   m_Layer: 0
   m_Name: PinkFish
   m_TagString: Untagged
@@ -776,6 +783,127 @@ MonoBehaviour:
   pitchPerVerticalSpeed: 3
   maxPitchLean: 25
   pitchSmoothing: 6
+--- !u!82 &1252348583133602054
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6744179510574502864}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!167 &4872700105220872038
+AudioReverbZone:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6744179510574502864}
+  m_Enabled: 1
+  m_MinDistance: 10
+  m_MaxDistance: 15
+  m_ReverbPreset: 23
+  m_Room: -1000
+  m_RoomHF: -4000
+  m_DecayTime: 1.49
+  m_DecayHFRatio: 0.1
+  m_Reflections: -449
+  m_ReflectionsDelay: 0.007
+  m_Reverb: 1700
+  m_ReverbDelay: 0.011
+  m_HFReference: 5000
+  m_Diffusion: 100
+  m_Density: 100
+  m_LFReference: 250
+  m_RoomLF: 0
 --- !u!1 &7060841957654440764
 GameObject:
   m_ObjectHideFlags: 0

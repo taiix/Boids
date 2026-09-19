@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: M_FrostedGlass_Barrier
+  m_Shader: {fileID: 4800000, guid: 0363b015a4f333145bba6d73dbfd94c5, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _PROCEDURAL_FROST
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: 3000
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _NormalMap:
+        m_Texture: {fileID: 2800000, guid: 61c6b068dae2f884aae6f031509c1c5d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _Blur: 0.62
+    - _BlurSpread: 1.9
+    - _DetailFadeDistance: 0
+    - _DistanceBlur: 0.518
+    - _DistanceBlurRange: 25
+    - _Distortion: 0.163
+    - _FrostTiling: 0.35
+    - _IntersectionFade: 1.5
+    - _Milkiness: 0.05
+    - _NormalStrength: 4
+    - _Opacity: 0.369
+    - _ProceduralFrost: 1
+    - _RimPower: 4
+    - _RimStrength: 0.08
+    - _TintStrength: 0.168
+    m_Colors:
+    - _RimColor: {r: 0.8, g: 0.95, b: 1, a: 1}
+    - _Tint: {r: 0.54999995, g: 0.78, b: 0.82, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
