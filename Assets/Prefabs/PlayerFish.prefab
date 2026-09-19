@@ -374,16 +374,29 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishGame.FishOrbitCamera
   target: {fileID: 2163479463908767922}
+  detachFromParentOnStart: 1
   mouseSensitivity: 0.12
   gamepadSensitivity: 180
   pitchLimit: 85
   invertY: 0
   lockCursor: 1
   freeLookReturnSpeed: 8
+  keyboardSteering: 0
+  toggleSteeringKey: 34
+  keyboardYawSpeed: 120
+  keyboardPitchSpeed: 90
   distance: 5
   height: 1.4
   followSmoothTime: 0.08
   lookAheadHeight: 0.5
+  avoidClipping: 1
+  collisionMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  collisionRadius: 0.3
+  minDistance: 0.8
+  collisionBuffer: 0.2
+  zoomReturnSharpness: 8
 --- !u!1 &4069941180028754496
 GameObject:
   m_ObjectHideFlags: 0
@@ -494,7 +507,7 @@ GameObject:
   - component: {fileID: 5898891536474935678}
   - component: {fileID: 5507476645205561390}
   - component: {fileID: 7649348071467224804}
-  - component: {fileID: -6376916493546265328}
+  - component: {fileID: 7517325213802545162}
   m_Layer: 0
   m_Name: PlayerFish
   m_TagString: Untagged
@@ -567,6 +580,13 @@ MonoBehaviour:
   boostTurnResponsiveness: 4
   strafeAcceleration: 6
   verticalAcceleration: 8
+  dashAcceleration: 90
+  overspeedDecel: 22
+  waterSurface: {fileID: 0}
+  airGravity: 16
+  airDrag: 0.05
+  exitOffset: 0
+  airOrientResponsiveness: 4
 --- !u!114 &2298218796463452618
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -672,7 +692,8 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   camera: {fileID: 0}
---- !u!114 &-6376916493546265328
+  Role: 1
+--- !u!114 &7517325213802545162
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -681,11 +702,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 5638104583358399087}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 65ea312ca8e08d347b75a618611d8e12, type: 3}
+  m_Script: {fileID: 11500000, guid: e2b3e686230bd5f4f9a5650e7780c0b2, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GrassDistortion
-  playerTransform: {fileID: 2163479463908767922}
-  grass: {fileID: 2100000, guid: 3def0d64bd65ffc4da4a1efa2c4b8ffc, type: 2}
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.FishVitals
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  maxHealth: 100
+  starveDamagePerSecond: 0.5
+  maxHunger: 100
+  hungerDrainPerSecond: 0.6
+  feedRestore: 30
+  disableOnDeath: []
 --- !u!1 &6744179510574502864
 GameObject:
   m_ObjectHideFlags: 0

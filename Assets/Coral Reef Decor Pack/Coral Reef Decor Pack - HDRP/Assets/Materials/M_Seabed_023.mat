@@ -43,7 +43,7 @@ Material:
   - TransparentBackface
   - RayTracingPrepass
   - MOTIONVECTORS
-  m_LockedProperties: 
+  m_LockedProperties: _DoubleSidedEnable
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -275,7 +275,7 @@ Material:
     - _UseEmissiveIntensity: 0
     - _UseShadowThreshold: 0
     - _Wind_Density: 0.5
-    - _Wind_Strength: 0.3
+    - _Wind_Strength: 0.75
     - _ZTestDepthEqualForOpaque: 3
     - _ZTestGBuffer: 3
     - _ZTestTransparent: 4
