@@ -344,7 +344,7 @@ namespace ReefRun
         void LeaveLobby()
         {
             SteamLobby.instance?.LeaveLobby();
-            UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+            UnityEngine.SceneManagement.SceneManager.LoadScene("01 - MainMenu");
         }
 
         void StartMatch()
@@ -358,7 +358,8 @@ namespace ReefRun
 
             // After the animation, pull everyone into the game scene over Mirror.
             // The overlay persists the load and fades out once Island is active.
-            _root.schedule.Execute(() => CustomNetworkManager.singleton.ServerChangeScene("Island")).StartingIn(6200);
+            _root.schedule.Execute(() => CustomNetworkManager.singleton.ServerChangeScene("03 - Island")).StartingIn(6200);
+
         }
 
         void FlashRow(int index)

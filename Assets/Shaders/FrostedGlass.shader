@@ -35,7 +35,10 @@ Shader "HDRP/Frosted Glass"
     {
         Tags
         {
-            "RenderPipeline" = "HighDefinitionRenderPipeline"
+            // Must be exactly "HDRenderPipeline" - that is the id HDRP registers. Anything else
+            // (e.g. "HighDefinitionRenderPipeline") matches no active pipeline asset, so the build
+            // strips every SubShader and the material renders pink, while the editor still shows it.
+            "RenderPipeline" = "HDRenderPipeline"
             "RenderType"     = "HDUnlitShader"
             "Queue"          = "Transparent"
         }
@@ -52,6 +55,8 @@ Shader "HDRP/Frosted Glass"
 
             HLSLPROGRAM
             #pragma target 4.5
+            // Note: "d3d11" here covers both DX11 and DX12 players - "d3d12" is not a valid token
+            // for only_renderers and Unity warns if you add it.
             #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
             #pragma multi_compile_instancing
             #pragma shader_feature_local _PROCEDURAL_FROST
