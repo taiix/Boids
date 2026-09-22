@@ -7,7 +7,7 @@ namespace FishGame
     {
         [Header("References")]
         [SerializeField] FishMotor motor;
-        [Tooltip("Camera that provides the aim direction. If empty, uses Camera.main's FishOrbitCamera.")]
+        [Tooltip("Camera that provides the aim direction. If empty, uses a child FishOrbitCamera, else Camera.main's.")]
         [SerializeField] FishOrbitCamera aimCamera;
 
         [Header("Tuning")]
@@ -22,6 +22,8 @@ namespace FishGame
         void Awake()
         {
             if (motor == null) motor = GetComponent<FishMotor>();
+            // Player prefabs carry their own orbit camera; the scene's main camera is only a fallback.
+            if (aimCamera == null) aimCamera = GetComponentInChildren<FishOrbitCamera>(true);
             if (aimCamera == null && Camera.main != null)
                 aimCamera = Camera.main.GetComponent<FishOrbitCamera>();
 

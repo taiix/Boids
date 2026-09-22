@@ -46,6 +46,7 @@ GameObject:
   - component: {fileID: 1998272068456921468}
   - component: {fileID: 8301890599675227824}
   - component: {fileID: 2053519675627202025}
+  - component: {fileID: 295640766182954770}
   m_Layer: 3
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -193,7 +194,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1
   volumeAnchorOverride: {fileID: 0}
-  antialiasing: 0
+  antialiasing: 2
   SMAAQuality: 2
   dithering: 0
   stopNaNs: 0
@@ -291,7 +292,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishGame.FishOrbitCamera
   target: {fileID: 3522908586109028275}
-  detachFromParentOnStart: 1
+  detachFromParentOnStart: 0
   mouseSensitivity: 0.12
   gamepadSensitivity: 180
   pitchLimit: 85
@@ -314,6 +315,28 @@ MonoBehaviour:
   minDistance: 0.8
   collisionBuffer: 0.2
   zoomReturnSharpness: 8
+--- !u!114 &295640766182954770
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 914953319455329960}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5612aab2afdec04f91ec65cd25f2773, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.CreatureVision
+  fishProfile: {fileID: 11400000, guid: 46a9435344b03bc488e9de06765e1c68, type: 2}
+  sharkProfile: {fileID: 11400000, guid: 7b9f38bef296b1a48aabfe432d26115a, type: 2}
+  fishLayer: PostFxFish
+  sharkLayer: PostFxShark
+  rolePriority: 10
+  fishAbsorptionDistance: 31
+  sharkAbsorptionDistance: 46
+  water: {fileID: 0}
+  blendSeconds: 1.5
+  forceTemporalAA: 1
 --- !u!1 &1711002784792355558
 GameObject:
   m_ObjectHideFlags: 0
@@ -423,6 +446,10 @@ GameObject:
   - component: {fileID: 623530909578766503}
   - component: {fileID: 9198380888855272580}
   - component: {fileID: 6715980123969372486}
+  - component: {fileID: 7649469538802877538}
+  - component: {fileID: 5550977747085003347}
+  - component: {fileID: 2267869316475219035}
+  - component: {fileID: 7577274561067325504}
   m_Layer: 3
   m_Name: PlayerShark
   m_TagString: Untagged
@@ -443,8 +470,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4725170461760260474}
   - {fileID: 5162695104730031043}
+  - {fileID: 4725170461760260474}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &2696725267213110452
@@ -584,6 +611,99 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fee30b4c3a1e16947bb617a29772520d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishGame.Predator
+--- !u!114 &7649469538802877538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2433337675563196249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 0
+  _assetId: 0
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
+--- !u!114 &5550977747085003347
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2433337675563196249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7ae84711ca970f48a849cb708f7d1f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishPlayer
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  camera: {fileID: 0}
+  Role: 1
+  eatRange: 1.6
+  mouthOffset: 1
+--- !u!114 &2267869316475219035
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2433337675563196249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ff3ba0becae47b8b9381191598957c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror.Components::Mirror.NetworkTransformReliable
+  syncDirection: 1
+  syncMode: 0
+  syncInterval: 0
+  target: {fileID: 3522908586109028275}
+  syncPosition: 1
+  syncRotation: 1
+  syncScale: 0
+  onlySyncOnChange: 1
+  compressRotation: 1
+  interpolatePosition: 1
+  interpolateRotation: 1
+  interpolateScale: 1
+  coordinateSpace: 0
+  timelineOffset: 1
+  showGizmos: 0
+  showOverlay: 0
+  overlayColor: {r: 0, g: 0, b: 0, a: 0.5}
+  onlySyncOnChangeCorrectionMultiplier: 2
+  useFixedUpdate: 0
+  rotationSensitivity: 0.01
+  positionPrecision: 0.01
+  scalePrecision: 0.01
+--- !u!114 &7577274561067325504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2433337675563196249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a34be2af908e1f4295c3c09d54984df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.ProximityVoice
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  earshot: 30
+  fullVolumeDistance: 3
+  voiceThreshold: 0.015
+  holdSeconds: 0.35
+  sendInterval: 0.05
+  sharkLowPassHz: 900
+  sharkDistortion: 0.45
+  jitterBufferMs: 120
 --- !u!1 &2579237804410564153
 GameObject:
   m_ObjectHideFlags: 0
