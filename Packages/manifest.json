@@ -9,6 +9,7 @@
     "com.unity.inputsystem": "1.20.0",
     "com.unity.mathematics": "1.4.0",
     "com.unity.multiplayer.center": "2.0.1",
+    "com.unity.multiplayer.playmode": "3.0.0",
     "com.unity.nuget.newtonsoft-json": "3.2.2",
     "com.unity.pipeline": "0.7.0-exp.1",
     "com.unity.render-pipelines.high-definition": "17.6.0",
