@@ -72,6 +72,22 @@ public class BoidsManager : MonoBehaviour
     [Tooltip("How far below the surface the fish should stay.")]
     public float waterMargin = 0.5f;
 
+    [Header("Seabed floor")]
+    [Tooltip("Keep the school above the seabed by probing straight down and steering up off it.")]
+    public bool keepAboveFloor = true;
+    [Tooltip("Layers treated as the seabed for the downward probe (set to Terrain).")]
+    public LayerMask floorMask = 1 << 3; // Terrain
+    [Tooltip("World Y to cast the seabed probe from. Must be above the seabed (e.g. the water level ~0).")]
+    public float floorCastHeight = 2f;
+    [Tooltip("Max downward probe length from the cast height.")]
+    public float floorProbe = 160f;
+    [Tooltip("Start steering up when within this distance above the seabed.")]
+    public float floorMargin = 4f;
+    [Tooltip("Hard minimum clearance kept above the seabed - fish never get closer than this.")]
+    public float floorClearance = 1.5f;
+    [Tooltip("How hard fish steer up off the seabed.")]
+    public float floorWeight = 3.5f;
+
     float _ceiling;
 
     /// <summary>World Y the fish must stay below (or +inf if the ceiling is off).</summary>
@@ -90,6 +106,8 @@ public class BoidsManager : MonoBehaviour
     NativeArray<float3> _posA, _posB, _hdgA, _hdgB;   // double-buffered position + heading
     NativeArray<RaycastCommand> _commands;            // raycasts hit concave mesh colliders (sphere-casts don't)
     NativeArray<RaycastHit> _hits;
+    NativeArray<RaycastCommand> _floorCommands;       // downward casts to find the seabed under each fish
+    NativeArray<RaycastHit> _floorHits;
     NativeParallelMultiHashMap<int, int> _grid;
     TransformAccessArray _tArray;
     NativeArray<float3> _influencers;                  // player positions the flock reacts to
@@ -195,6 +213,17 @@ public class BoidsManager : MonoBehaviour
             castDep = RaycastCommand.ScheduleBatch(_commands, _hits, 32, default);
         }
 
+        // Downward seabed casts (from a fixed height above the terrain): find the ground under
+        // each fish so it can steer up off it and follow the contours instead of sinking through.
+        JobHandle floorDep = default;
+        if (keepAboveFloor && floorWeight > 0f)
+        {
+            var fqp = new QueryParameters(floorMask, false, QueryTriggerInteraction.Ignore, false);
+            for (int i = 0; i < _count; i++)
+                _floorCommands[i] = new RaycastCommand(new float3(_posA[i].x, floorCastHeight, _posA[i].z), new float3(0f, -1f, 0f), fqp, floorProbe);
+            floorDep = RaycastCommand.ScheduleBatch(_floorCommands, _floorHits, 32, default);
+        }
+
         // Steering + integration (Burst, parallel, writes transforms).
         var job = new SteerJob
         {
@@ -209,9 +238,11 @@ public class BoidsManager : MonoBehaviour
             avoidWeight = avoidWeight, avoidDistance = avoidDistance,
             goalPos = goalPos, areaCenter = transform.position, areaHalf = (float3)area * 0.5f,
             keepBelow = keepBelowWater, ceiling = _ceiling,
+            floorHits = _floorHits, keepAboveFloor = keepAboveFloor, floorCastHeight = floorCastHeight,
+            floorMargin = floorMargin, floorClearance = floorClearance, floorWeight = floorWeight,
             outPositions = _posB, outHeadings = _hdgB,
         };
-        job.Schedule(_tArray, castDep).Complete();
+        job.Schedule(_tArray, JobHandle.CombineDependencies(castDep, floorDep)).Complete();
 
         // Swap read/write buffers (this frame's output becomes next frame's input).
         (_posA, _posB) = (_posB, _posA);
@@ -243,6 +274,8 @@ public class BoidsManager : MonoBehaviour
         _hdgB = new NativeArray<float3>(n, Allocator.Persistent);
         _commands = new NativeArray<RaycastCommand>(math.max(1, n), Allocator.Persistent);
         _hits = new NativeArray<RaycastHit>(math.max(1, n), Allocator.Persistent);
+        _floorCommands = new NativeArray<RaycastCommand>(math.max(1, n), Allocator.Persistent);
+        _floorHits = new NativeArray<RaycastHit>(math.max(1, n), Allocator.Persistent);
         _grid = new NativeParallelMultiHashMap<int, int>(math.max(1, n), Allocator.Persistent);
         _influencers = new NativeArray<float3>(MaxInfluencers, Allocator.Persistent);
         _predators = new NativeArray<float3>(MaxPredators, Allocator.Persistent);
@@ -270,6 +303,8 @@ public class BoidsManager : MonoBehaviour
         if (_hdgB.IsCreated) _hdgB.Dispose();
         if (_commands.IsCreated) _commands.Dispose();
         if (_hits.IsCreated) _hits.Dispose();
+        if (_floorCommands.IsCreated) _floorCommands.Dispose();
+        if (_floorHits.IsCreated) _floorHits.Dispose();
         if (_grid.IsCreated) _grid.Dispose();
         if (_influencers.IsCreated) _influencers.Dispose();
         if (_predators.IsCreated) _predators.Dispose();
@@ -366,6 +401,10 @@ public class BoidsManager : MonoBehaviour
         public float3 goalPos, areaCenter, areaHalf;
         public bool keepBelow;
         public float ceiling;
+
+        [ReadOnly] public NativeArray<RaycastHit> floorHits;
+        public bool keepAboveFloor;
+        public float floorCastHeight, floorMargin, floorClearance, floorWeight;
 
         [WriteOnly] public NativeArray<float3> outPositions;
         [WriteOnly] public NativeArray<float3> outHeadings;
@@ -472,6 +511,27 @@ public class BoidsManager : MonoBehaviour
                     steer += new float3(0f, -1f, 0f) * (boundaryWeight * 1.5f * math.saturate(over / 1.5f));
             }
 
+            // Seabed floor: a probe cast straight down from floorCastHeight finds the ground under
+            // this fish; steer up as we approach it so the school follows the terrain instead of
+            // sinking through it.
+            float groundY = float.NegativeInfinity;
+            bool hasFloor = false;
+            if (keepAboveFloor)
+            {
+                float3 fnrm = floorHits[index].normal;
+                if (math.lengthsq(fnrm) > 1e-4f)   // a valid downward hit found the seabed
+                {
+                    hasFloor = true;
+                    groundY = floorCastHeight - floorHits[index].distance;
+                    float clearance = pos.y - groundY;
+                    if (clearance < floorMargin)
+                    {
+                        float t01 = math.saturate(1f - clearance / floorMargin);
+                        steer += new float3(0f, 1f, 0f) * (floorWeight * (1f + 4f * t01 * t01));
+                    }
+                }
+            }
+
             float3 newFwd = fwd;
             if (math.lengthsq(steer) > 1e-6f)
             {
@@ -493,6 +553,8 @@ public class BoidsManager : MonoBehaviour
 
             // Hard clamp so a fish can never cross the surface even if steering lags.
             if (keepBelow && newPos.y > ceiling) newPos.y = ceiling;
+            // Hard floor: never let a fish sink into the seabed.
+            if (hasFloor && newPos.y < groundY + floorClearance) newPos.y = groundY + floorClearance;
 
             outPositions[index] = newPos;
             outHeadings[index] = newFwd;

@@ -19,6 +19,8 @@ public class PlayerTaskInteraction : MonoBehaviour
     public bool IsHolding { get; private set; }
     private InputAction _puzzleMove;
     public Vector2 PuzzleInput { get; private set; }
+    private InputAction _submitAction;   // Enter — check the full sequence
+    private InputAction _deleteAction;   // Backspace — delete the last arrow
 
     public GameObject uiElement;
     //public bool isAtInteractionSpot;
@@ -57,10 +59,22 @@ public class PlayerTaskInteraction : MonoBehaviour
 
         _holdAction.started += ctx => IsHolding = true;
         _holdAction.canceled += ctx => IsHolding = false;
+
+        _submitAction = new InputAction("SubmitSequence", InputActionType.Button);
+        _submitAction.AddBinding("<Keyboard>/enter");
+        _submitAction.AddBinding("<Keyboard>/numpadEnter");
+        _submitAction.AddBinding("<Gamepad>/start");
+        _submitAction.performed += ctx => { if (!isFake && task != null && task.isWorkedOn) SubmitCurrent(); };
+
+        _deleteAction = new InputAction("DeleteArrow", InputActionType.Button);
+        _deleteAction.AddBinding("<Keyboard>/backspace");
+        _deleteAction.AddBinding("<Gamepad>/buttonEast");
+        _deleteAction.performed += ctx => { if (!isFake && task != null && task.isWorkedOn) DeleteLast(); };
     }
     private void OnPuzzleMove(InputAction.CallbackContext ctx)
     {
-        if (!IsHolding || !task.isWorkedOn || isFake)
+        // During the input phase (isWorkedOn) just press the directions — no holding required.
+        if (task == null || !task.isWorkedOn || isFake)
             return;
 
         Vector2 input = ctx.ReadValue<Vector2>();
@@ -78,6 +92,8 @@ public class PlayerTaskInteraction : MonoBehaviour
     {
         _holdAction.Enable();
         _puzzleMove.Enable();
+        _submitAction.Enable();
+        _deleteAction.Enable();
 
         _puzzleMove.performed += ctx =>
         {
@@ -93,6 +109,9 @@ public class PlayerTaskInteraction : MonoBehaviour
     void OnDisable()
     {
         _holdAction.Disable();
+        _puzzleMove.Disable();
+        _submitAction.Disable();
+        _deleteAction.Disable();
     }
     public void ShowSequence(List<Direction> sequence)
     {
@@ -160,16 +179,34 @@ public class PlayerTaskInteraction : MonoBehaviour
         }
     }
 
+    // Add an arrow to the next open box. Does NOT check yet — the player presses Enter to submit
+    // the whole sequence (see SubmitCurrent), and Backspace to delete the last one (see DeleteLast).
     public void SubmitDirection(Direction direction)
     {
+        int slots = uiElement != null ? uiElement.transform.childCount : 0;
+        if (input.Count >= slots) return; // all boxes filled — press Enter to check
+
         input.Add(direction);
-        Transform currentChild = uiElement.transform.GetChild(input.Count-1).GetChild(0);
-        currentChild.gameObject.SetActive(true);
+        Transform arrow = uiElement.transform.GetChild(input.Count - 1).GetChild(0);
+        arrow.gameObject.SetActive(true);
+        arrow.GetComponent<RectTransform>().localRotation = Quaternion.Euler(0f, 0f, map[direction]);
 
-        RectTransform rect = currentChild.GetComponent<RectTransform>();
-        rect.localRotation = Quaternion.Euler(0f, 0f, map[direction]);
+        if (task != null) task.OnInputChanged(input.Count);
+    }
 
-        task.ReceiveInput(this, direction, input.Count-1);
+    /// <summary>Backspace — remove the most recently entered arrow.</summary>
+    public void DeleteLast()
+    {
+        if (input.Count == 0) return;
+        uiElement.transform.GetChild(input.Count - 1).GetChild(0).gameObject.SetActive(false);
+        input.RemoveAt(input.Count - 1);
+        if (task != null) task.OnInputChanged(input.Count);
+    }
+
+    /// <summary>Enter — submit the entered sequence to be checked all at once.</summary>
+    public void SubmitCurrent()
+    {
+        if (task != null) task.SubmitSequence(this, input);
     }
     void ProcessInput(Vector2 input)
     {
@@ -183,32 +220,20 @@ public class PlayerTaskInteraction : MonoBehaviour
             SubmitDirection(Direction.Right);
     }
 
-    private void OnTriggerStay(Collider other)
+    /// <summary>Freeze/unfreeze the player while it works on a task. Called by MoveObjectsTask.
+    /// Disables steering, movement and (on the shark) the bite, so the task's WASD/left-click input
+    /// doesn't also drive the character.</summary>
+    public void LockMovement(bool locked)
     {
-        if (other.CompareTag("Finish"))
-        {
-
-            if (IsHolding && !task.isWorkedOn)
-            {
-                fishMotor = GetComponent<FishMotor>();
-                task.StartTask(this, otherFake);
-                GetComponent<Rigidbody>().linearVelocity = Vector3.zero;
-                fishMotor.enabled = false;
-            }
-            else if (!IsHolding && task.isWorkedOn)
-            {
-                fishMotor = GetComponent<FishMotor>();
-                fishMotor.enabled = true;
-                task.isWorkedOn = false;
-
-            }
-            else if (IsHolding && task.isWorkedOn)
-            {
-                //Vector2 input = _puzzleMove.ReadValue<Vector2>();
-                //ProcessInput(input);
-            }
-        }
+        if (fishMotor == null) fishMotor = GetComponent<FishMotor>();
+        if (fishMotor != null) fishMotor.enabled = !locked;
+        if (TryGetComponent<FishController>(out var fc)) fc.enabled = !locked;
+        if (TryGetComponent<SharkAbilities>(out var sa)) sa.enabled = !locked;
+        if (locked && TryGetComponent<Rigidbody>(out var rb)) rb.linearVelocity = Vector3.zero;
     }
+
+    // (The task is started by the TaskStation via E, and its movement lock is released by
+    // MoveObjectsTask when the task finishes — so no per-frame trigger handling is needed here.)
 
 
 }
