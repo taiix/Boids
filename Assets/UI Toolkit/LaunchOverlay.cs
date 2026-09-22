@@ -10,7 +10,8 @@ namespace ReefRun
     /// The host triggers <see cref="Play"/> on every client (broadcast through
     /// Steam lobby data in SteamLobby/ReefRunLobbyController). Because this object
     /// is DontDestroyOnLoad, the animation keeps playing through Mirror's network
-    /// scene load and only fades out once the game scene ("Island") is loaded.
+    /// scene load and only fades out once the round has actually started - i.e. once every player
+    /// has loaded (see MatchManager), so nobody gets a head start on a faster machine.
     ///
     /// Put this on a GameObject (e.g. under Bootstrap) with a UIDocument whose
     /// Source Asset is LaunchOverlay.uxml.
@@ -20,8 +21,14 @@ namespace ReefRun
     {
         public static LaunchOverlay Instance { get; private set; }
 
-        [Tooltip("Scene name that ends the overlay (fades out once it loads).")]
-        public string GameSceneName = "Island";
+        [Tooltip("Scene name that ends the overlay (fades out once it loads and the round starts).")]
+        public string GameSceneName = "03 - Island";
+
+        [Tooltip("Shown while this machine has loaded but others are still loading.")]
+        public string WaitingText = "Waiting for everyone to reach the reef...";
+
+        [Tooltip("Give up waiting for the round and reveal the scene after this many seconds.")]
+        public float MaxWaitSeconds = 120f;
 
         UIDocument _doc;
         VisualElement _overlay;
@@ -72,7 +79,25 @@ namespace ReefRun
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (!_playing || _overlay == null || scene.name != GameSceneName) return;
-            StartCoroutine(FadeOutWhenSettled(0.6f));
+            StartCoroutine(FadeOutWhenRoundStarts(0.6f));
+        }
+
+        // The server flips RoundLive on every player once the last one has loaded; we watch our own.
+        System.Collections.IEnumerator FadeOutWhenRoundStarts(float dur)
+        {
+            var waitingLabel = _overlay.Q<Label>("ov-line-2");
+            bool showedWaiting = false;
+            float waited = 0f;
+            while (waited < MaxWaitSeconds)
+            {
+                if (!Mirror.NetworkClient.active) break;   // offline: nothing to wait for
+                var local = Mirror.NetworkClient.localPlayer;
+                if (local != null && local.TryGetComponent(out FishPlayer me) && me.RoundLive) break;
+                if (!showedWaiting && waitingLabel != null) { waitingLabel.text = WaitingText; showedWaiting = true; }
+                waited += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            yield return FadeOutWhenSettled(dur);
         }
 
         // Fade the cover out once the new scene is up. We DON'T use the USS opacity

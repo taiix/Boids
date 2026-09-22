@@ -24,8 +24,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Shader_Droplets
-  m_Shader: {fileID: -6465566751694194690, guid: d6d512ad1abf5494c9cf6c1fe42e1bcc,
-    type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: d6d512ad1abf5494c9cf6c1fe42e1bcc, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []

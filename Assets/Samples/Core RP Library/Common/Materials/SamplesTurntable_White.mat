@@ -34,8 +34,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SamplesTurntable_White
-  m_Shader: {fileID: -6465566751694194690, guid: daae7dca060ff1344bf7d7e511e0e961,
-    type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: daae7dca060ff1344bf7d7e511e0e961, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
@@ -84,6 +83,8 @@ Material:
     - _AlphaDstBlend: 0
     - _AlphaSrcBlend: 1
     - _Anisotropy: 0.5
+    - _BUILTIN_QueueControl: -1
+    - _BUILTIN_QueueOffset: 0
     - _BlendMode: 0
     - _Color_Variation: 2
     - _ConservativeDepthOffsetEnable: 0
@@ -97,6 +98,7 @@ Material:
     - _DstBlend2: 0
     - _EnableBlendModePreserveSpecularLighting: 1
     - _EnableFogOnTransparent: 1
+    - _ExcludeFromTUAndAA: 0
     - _Logo_Smoothness: 0.25
     - _MaterialID: 1
     - _MaterialTypeMask: 4

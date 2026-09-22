@@ -10,7 +10,7 @@ namespace FishGame
     /// </summary>
     public class MatchHud : MonoBehaviour
     {
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        //[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Bootstrap()
         {
             var go = new GameObject("MatchHud (auto)");

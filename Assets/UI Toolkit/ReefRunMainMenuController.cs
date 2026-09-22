@@ -20,7 +20,7 @@ namespace ReefRun
         // ---- inspector ----
         public string FriendsText = "5 friends online";
         public string Version = "v0.4.1 — EARLY ACCESS BUILD";
-        public string LobbySceneName = "ReefRunLobby";
+        public string LobbySceneName = "02 - ReefRunLobby";
 
         // PlayerPrefs keys
         const string K_MASTER = "rr_vol_master";

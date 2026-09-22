@@ -3,7 +3,7 @@ using UnityEngine.SceneManagement;
 
 public static class BootstrapInit
 {
-    private static string bootstrapSceneName = "Bootstrap";
+    private static string bootstrapSceneName = "00 - Bootstrap";
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Initialize()
