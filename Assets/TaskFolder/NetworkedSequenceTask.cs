@@ -51,6 +51,13 @@ namespace FishGame
                  "(the urchins), whichever is nearest.")]
         [SerializeField] float joinRadius = 6f;
 
+        [Header("Testing")]
+        [Tooltip("F3 puts a finished task back (urchins return, it can be played again). Anyone can press " +
+                 "it. Turn off for real matches.")]
+        [SerializeField] bool allowTestReset = true;
+        [Tooltip("How long the end-of-task message (\"Reef repaired!\" / \"A partner left\") stays up.")]
+        [SerializeField] float endMessageSeconds = 4f;
+
         [Header("Client UI (screen-space, shared per client)")]
         [Tooltip("Panel with >= max-length slot children, each holding an arrow child.")]
         [SerializeField] GameObject arrowPanel;
@@ -63,7 +70,7 @@ namespace FishGame
         [SyncVar(hook = nameof(OnIntChanged))] int _roundIndex;
         [SyncVar(hook = nameof(OnUintChanged))] uint _seerNetId;
         [SyncVar(hook = nameof(OnUintChanged))] uint _inputterNetId;
-        [SyncVar] bool _consumed;
+        [SyncVar(hook = nameof(OnConsumedChanged))] bool _consumed; // done: props hidden for everyone
         // Who has joined (0 = empty seat), so each client knows whether it's the one waiting here.
         [SyncVar(hook = nameof(OnUintChanged))] uint _player1;
         [SyncVar(hook = nameof(OnUintChanged))] uint _player2;
@@ -85,8 +92,10 @@ namespace FishGame
         bool _localInRange;
         float _localDistance = float.MaxValue;
         readonly List<Direction> _inputBuffer = new List<Direction>();
-        InputAction _interact, _dir, _submit, _delete;
+        InputAction _interact, _dir, _submit, _delete, _reset;
         FishPlayer _parkedFish; // the local body we parked (controls off) while it's part of the task
+        float _messageUntil;    // an end-of-task message stays up until then
+        Color _statusColor;     // the label's own colour, restored after a green/red message
         Renderer[] _propRenderers;
         MaterialPropertyBlock _glowBlock;
         bool _restPending;
@@ -121,20 +130,24 @@ namespace FishGame
             _delete.AddBinding("<Keyboard>/backspace");
             _delete.performed += _ => TryDelete();
 
+            _reset = new InputAction("TaskReset", InputActionType.Button);
+            _reset.AddBinding("<Keyboard>/f3");
+
+            if (statusLabel != null) _statusColor = statusLabel.color;
             HidePanel();
             SetStatus(null);
         }
 
         void OnEnable()
         {
-            _interact.Enable(); _dir.Enable(); _submit.Enable(); _delete.Enable();
+            _interact.Enable(); _dir.Enable(); _submit.Enable(); _delete.Enable(); _reset.Enable();
             TerrainNetSync.SeabedChanged += QueueRest;
             _restPending = true;
         }
 
         void OnDisable()
         {
-            _interact.Disable(); _dir.Disable(); _submit.Disable(); _delete.Disable();
+            _interact.Disable(); _dir.Disable(); _submit.Disable(); _delete.Disable(); _reset.Disable();
             TerrainNetSync.SeabedChanged -= QueueRest;
             Park(null); // never leave the local fish stuck
         }
@@ -166,7 +179,12 @@ namespace FishGame
             // Parked from joining until the task is done (or we leave / it resets): WASD are arrows then.
             Park(joined && !_consumed && _phase != Phase.Done ? lf : null);
 
-            if (_phase == Phase.Idle) RefreshUI(); // keep the "n/2 / press E" prompt live as we move
+            // F3 (testing): put a finished task back so it can be played again.
+            if (allowTestReset && _consumed && lf != null && !PauseMenu.IsOpen && _reset.WasPressedThisFrame())
+                lf.CmdResetSequenceTask(netId);
+
+            // Keep the "n/2 / press E" prompt live as we move, and clear an end message once it's had its time.
+            if (_phase == Phase.Idle || _phase == Phase.Done) RefreshUI();
         }
 
         // Drop each prop onto this run's seabed (everyone has the host's heights, so they all agree),
@@ -277,15 +295,37 @@ namespace FishGame
         void OnPhaseChanged(Phase _, Phase __) => RefreshUI();
         void OnUintChanged(uint _, uint __) => RefreshUI();
 
+        // Done hides the props for everyone (late joiners too, via OnStartClient); a test reset brings
+        // them back.
+        void OnConsumedChanged(bool _, bool consumed) => ShowProps(!consumed);
+
+        public override void OnStartClient()
+        {
+            base.OnStartClient();
+            ShowProps(!_consumed);
+        }
+
+        void ShowProps(bool show)
+        {
+            if (propsToRemove != null)
+                foreach (var p in propsToRemove) if (p != null) p.SetActive(show);
+            if (show) _restPending = true; // settle them again on the current seabed
+        }
+
         void RefreshUI()
         {
+            // An end-of-task message ("Reef repaired!", "A partner left") keeps the status line for a while.
+            bool holding = Time.time < _messageUntil;
+            if (!holding && statusLabel != null) statusLabel.color = _statusColor;
+
             var lf = LocalFish;
-            if (lf == null || lf.IsShark) { HidePanel(); SetStatus(null); return; }
+            if (lf == null || lf.IsShark) { HidePanel(); if (!holding) SetStatus(null); return; }
 
             switch (_phase)
             {
                 case Phase.Idle:
                     HidePanel();
+                    if (holding) break;
                     if (_consumed) SetStatus(null);
                     else if (IAmJoined) SetStatus($"{_joined}/2 players ready — waiting for a partner   •   E to leave");
                     else if (_localInRange) SetStatus($"Reef puzzle — press E to join   ({_joined}/2 players ready)");
@@ -302,7 +342,8 @@ namespace FishGame
                     else SetStatus(null);
                     break;
                 default:
-                    HidePanel(); SetStatus(null);
+                    HidePanel();
+                    if (!holding) SetStatus(null);
                     break;
             }
         }
@@ -331,21 +372,23 @@ namespace FishGame
             RefreshUI();
         }
 
+        // hold: an end-of-task message, kept up for endMessageSeconds instead of giving way to the next prompt.
         [ClientRpc]
-        void RpcFeedback(string msg, bool good)
+        void RpcFeedback(string msg, bool good, bool hold)
         {
             if (statusLabel != null)
             {
                 statusLabel.color = good ? new Color(0.35f, 0.9f, 0.45f) : new Color(0.95f, 0.4f, 0.4f);
                 SetStatus(msg);
             }
+            if (hold) _messageUntil = Time.time + endMessageSeconds;
         }
 
         [ClientRpc]
-        void RpcRemoveProps()
+        void RpcClearMessage()
         {
-            if (propsToRemove != null)
-                foreach (var p in propsToRemove) if (p != null) p.SetActive(false);
+            _messageUntil = 0f;
+            RefreshUI();
         }
 
         // ---- small UI helpers (operate on this client's copy of the shared panel) ----
@@ -458,12 +501,12 @@ namespace FishGame
                 bool correct = _submitted != null && Matches(_submitted, _sequence);
                 if (correct)
                 {
-                    RpcFeedback($"Round {_roundIndex + 1} correct!", true);
+                    RpcFeedback($"Round {_roundIndex + 1} correct!", true, false);
                     _roundIndex++;
                 }
                 else
                 {
-                    RpcFeedback("Wrong — try that round again.", false);
+                    RpcFeedback("Wrong — try that round again.", false, false);
                     // stay on the same round; regenerate next loop
                 }
                 yield return new WaitForSeconds(betweenRounds);
@@ -474,8 +517,7 @@ namespace FishGame
             _players.Clear();
             SyncSeats(); // everyone's released
             if (MatchManager.Instance != null) MatchManager.Instance.ReduceRemaining(timeReward);
-            RpcRemoveProps();
-            RpcFeedback("Reef repaired!", true);
+            RpcFeedback("Reef repaired!", true, true);
         }
 
         [Server]
@@ -484,7 +526,24 @@ namespace FishGame
             _phase = Phase.Idle;
             _players.Clear();
             SyncSeats();
-            RpcFeedback("A partner left — task reset.", false);
+            RpcFeedback("A partner left — task reset.", false, true);
+        }
+
+        /// <summary>Testing (F3, any player): put a finished task back - urchins return and it can be
+        /// played again (and rewards again).</summary>
+        [Server]
+        public void ServerResetForTesting()
+        {
+            if (!allowTestReset || !_consumed) return;
+            _players.Clear();
+            SyncSeats();
+            _roundIndex = 0;
+            _seerNetId = 0;
+            _inputterNetId = 0;
+            _phase = Phase.Idle;
+            _consumed = false;
+            RpcClearMessage();
+            Debug.Log($"[Task] {name}: reset for testing (F3).");
         }
 
         static bool Matches(int[] input, List<Direction> seq)

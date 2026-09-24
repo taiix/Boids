@@ -25,6 +25,9 @@ public class FishPlayer : NetworkBehaviour
     [SerializeField] float eatRange = 1.6f;
     [Tooltip("Forward distance from the fish pivot to its 'mouth'.")]
     [SerializeField] float mouthOffset = 1.0f;
+    [Tooltip("Extra reach the host allows a remote player's bite: that player sees the pellet (and the " +
+             "host sees their fish) a moment late, so an exact check would miss bites that looked fine.")]
+    [SerializeField] float remoteEatSlack = 1.5f;
     private InputAction _eatAction;
 
     private CreatureVision _vision;
@@ -334,25 +337,26 @@ public class FishPlayer : NetworkBehaviour
 
     // Server validates that a pellet is actually in mouth range before consuming it.
     [Command]
-    private void CmdEat() => ServerEatNearestPellet();
+    private void CmdEat() => ServerEatNearestPellet(isLocalPlayer ? 0f : remoteEatSlack);
 
     // Eat the nearest pellet in mouth range. Runs on the server for a networked player, or directly on
     // the offline sandbox body (FoodPellet.Consume is offline-capable).
-    private void ServerEatNearestPellet()
+    private void ServerEatNearestPellet(float extraReach = 0f)
     {
         if (IsSharkBody) return; // pellets are fish food; the shark eats fish
-        var best = PelletInReach();
+        var best = PelletInReach(extraReach);
         if (best != null)
             best.Consume(GetComponent<FishVitals>());
     }
 
     // The pellet a bite would take right now, or null. Shared by the eat itself and its prompt, so
     // "Press E to eat" only shows when E would actually eat.
-    private FoodPellet PelletInReach()
+    private FoodPellet PelletInReach(float extraReach = 0f)
     {
         Vector3 mouth = transform.position + transform.forward * mouthOffset;
         FoodPellet best = null;
-        float bestSqr = eatRange * eatRange;
+        float reach = eatRange + extraReach;
+        float bestSqr = reach * reach;
         foreach (var pellet in FoodPellet.All)
         {
             if (pellet == null || pellet.IsEaten) continue;
@@ -455,6 +459,14 @@ public class FishPlayer : NetworkBehaviour
         if (NetworkServer.spawned.TryGetValue(taskNetId, out var id) &&
             id.TryGetComponent(out NetworkedSequenceTask task))
             task.ServerSubmit(this, dirs);
+    }
+
+    [Command]
+    public void CmdResetSequenceTask(uint taskNetId)
+    {
+        if (NetworkServer.spawned.TryGetValue(taskNetId, out var id) &&
+            id.TryGetComponent(out NetworkedSequenceTask task))
+            task.ServerResetForTesting();
     }
 
     [Command]
