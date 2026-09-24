@@ -43,6 +43,7 @@ namespace FishGame
         public bool IsEaten { get; private set; }
 
         int _eatenId;
+        bool _despawn = true;
 
         void Awake()
         {
@@ -55,7 +56,9 @@ namespace FishGame
         /// fish pulled into and parented to it (rides the jaw). Returns false if already eaten.
         /// In multiplayer, call this on the SERVER (fanned out via RPC).
         /// </summary>
-        public bool Devour(GameObject predator, Transform mouth = null)
+        /// <param name="despawn">Destroy the fish after <see cref="despawnDelay"/>. Pass false for a
+        /// networked player, whose body the server replaces itself when it respawns them.</param>
+        public bool Devour(GameObject predator, Transform mouth = null, bool despawn = true)
         {
             if (IsEaten) return false;
             IsEaten = true;
@@ -85,9 +88,10 @@ namespace FishGame
 
             OnDevoured?.Invoke(predator);
 
+            _despawn = despawn;
             if (mouth != null)
                 StartCoroutine(IntoMouth(mouth));
-            else if (despawnDelay >= 0f)
+            else if (_despawn && despawnDelay >= 0f)
                 Destroy(gameObject, despawnDelay); // swap for NetworkServer.Destroy in MP
 
             return true;
@@ -131,7 +135,7 @@ namespace FishGame
             transform.localPosition = Vector3.zero;
             transform.localRotation = Quaternion.identity;
 
-            if (despawnDelay >= 0f)
+            if (_despawn && despawnDelay >= 0f)
                 Destroy(gameObject, despawnDelay); // swap for NetworkServer.Destroy in MP
         }
     }

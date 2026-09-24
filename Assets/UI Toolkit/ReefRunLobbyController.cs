@@ -358,7 +358,12 @@ namespace ReefRun
 
             // After the animation, pull everyone into the game scene over Mirror.
             // The overlay persists the load and fades out once Island is active.
-            _root.schedule.Execute(() => CustomNetworkManager.singleton.ServerChangeScene("03 - Island")).StartingIn(6200);
+            // The scene comes from the NetworkManager's Game Scene Name, so it's set in one place.
+            _root.schedule.Execute(() =>
+            {
+                var nm = CustomNetworkManager.singleton as CustomNetworkManager;
+                CustomNetworkManager.singleton.ServerChangeScene(nm != null ? nm.GameSceneName : "03 - Island");
+            }).StartingIn(6200);
 
         }
 

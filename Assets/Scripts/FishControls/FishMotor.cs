@@ -62,8 +62,9 @@ namespace FishGame
         [SerializeField] float overspeedDecel = 22f;
 
         [Header("Water / breaching")]
-        [Tooltip("HDRP Water Surface used to know where the surface is. Leave empty to disable gravity " +
-                 "(free-swim everywhere, like before).")]
+        [Tooltip("HDRP Water Surface used to know where the surface is. Leave empty to use the scene's " +
+                 "(found automatically - a prefab can't reference a scene object, so spawned players " +
+                 "always start without one).")]
         [SerializeField] WaterSurface waterSurface;
         [Tooltip("Downward acceleration once the fish leaves the water (m/s^2). Higher = snappier, " +
                  "more arcade arcs; ~9.81 is real gravity.")]
@@ -79,6 +80,7 @@ namespace FishGame
         bool _isSubmerged = true;
         bool _warnedNoWater;
         int _waterFailStreak;
+        float _nextWaterLookup;
 
         Rigidbody _rb;
         Vector3 _velocity;
@@ -161,7 +163,21 @@ namespace FishGame
         {
             _rb = GetComponent<Rigidbody>();
             _rb.useGravity = false;
+            UseWaterSurface(waterSurface);
+        }
 
+        // Without a surface the fish would swim straight up into the sky, so find the scene's when none
+        // is assigned (retried once a second, in case the water loads after us).
+        void EnsureWaterSurface()
+        {
+            if (waterSurface != null || Time.time < _nextWaterLookup) return;
+            _nextWaterLookup = Time.time + 1f;
+            UseWaterSurface(FindAnyObjectByType<WaterSurface>());
+        }
+
+        void UseWaterSurface(WaterSurface surface)
+        {
+            waterSurface = surface;
             if (waterSurface != null && !waterSurface.scriptInteractions)
                 waterSurface.scriptInteractions = true;
         }
@@ -171,6 +187,7 @@ namespace FishGame
             float dt = Time.fixedDeltaTime;
 
             // --- Water check: below the surface we swim, above it we go ballistic ---------
+            EnsureWaterSurface();
             _isSubmerged = true;
             if (waterSurface != null && SampleWaterHeight(_rb.position, out float waterY))
                 _isSubmerged = _rb.position.y < waterY + exitOffset;
@@ -290,10 +307,12 @@ namespace FishGame
                 _warnedNoWater = true;
                 Debug.LogWarning($"[FishMotor] Still can't sample '{waterSurface.name}' after warmup. " +
                                  "Enable 'Script Interactions' on the Water Surface, AND CPU simulation in the " +
-                                 "HDRP Asset's Water settings. Treating fish as submerged.", this);
+                                 "HDRP Asset's Water settings. Using its flat height (no waves) meanwhile.", this);
             }
-            height = 0f;
-            return false;
+            // Never "no surface": that let fish swim off into the sky. The flat level ignores waves,
+            // which is fine for keeping everyone in the water.
+            height = waterSurface.transform.position.y;
+            return true;
         }
     }
 }

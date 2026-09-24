@@ -1,6 +1,7 @@
 using FishGame;
 using Mirror;
 using Mirror.FizzySteam;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -20,6 +21,20 @@ public class CustomNetworkManager : NetworkManager
              "everyone stays a fish - so testing a build on your own does not always drop you into " +
              "the shark's seat. Set to 1 if you deliberately want a solo shark.")]
     [SerializeField] private int minPlayersForShark = 2;
+
+    [Tooltip("Any player can press F8 mid-match to switch between shark and fish; everyone sees the new " +
+             "body. Handy for testing (e.g. two fish for the comms task); turn off for real matches.")]
+    [SerializeField] private bool allowRoleSwap = true;
+
+    [Tooltip("Testing stand-in for death: a player fish eaten by the shark watches through the shark's " +
+             "view for this many seconds, then respawns as a fresh fish.")]
+    [SerializeField] private float respawnAfterEatenSeconds = 3f;
+
+    /// <summary>The scene the lobby loads when the host starts the match.</summary>
+    public string GameSceneName => gameSceneName;
+
+    private const float RoleSwapCooldown = 1f;
+    private readonly Dictionary<int, float> _lastRoleSwap = new Dictionary<int, float>();
 
 #if UNITY_EDITOR
     [Header("Editor testing")]
@@ -55,6 +70,35 @@ public class CustomNetworkManager : NetworkManager
         if (transport == null)
             transport = GetComponent<FizzySteamworks>();
         base.Awake();
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnAnySceneLoaded;
+    }
+
+    public override void OnDestroy()
+    {
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnAnySceneLoaded;
+        base.OnDestroy();
+    }
+
+    /// <summary>
+    /// A test scene may have a shark/fish body placed in it for driving offline. When a server loads it
+    /// those must go before Mirror spawns the scene's NetworkIdentities, or they'd appear on top of the
+    /// players' real bodies. sceneLoaded fires before Mirror's FinishLoadScene spawns them; Immediate,
+    /// because that can be later in this same frame. (The editor's DevHost does the same for hosts it
+    /// starts inside an already-loaded scene.)
+    /// </summary>
+    private static void OnAnySceneLoaded(UnityEngine.SceneManagement.Scene scene,
+                                         UnityEngine.SceneManagement.LoadSceneMode mode)
+    {
+        if (!NetworkServer.active) return;
+        var doomed = new List<GameObject>();
+        foreach (var root in scene.GetRootGameObjects())
+            foreach (var fp in root.GetComponentsInChildren<FishPlayer>(true))
+                if (fp.TryGetComponent(out NetworkIdentity id) && id.sceneId != 0) doomed.Add(fp.gameObject);
+        foreach (var go in doomed)
+        {
+            Debug.Log($"[Net] Removing scene-placed '{go.name}' - players get spawned bodies.");
+            DestroyImmediate(go);
+        }
     }
 
     public override void OnServerSceneChanged(string newSceneName)
@@ -179,6 +223,79 @@ public class CustomNetworkManager : NetworkManager
 
         // The player everyone was waiting on may be the one who just left.
         if (_gameStarted) FishPlayer.ServerTryStartRound();
+        _lastRoleSwap.Remove(conn.connectionId);
+    }
+
+    /// <summary>
+    /// Server: swap a player between shark and fish by re-spawning them as the other prefab at the same
+    /// spot. ReplacePlayerForConnection spawns the new body on every client and destroys the old one, so
+    /// everyone sees the change. Requested with F8 (FishPlayer.CmdSwitchRole).
+    /// </summary>
+    public void ServerSwitchRole(NetworkConnectionToClient conn)
+    {
+        if (!allowRoleSwap || !_gameStarted) return;
+        if (conn?.identity == null || !conn.identity.TryGetComponent(out FishPlayer cur)) return;
+        if (_lastRoleSwap.TryGetValue(conn.connectionId, out float last) && Time.unscaledTime - last < RoleSwapCooldown) return;
+        // Not while being eaten (the respawn handles that body), nor while a shark has someone in its
+        // jaws - the prey is parented to its mouth and would be destroyed along with the old body.
+        if (cur.IsBeingEaten || HasPreyInJaws(cur)) return;
+
+        FishRole newRole = cur.Role == FishRole.Shark ? FishRole.Fish : FishRole.Shark;
+        GameObject prefab = newRole == FishRole.Shark ? sharkPrefab : playerPrefab;
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[Net] No prefab assigned for {newRole}; can't switch.", this);
+            return;
+        }
+
+        _lastRoleSwap[conn.connectionId] = Time.unscaledTime;
+        Transform from = conn.identity.transform;
+        GameObject go = Instantiate(prefab, from.position, from.rotation);
+        if (go.TryGetComponent(out FishPlayer fp)) fp.Role = newRole; // ships in the spawn payload
+        NetworkServer.ReplacePlayerForConnection(conn, go, ReplacePlayerOptions.Destroy);
+        Debug.Log($"[Net] Connection {conn.connectionId} is now a {newRole}.");
+    }
+
+    private static bool HasPreyInJaws(FishPlayer body)
+    {
+        foreach (var fp in body.GetComponentsInChildren<FishPlayer>())
+            if (fp != body) return true;
+        return false;
+    }
+
+    /// <summary>Server: an eaten player gets a fresh fish body once they've watched the shark for a bit.</summary>
+    public void ServerRespawnAfterEaten(FishPlayer victim)
+    {
+        if (victim == null || victim.connectionToClient == null) return;
+        StartCoroutine(RespawnAfterEaten(victim.connectionToClient, victim.netIdentity));
+    }
+
+    private IEnumerator RespawnAfterEaten(NetworkConnectionToClient conn, NetworkIdentity eatenBody)
+    {
+        yield return new WaitForSeconds(respawnAfterEatenSeconds);
+
+        // Left, or already in another body (not the one that was eaten)? Nothing to do.
+        if (!NetworkServer.active || conn == null || !NetworkServer.connections.ContainsKey(conn.connectionId)) yield break;
+        if (conn.identity != null && conn.identity != eatenBody) yield break;
+
+        GameObject go = TryGetSpawnPose(FishRole.Fish, out Vector3 pos, out Quaternion rot)
+            ? Instantiate(playerPrefab, pos, rot)
+            : Instantiate(playerPrefab);
+        if (go.TryGetComponent(out FishPlayer fp)) fp.Role = FishRole.Fish;
+
+        if (conn.identity != null) NetworkServer.ReplacePlayerForConnection(conn, go, ReplacePlayerOptions.Destroy);
+        else NetworkServer.AddPlayerForConnection(conn, go);
+        Debug.Log($"[Net] Connection {conn.connectionId} was eaten; respawned as a fresh fish.");
+    }
+
+    // A role's spawn zone if the scene has one, else Mirror's start positions (NetworkStartPosition).
+    private bool TryGetSpawnPose(FishRole role, out Vector3 pos, out Quaternion rot)
+    {
+        if (RoleSpawnZone.TryGetSpawn(role, out pos, out rot)) return true;
+        Transform start = GetStartPosition();
+        pos = start != null ? start.position : Vector3.zero;
+        rot = start != null ? start.rotation : Quaternion.identity;
+        return start != null;
     }
 
 #if UNITY_EDITOR

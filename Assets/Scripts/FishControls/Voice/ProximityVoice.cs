@@ -85,7 +85,7 @@ namespace FishGame
         void Awake()
         {
             _player = GetComponent<FishPlayer>();
-            _vitals = GetComponent<FishVitals>();   // sharks have none; null means "not prey, alive"
+            _vitals = GetComponent<FishVitals>();   // fish and shark both have one; null is treated as alive
         }
 
         public override void OnStartClient()
@@ -128,7 +128,9 @@ namespace FishGame
         {
             if (_recording)
             {
-                SteamUser.StopVoiceRecording();
+                // On quit Steam can already be shut down; there's nothing left to stop then.
+                try { SteamUser.StopVoiceRecording(); }
+                catch (System.InvalidOperationException) { }
                 _recording = false;
             }
         }

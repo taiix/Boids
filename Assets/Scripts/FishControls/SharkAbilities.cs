@@ -48,6 +48,20 @@ namespace FishGame
         [Tooltip("Which layers can contain prey. Leave as Everything and filter by the Edible component.")]
         [SerializeField] LayerMask preyMask = ~0;
 
+        [Header("Food (the shark only feeds on fish)")]
+        [Tooltip("Hunger restored by eating an ambient school fish.")]
+        [SerializeField] float flockFishFood = 20f;
+        [Tooltip("Hunger restored by eating a player fish.")]
+        [SerializeField] float playerFishFood = 60f;
+
+        [Header("Target lock")]
+        [Tooltip("Optional focus system. When it has a locked fish, a bite eats THAT fish specifically, " +
+                 "ignoring closer ones. Auto-found on this object if left empty.")]
+        [SerializeField] SharkTargeting targeting;
+        [Tooltip("The locked fish's bite range is eatRadius x this - a little more forgiving than a " +
+                 "blind bite, since you've committed to that fish.")]
+        [SerializeField] float focusEatMultiplier = 1.4f;
+
         [Header("Devour")]
         [Tooltip("Empty transform at the shark's mouth (parent it to the jaw bone). A caught fish is pulled here.")]
         [SerializeField] Transform mouthAnchor;
@@ -72,6 +86,13 @@ namespace FishGame
         /// </summary>
         public event Action<Edible> CaughtPrey;
 
+        /// <summary>
+        /// Raised on the owner client after it devours an ambient flock fish (that part is always
+        /// local, for instant feedback). Carries the school and the fish's id in it, so the Mirror
+        /// layer can have the host remove that same fish for every other player.
+        /// </summary>
+        public event Action<BoidsManager, int> CaughtFlockFish;
+
         InputAction _attackAction;
         InputAction _lungeAction;
 
@@ -89,6 +110,7 @@ namespace FishGame
         {
             if (motor == null) motor = GetComponent<FishMotor>();
             if (animator == null) animator = GetComponentInChildren<Animator>();
+            if (targeting == null) TryGetComponent(out targeting);
             _biteId = Animator.StringToHash(biteTrigger);
             _devourId = Animator.StringToHash(devourTrigger);
 
@@ -153,6 +175,18 @@ namespace FishGame
             // Eat where the mouth actually is (the anchor bone), falling back to a forward offset.
             Vector3 mouth = mouthAnchor != null ? mouthAnchor.position : transform.position + transform.forward * mouthOffset;
 
+            // 0) Focused bite: if a fish is locked, the shark commits to THAT fish. A bite eats it once
+            //    it's in (a slightly forgiving) mouth range, and never grabs a different fish instead -
+            //    even one that's closer. Tap the lock key again to release and hunt freely.
+            if (targeting != null && targeting.LockedTarget != null)
+            {
+                var locked = targeting.LockedTarget;
+                float focusR = eatRadius * focusEatMultiplier;
+                if ((locked.transform.position - mouth).sqrMagnitude <= focusR * focusR)
+                    EatSpecific(locked);
+                return;
+            }
+
             // 1) Players / anything with a collider + Edible.
             int count = Physics.OverlapSphereNonAlloc(mouth, eatRadius, _hits, preyMask, QueryTriggerInteraction.Collide);
             for (int i = 0; i < count; i++)
@@ -163,22 +197,56 @@ namespace FishGame
                 return;
             }
 
-            // 1b) Food pellets in mouth range — the shark can snack on food too (works offline).
-            //     Fish are checked first above, so prey takes priority over pellets.
-            for (int i = 0; i < count; i++)
-            {
-                var pellet = _hits[i] != null ? _hits[i].GetComponentInParent<FoodPellet>() : null;
-                if (pellet == null || pellet.IsEaten) continue;
-                pellet.Consume(GetComponent<FishVitals>());
-                return;
-            }
+            // (Food pellets are fish food - the shark only gets fed by eating fish.)
 
             // 2) Ambient NPC flock fish (no colliders) — found via the BoidsManager positions.
             if (eatFlockFish)
             {
-                var npc = BoidsManager.EatNearestFish(mouth, eatRadius);
-                if (npc != null) Consume(npc, npc.GetComponent<Edible>());
+                var npc = BoidsManager.EatNearestFish(mouth, eatRadius, out var flock, out int id);
+                if (npc != null) EatFlockFish(npc, flock, id);
             }
+        }
+
+        /// <summary>Eat one particular fish (the focused bite). Player prey carry an Edible; ambient
+        /// flock fish don't and must first be pulled out of the school so the boids job stops driving
+        /// them, after which Consume gives them an Edible for the same devour treatment.</summary>
+        void EatSpecific(GameObject fish)
+        {
+            if (fish == null) return;
+
+            // Flock fish live in the boids sim (and the prefab also carries an Edible): pull it out of
+            // its school first, or the job keeps steering a fish that's being devoured.
+            if (BoidsManager.DetachFish(fish, out var flock, out int id))
+            {
+                EatFlockFish(fish, flock, id);
+                return;
+            }
+
+            var edible = fish.GetComponentInParent<Edible>();
+            if (edible != null && !edible.IsEaten)
+                Consume(edible.gameObject, edible);
+        }
+
+        /// <summary>An ambient flock fish, already detached from its school. Devoured locally right away
+        /// (instant feedback), then announced so every other player's copy goes into our jaws too.</summary>
+        void EatFlockFish(GameObject fish, BoidsManager flock, int id)
+        {
+            motor.CancelDash(momentumOnCatch);
+            TriggerDevour();
+            _eatWindow = 0f;
+
+            if (!fish.TryGetComponent(out Edible edible)) edible = fish.AddComponent<Edible>();
+            edible.Devour(gameObject, mouthAnchor);
+            if (CaughtFlockFish != null) CaughtFlockFish.Invoke(flock, id); // networked: the host feeds us once it confirms
+            else FeedFor(playerFish: false);                                // single-player / test
+        }
+
+        /// <summary>Restore the shark's hunger for a fish it ate. Only takes effect where the vitals are
+        /// authoritative (host or offline), so the network layer calls it once the bite is confirmed.</summary>
+        public void FeedFor(bool playerFish)
+        {
+            if (TryGetComponent(out FishVitals vitals))
+                vitals.Feed(playerFish ? playerFishFood : flockFishFood);
         }
 
         void Consume(GameObject fish, Edible edible)
@@ -191,9 +259,12 @@ namespace FishGame
             if (edible != null)
             {
                 if (CaughtPrey != null)
-                    CaughtPrey.Invoke(edible);              // networked: server validates + devours
+                    CaughtPrey.Invoke(edible);              // networked: server validates, devours + feeds us
                 else
+                {
                     edible.Devour(gameObject, mouthAnchor); // single-player / test fallback
+                    FeedFor(playerFish: true);
+                }
             }
             else
             {

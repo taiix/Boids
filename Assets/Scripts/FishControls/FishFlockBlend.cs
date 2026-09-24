@@ -47,6 +47,9 @@ namespace FishGame
         /// <summary>True while the fish is schooling as a boid (player control suspended).</summary>
         public bool IsBlending => _blending;
 
+        /// <summary>The school we're blended into, or null.</summary>
+        public BoidsManager ActiveFlock => _blending ? _activeManager : null;
+
         void Awake()
         {
             if (motor == null) motor = GetComponent<FishMotor>();

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
 
@@ -36,6 +37,9 @@ namespace FishGame
         public float Nutrition => nutrition;
         public bool IsEaten { get; private set; }
 
+        /// <summary>Every pellet currently in the world (for the eat check and its prompt).</summary>
+        public static readonly List<FoodPellet> All = new List<FoodPellet>();
+
         Rigidbody _rb;
         float _age;
         float _restTimer;
@@ -47,6 +51,9 @@ namespace FishGame
             _rb.linearDamping = linearDamping;
             _rb.angularDamping = 0.5f;
         }
+
+        void OnEnable() => All.Add(this);
+        void OnDisable() => All.Remove(this);
 
         // Fully offline (no server AND no client) -> simulate locally for single-player testing.
         // With a server running, only the server simulates; remote clients just follow the

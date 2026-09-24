@@ -450,6 +450,8 @@ GameObject:
   - component: {fileID: 5550977747085003347}
   - component: {fileID: 2267869316475219035}
   - component: {fileID: 7577274561067325504}
+  - component: {fileID: 8150557907158319265}
+  - component: {fileID: 3372306430526131834}
   m_Layer: 3
   m_Name: PlayerShark
   m_TagString: Untagged
@@ -594,6 +596,10 @@ MonoBehaviour:
   preyMask:
     serializedVersion: 2
     m_Bits: 4294967295
+  flockFishFood: 20
+  playerFishFood: 60
+  targeting: {fileID: 0}
+  focusEatMultiplier: 1.4
   mouthAnchor: {fileID: 2448969476063765907}
   eatFlockFish: 1
   momentumOnCatch: 0.91
@@ -647,6 +653,8 @@ MonoBehaviour:
   Role: 1
   eatRange: 1.6
   mouthOffset: 1
+  RoundLive: 0
+  BlendFlock: 0
 --- !u!114 &2267869316475219035
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -704,6 +712,49 @@ MonoBehaviour:
   sharkLowPassHz: 900
   sharkDistortion: 0.45
   jitterBufferMs: 120
+--- !u!114 &8150557907158319265
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2433337675563196249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72aa619fd816b424da59889b95c39107, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.SharkTargeting
+  aimCam: {fileID: 0}
+  maxRange: 30
+  pickRadius: 0.25
+  occluders:
+    serializedVersion: 2
+    m_Bits: 8
+  glowColor: {r: 1, g: 0.25, b: 0.15, a: 1}
+  tintStrength: 3
+  solidTint: 1
+  showMarker: 1
+--- !u!114 &3372306430526131834
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2433337675563196249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2b3e686230bd5f4f9a5650e7780c0b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.FishVitals
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  maxHealth: 100
+  starveDamagePerSecond: 4
+  maxHunger: 100
+  hungerDrainPerSecond: 0.6
+  feedRestore: 30
+  disableOnDeath: []
 --- !u!1 &2579237804410564153
 GameObject:
   m_ObjectHideFlags: 0

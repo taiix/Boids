@@ -17,6 +17,9 @@ public class FishPlayer : NetworkBehaviour
 
     public bool IsShark => Role == FishRole.Shark;
 
+    // What this body can do, regardless of the Role value (the offline sandbox shark keeps its authored role).
+    private bool IsSharkBody => TryGetComponent(out SharkAbilities _);
+
     [Header("Eating")]
     [Tooltip("How close a food pellet must be to the mouth to be eaten.")]
     [SerializeField] float eatRange = 1.6f;
@@ -28,6 +31,25 @@ public class FishPlayer : NetworkBehaviour
 
     // Whether this machine's input currently drives this body: local player AND the round is live.
     private bool _controlsLive;
+
+    // Offline sandbox: no host/client is running and DevHost re-enabled this scene-placed body, so we
+    // self-drive as the local player here (Mirror's OnStart* callbacks never fire offline).
+    private bool _offlineLocal;
+
+    // Caught by the shark: controls stay off and the body rides the shark's jaws until the server
+    // respawns this player. Set on the server when it accepts the bite and on clients by the RPC.
+    private bool _eaten;
+    public bool IsBeingEaten => _eaten;
+
+    // Parked at a task (e.g. the comms puzzle): controls off until the task lets go. Local only.
+    private bool _taskLocked;
+
+    /// <summary>Local player: park the body at a task (controls off) or let it swim again.</summary>
+    public void SetTaskLocked(bool locked) => _taskLocked = locked;
+
+    // How far apart shark and fish may be on the server for a bite to count (lag allowance).
+    private const float MaxBiteDistance = 6f;
+    private bool IsOffline => !NetworkServer.active && !NetworkClient.active;
 
     /// <summary>
     /// Server-side only: this player's client has spawned its body and got past the heavy first frames
@@ -42,6 +64,17 @@ public class FishPlayer : NetworkBehaviour
     /// </summary>
     [SyncVar] public bool RoundLive;
 
+    /// <summary>
+    /// Which school this player is blended into (FishFlockBlend): 0 = none, else that school's
+    /// NetId + 1. Synced so every player's flock sim reacts to them the same way - the host's above
+    /// all, since it's the one everyone is corrected toward; if it ignored a hiding player, their
+    /// school would be pulled off them. (Position and the shrink to school size travel with the
+    /// NetworkTransform, which syncs scale on PlayerFish.)
+    /// </summary>
+    [SyncVar(hook = nameof(OnBlendFlockChanged))] public byte BlendFlock;
+    private byte _sentBlendFlock;
+    private BoidsManager _influencedFlock; // other players' copies of us: the school we registered with
+
     // Server-side, per game scene: the round has gone live. CustomNetworkManager resets it.
     private static bool s_RoundLive;
 
@@ -51,6 +84,22 @@ public class FishPlayer : NetworkBehaviour
 
         // Only the local player has a camera, so this is a no-op on remotes.
         ApplyRoleVision(current);
+    }
+
+    private void OnBlendFlockChanged(byte _, byte now)
+    {
+        // Our own copy registers itself in FishFlockBlend; this is everyone else's view of us.
+        if (isLocalPlayer) return;
+        StopInfluencing();
+        if (now == 0) return;
+        _influencedFlock = BoidsManager.ById((byte)(now - 1));
+        if (_influencedFlock != null) _influencedFlock.RegisterInfluencer(transform);
+    }
+
+    private void StopInfluencing()
+    {
+        if (_influencedFlock != null) _influencedFlock.UnregisterInfluencer(transform);
+        _influencedFlock = null;
     }
 
     /// <summary>Point the local camera's post-processing and view range at the current role.</summary>
@@ -72,6 +121,10 @@ public class FishPlayer : NetworkBehaviour
         // Local-player-only ability; disabled on remotes so they don't react to the key.
         if (TryGetComponent(out _flockBlend))
             _flockBlend.enabled = false;
+
+        // Fish bodies must be edible for the shark's bite to find them (the prefab doesn't carry one).
+        if (!TryGetComponent(out SharkAbilities _) && !TryGetComponent(out Edible _))
+            gameObject.AddComponent<Edible>();
 
         // Cache now, before OnStartLocalPlayer can unparent the camera.
         _vision = GetComponentInChildren<CreatureVision>(true);
@@ -138,11 +191,17 @@ public class FishPlayer : NetworkBehaviour
         SetLocallyControlled(false);
     }
 
+    // Tracks the state it sets, so whoever turns control off last (OnStartClient can run a frame
+    // after Update already turned it on - e.g. after a role swap on the host) is noticed and
+    // Update switches it back on.
     private void SetLocallyControlled(bool local)
     {
+        _controlsLive = local;
+        if (_flockBlend != null) _flockBlend.enabled = local;
         _fishController.enabled = local;
         if (TryGetComponent(out FishMotor motor)) motor.enabled = local;
         if (TryGetComponent(out SharkAbilities shark)) shark.enabled = local;
+        if (TryGetComponent(out FishGame.SharkTargeting targeting)) targeting.enabled = local;
         if (TryGetComponent(out Rigidbody rb)) rb.isKinematic = !local;
     }
 
@@ -151,7 +210,29 @@ public class FishPlayer : NetworkBehaviour
         base.OnStartLocalPlayer();
         // Controls stay off (and the body held still) until the round starts; Update switches them on.
         StartCoroutine(ReportLoadedWhenSettled());
+        PrepareLocalControl();
 
+        // Our shark's bites have to reach the host so the fish goes for everyone.
+        if (TryGetComponent(out SharkAbilities shark))
+        {
+            shark.CaughtFlockFish += OnCaughtFlockFish;
+            shark.CaughtPrey += OnCaughtPrey;
+        }
+    }
+
+    public override void OnStopClient()
+    {
+        base.OnStopClient();
+        StopInfluencing();
+    }
+
+    /// <summary>
+    /// Camera, view grading, orbit follow and the eat action for the copy this machine drives. Shared
+    /// by the networked local player (OnStartLocalPlayer) and the offline sandbox (Start), so pressing
+    /// Play in a game scene with no host still yields a fully controllable body.
+    /// </summary>
+    private void PrepareLocalControl()
+    {
         if (camera != null)
         {
             // Detach from the fish so the camera follows purely by script. Parenting it to the
@@ -169,27 +250,71 @@ public class FishPlayer : NetworkBehaviour
         if (orbit == null && Camera.main != null) orbit = Camera.main.GetComponent<FishOrbitCamera>();
         if (orbit != null) orbit.SetTarget(transform);
 
-        // Eat action (local player only): press E near a food pellet to eat it.
-        _eatAction = new InputAction("Eat", InputActionType.Button);
-        _eatAction.AddBinding("<Keyboard>/e");
-        _eatAction.AddBinding("<Gamepad>/buttonWest");
-        _eatAction.Enable();
+        // Eat action: press E near a food pellet to eat it.
+        if (_eatAction == null)
+        {
+            _eatAction = new InputAction("Eat", InputActionType.Button);
+            _eatAction.AddBinding("<Keyboard>/e");
+            _eatAction.AddBinding("<Gamepad>/buttonWest");
+            _eatAction.Enable();
+        }
+
+        // Health / hunger / round clock for whoever we are (fish or shark).
+        MatchHud.Show();
+    }
+
+    /// <summary>
+    /// Offline sandbox entry point. With no host or client running, Mirror's OnStart* callbacks never
+    /// fire, so a scene-placed body (which DevHost re-enables) would just sit there inert. Set it up as
+    /// the local player here. Networked play skips this - the server/client is active by spawn time.
+    /// </summary>
+    private void Start()
+    {
+        if (!IsOffline) return;
+        _offlineLocal = true;
+        PrepareLocalControl();
+        // Update turns controls on via the _controlsLive transition (live is always true offline).
     }
 
     private void Update()
     {
-        if (!isLocalPlayer) return;
+        if (!isLocalPlayer && !_offlineLocal) return;
 
-        bool live = RoundLive;
+        // Offline we're always live; networked, controls wait for the round to start. Never while
+        // we're in the shark's jaws or parked at a task.
+        bool live = (_offlineLocal || RoundLive) && !_eaten && !_taskLocked;
         if (live != _controlsLive)
-        {
-            _controlsLive = live;
             SetLocallyControlled(live);
-            if (_flockBlend != null) _flockBlend.enabled = live;
+
+        // Fish only (pellets are fish food): prompt when a pellet is in reach - unless we're next to a
+        // task, where E joins it instead.
+        if (_controlsLive && !IsSharkBody && !NetworkedSequenceTask.LocalNearAnyTask && PelletInReach() != null)
+            MatchHud.ShowPrompt("Press E to eat");
+
+        // E eats — unless we're next to a task, where E joins it instead (the task handles that press).
+        if (_controlsLive && _eatAction != null && _eatAction.WasPressedThisFrame()
+            && !NetworkedSequenceTask.LocalNearAnyTask)
+        {
+            if (_offlineLocal) ServerEatNearestPellet(); // offline: eat directly (no Command/server)
+            else CmdEat();
         }
 
-        if (_controlsLive && _eatAction != null && _eatAction.WasPressedThisFrame())
-            CmdEat();
+        // Tell everyone when we blend into / out of a school, so their flock sims react to us too.
+        if (!_offlineLocal && _flockBlend != null)
+        {
+            var flock = _flockBlend.ActiveFlock;
+            byte blendFlock = flock != null ? (byte)(flock.NetId + 1) : (byte)0;
+            if (blendFlock != _sentBlendFlock)
+            {
+                _sentBlendFlock = blendFlock;
+                CmdSetBlendFlock(blendFlock);
+            }
+        }
+
+        // F8 swaps this player between fish and shark (the server re-spawns us as the other; everyone
+        // sees it). The server decides whether that's allowed. Networked only - offline has no server.
+        if (_controlsLive && !_offlineLocal && Keyboard.current != null && Keyboard.current.f8Key.wasPressedThisFrame)
+            CmdSwitchRole();
     }
 
     // The spawn lands during the scene's first, very long frames; waiting a few more means "loaded" is
@@ -209,19 +334,134 @@ public class FishPlayer : NetworkBehaviour
 
     // Server validates that a pellet is actually in mouth range before consuming it.
     [Command]
-    private void CmdEat()
+    private void CmdEat() => ServerEatNearestPellet();
+
+    // Eat the nearest pellet in mouth range. Runs on the server for a networked player, or directly on
+    // the offline sandbox body (FoodPellet.Consume is offline-capable).
+    private void ServerEatNearestPellet()
+    {
+        if (IsSharkBody) return; // pellets are fish food; the shark eats fish
+        var best = PelletInReach();
+        if (best != null)
+            best.Consume(GetComponent<FishVitals>());
+    }
+
+    // The pellet a bite would take right now, or null. Shared by the eat itself and its prompt, so
+    // "Press E to eat" only shows when E would actually eat.
+    private FoodPellet PelletInReach()
     {
         Vector3 mouth = transform.position + transform.forward * mouthOffset;
         FoodPellet best = null;
         float bestSqr = eatRange * eatRange;
-        foreach (var pellet in FindObjectsByType<FoodPellet>(FindObjectsSortMode.None))
+        foreach (var pellet in FoodPellet.All)
         {
             if (pellet == null || pellet.IsEaten) continue;
             float d = (pellet.transform.position - mouth).sqrMagnitude;
             if (d <= bestSqr) { bestSqr = d; best = pellet; }
         }
-        if (best != null)
-            best.Consume(GetComponent<FishVitals>());
+        return best;
+    }
+
+    [Command]
+    private void CmdSetBlendFlock(byte blendFlock) => BlendFlock = blendFlock;
+
+    // Our shark just devoured a flock fish locally; make it disappear for everyone else too.
+    private void OnCaughtFlockFish(BoidsManager flock, int fishId)
+    {
+        if (flock == null) return;
+        if (isServer)
+        {
+            FlockNetSync.ServerAnnounceEaten(flock.NetId, (ushort)fishId, netId); // host: already gone here
+            if (TryGetComponent(out SharkAbilities shark)) shark.FeedFor(playerFish: false);
+        }
+        else CmdEatFlockFish(flock.NetId, (ushort)fishId);
+    }
+
+    [Command]
+    private void CmdEatFlockFish(byte flock, ushort fishId) =>
+        FlockNetSync.ServerEatRequest(flock, fishId, netIdentity);
+
+    // Our shark bit something edible. Another player goes through the server (it checks the bite,
+    // then everyone sees it); anything else is just eaten here.
+    private void OnCaughtPrey(Edible prey)
+    {
+        if (prey == null) return;
+        var victim = prey.GetComponentInParent<FishPlayer>();
+        if (victim != null && victim != this) CmdEatPlayer(victim.netId);
+        else if (TryGetComponent(out SharkAbilities shark)) prey.Devour(gameObject, shark.MouthAnchor);
+    }
+
+    [Command]
+    private void CmdEatPlayer(uint victimNetId)
+    {
+        if (_eaten || !NetworkServer.spawned.TryGetValue(victimNetId, out var identity) ||
+            !identity.TryGetComponent(out FishPlayer victim)) return;
+        if (victim == this || victim._eaten || victim.TryGetComponent(out SharkAbilities _)) return; // only fish
+        if ((victim.transform.position - transform.position).sqrMagnitude > MaxBiteDistance * MaxBiteDistance) return;
+
+        victim._eaten = true;
+        victim.RpcEatenBy(netIdentity);
+        if (TryGetComponent(out SharkAbilities shark)) shark.FeedFor(playerFish: true);
+        if (NetworkManager.singleton is CustomNetworkManager nm) nm.ServerRespawnAfterEaten(victim);
+    }
+
+    /// <summary>
+    /// Everyone: this fish was caught by <paramref name="shark"/>. Its control and position syncing stop,
+    /// it's pulled into the shark's jaws, and on the victim's own screen the camera watches through the
+    /// shark's view until the server respawns them.
+    /// </summary>
+    [ClientRpc]
+    private void RpcEatenBy(NetworkIdentity shark)
+    {
+        _eaten = true;
+        SetLocallyControlled(false);
+        if (TryGetComponent(out NetworkTransformBase netTransform)) netTransform.enabled = false; // the jaws move us now
+
+        var jaws = shark != null ? shark.GetComponent<SharkAbilities>() : null;
+        if (!TryGetComponent(out Edible edible)) edible = gameObject.AddComponent<Edible>();
+        edible.Devour(shark != null ? shark.gameObject : null, jaws != null ? jaws.MouthAnchor : null, despawn: false);
+
+        if (isLocalPlayer && shark != null)
+        {
+            var orbit = camera != null ? camera.GetComponent<FishOrbitCamera>() : null;
+            if (orbit == null && Camera.main != null) orbit = Camera.main.GetComponent<FishOrbitCamera>();
+            if (orbit != null) orbit.Spectate(shark.transform);
+            if (_vision != null) _vision.ApplyRole(FishRole.Shark); // the shark's eyes, not ours
+        }
+    }
+
+    // ---- Networked comms task relays (the task is server-owned, so its client code routes
+    //      Commands through us, the local player, which has authority). ----
+
+    [Command]
+    public void CmdJoinSequenceTask(uint taskNetId)
+    {
+        if (NetworkServer.spawned.TryGetValue(taskNetId, out var id) &&
+            id.TryGetComponent(out NetworkedSequenceTask task))
+            task.ServerJoin(this);
+    }
+
+    [Command]
+    public void CmdLeaveSequenceTask(uint taskNetId)
+    {
+        if (NetworkServer.spawned.TryGetValue(taskNetId, out var id) &&
+            id.TryGetComponent(out NetworkedSequenceTask task))
+            task.ServerLeave(this);
+    }
+
+    [Command]
+    public void CmdSubmitSequence(uint taskNetId, int[] dirs)
+    {
+        if (NetworkServer.spawned.TryGetValue(taskNetId, out var id) &&
+            id.TryGetComponent(out NetworkedSequenceTask task))
+            task.ServerSubmit(this, dirs);
+    }
+
+    [Command]
+    private void CmdSwitchRole()
+    {
+        if (NetworkManager.singleton is CustomNetworkManager nm)
+            nm.ServerSwitchRole(connectionToClient);
     }
 
     public override void OnStopLocalPlayer()
@@ -229,11 +469,23 @@ public class FishPlayer : NetworkBehaviour
         base.OnStopLocalPlayer();
 
         if (_eatAction != null) { _eatAction.Disable(); _eatAction.Dispose(); _eatAction = null; }
+        if (TryGetComponent(out SharkAbilities shark))
+        {
+            shark.CaughtFlockFish -= OnCaughtFlockFish;
+            shark.CaughtPrey -= OnCaughtPrey;
+        }
 
         // The camera was detached from this fish, so it won't be destroyed with us. Clean it up.
         if (camera != null)
             Destroy(camera);
     }
+    private void OnDestroy()
+    {
+        // An offline-sandbox body detached its camera to follow it (PrepareLocalControl) and never gets
+        // OnStopLocalPlayer - e.g. when it's removed so F9 can host - so take the camera with us.
+        if (_offlineLocal && camera != null) Destroy(camera);
+    }
+
     void OnDisable()
     {
         Debug.Log($"{gameObject.name} was disabled.", this);
