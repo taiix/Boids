@@ -184,7 +184,7 @@ namespace FishGame
 
             // Flip steering mode on the toggle key.
             var kb = Keyboard.current;
-            if (kb != null && kb[toggleSteeringKey].wasPressedThisFrame)
+            if (kb != null && kb[toggleSteeringKey].wasPressedThisFrame && !PauseMenu.IsOpen)
             {
                 keyboardSteering = !keyboardSteering;
                 Debug.Log($"[FishOrbitCamera] Steering = {(keyboardSteering ? "KEYBOARD (A/D yaw, Up/Down arrows pitch)" : "MOUSE")}");
@@ -192,7 +192,8 @@ namespace FishGame
 
             // Mouse delta is already per-frame movement, so we DON'T multiply by deltaTime.
             // Gamepad is a sustained axis, so that one is time-scaled.
-            Vector2 look = _lookAction.ReadValue<Vector2>();
+            // The Escape menu frees the mouse for its buttons; it mustn't also swing the camera.
+            Vector2 look = PauseMenu.IsOpen ? Vector2.zero : _lookAction.ReadValue<Vector2>();
             bool fromGamepad = Gamepad.current != null && _lookAction.activeControl?.device == Gamepad.current;
 
             float dx, dy;

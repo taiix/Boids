@@ -40,6 +40,10 @@ namespace FishGame
         static float s_rxMin, s_rxMax;
         static bool s_rxComplete;
 
+        /// <summary>Raised whenever the seabed's heights change (our own generation, or the host's
+        /// replacing it) - anything resting on the seabed should re-settle.</summary>
+        public static event Action SeabedChanged;
+
         readonly HashSet<int> _sent = new HashSet<int>();
         bool _clientHooked;
 
@@ -190,6 +194,7 @@ namespace FishGame
                 mc.sharedMesh = null; // force the collider to re-bake
                 mc.sharedMesh = mesh;
             }
+            SeabedChanged?.Invoke();
         }
 
         static void HeightRange(Vector3[] verts, out float min, out float max)

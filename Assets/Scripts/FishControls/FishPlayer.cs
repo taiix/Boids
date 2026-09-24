@@ -281,8 +281,8 @@ public class FishPlayer : NetworkBehaviour
         if (!isLocalPlayer && !_offlineLocal) return;
 
         // Offline we're always live; networked, controls wait for the round to start. Never while
-        // we're in the shark's jaws or parked at a task.
-        bool live = (_offlineLocal || RoundLive) && !_eaten && !_taskLocked;
+        // we're in the shark's jaws, parked at a task, or have the Escape menu open.
+        bool live = (_offlineLocal || RoundLive) && !_eaten && !_taskLocked && !PauseMenu.IsOpen;
         if (live != _controlsLive)
             SetLocallyControlled(live);
 

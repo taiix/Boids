@@ -96,7 +96,7 @@ namespace FishGame
         {
             GatherVisible(requireNearCentre: true);
             if (_visible.Count > 0) SetLock(_visible[0].go);
-            else Flash("No fish in view");
+            else Flash("Fish is too far");
         }
 
         void CycleTarget()

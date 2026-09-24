@@ -34,6 +34,10 @@ namespace FishGame
         [Tooltip("Objects hidden on all clients when the task completes (e.g. the sea urchins).")]
         [SerializeField] GameObject[] propsToRemove;
 
+        [Tooltip("Settle the props onto the seabed at runtime. The seabed is eroded on the GPU and comes out " +
+                 "different every run (up to a few metres), so props placed in the editor can end up buried.")]
+        [SerializeField] bool restPropsOnSeabed = true;
+
         [Header("Props highlight (so the station can be found)")]
         [SerializeField] bool glowProps = true;
         [SerializeField] Color glowColor = new Color(0.2f, 1f, 0.8f);
@@ -85,6 +89,7 @@ namespace FishGame
         FishPlayer _parkedFish; // the local body we parked (controls off) while it's part of the task
         Renderer[] _propRenderers;
         MaterialPropertyBlock _glowBlock;
+        bool _restPending;
         static readonly int EmissiveColorId = Shader.PropertyToID("_EmissiveColor");
         static readonly int EmissiveWeightId = Shader.PropertyToID("_EmissiveExposureWeight");
 
@@ -120,15 +125,25 @@ namespace FishGame
             SetStatus(null);
         }
 
-        void OnEnable() { _interact.Enable(); _dir.Enable(); _submit.Enable(); _delete.Enable(); }
+        void OnEnable()
+        {
+            _interact.Enable(); _dir.Enable(); _submit.Enable(); _delete.Enable();
+            TerrainNetSync.SeabedChanged += QueueRest;
+            _restPending = true;
+        }
+
         void OnDisable()
         {
             _interact.Disable(); _dir.Disable(); _submit.Disable(); _delete.Disable();
+            TerrainNetSync.SeabedChanged -= QueueRest;
             Park(null); // never leave the local fish stuck
         }
 
+        void QueueRest() => _restPending = true;
+
         void Update()
         {
+            if (_restPending && restPropsOnSeabed) { _restPending = false; RestPropsOnSeabed(); }
             if (isServer) ServerPruneWaiting();
             if (!NetworkClient.active) return;
             if (glowProps && !_consumed) GlowProps();
@@ -142,7 +157,7 @@ namespace FishGame
             if (_localInRange && !wasInRange) Debug.Log($"[Task] {name}: in range ({_localDistance:0.0} m) - E to join");
 
             // E joins; while waiting for a partner, E again leaves (and we can swim away).
-            if (_phase == Phase.Idle && !_consumed && lf != null && _interact.WasPressedThisFrame())
+            if (_phase == Phase.Idle && !_consumed && lf != null && !PauseMenu.IsOpen && _interact.WasPressedThisFrame())
             {
                 if (joined) lf.CmdLeaveSequenceTask(netId);
                 else if (_localInRange) lf.CmdJoinSequenceTask(netId);
@@ -152,6 +167,29 @@ namespace FishGame
             Park(joined && !_consumed && _phase != Phase.Done ? lf : null);
 
             if (_phase == Phase.Idle) RefreshUI(); // keep the "n/2 / press E" prompt live as we move
+        }
+
+        // Drop each prop onto this run's seabed (everyone has the host's heights, so they all agree),
+        // sunk a fifth of its height so it sits in the sand rather than on it.
+        void RestPropsOnSeabed()
+        {
+            var terrain = FindAnyObjectByType<TestTerrain>();
+            if (terrain == null || !terrain.TryGetComponent(out MeshCollider seabed) || seabed.sharedMesh == null) return;
+            if (propsToRemove == null) return;
+
+            Bounds sb = seabed.bounds;
+            float top = sb.max.y + 5f;
+            foreach (var prop in propsToRemove)
+            {
+                if (prop == null || !prop.activeInHierarchy) continue;
+                Vector3 pos = prop.transform.position;
+                if (!seabed.Raycast(new Ray(new Vector3(pos.x, top, pos.z), Vector3.down), out var hit, top - sb.min.y + 10f))
+                    continue;
+                var r = prop.GetComponentInChildren<Renderer>();
+                float below = r != null ? pos.y - r.bounds.min.y : 0f;
+                float height = r != null ? r.bounds.size.y : 0f;
+                prop.transform.position = new Vector3(pos.x, hit.point.y + below - 0.2f * height, pos.z);
+            }
         }
 
         // Soft pulsing glow on the props so the station stands out on the dark seabed. Exposure weight 0
@@ -203,7 +241,7 @@ namespace FishGame
 
         void OnDir(InputAction.CallbackContext ctx)
         {
-            if (_phase != Phase.Input || !IAmInputter) return;
+            if (_phase != Phase.Input || !IAmInputter || PauseMenu.IsOpen) return;
             Vector2 v = ctx.ReadValue<Vector2>();
             Direction d;
             if (v == Vector2.up) d = Direction.Up;
@@ -220,7 +258,7 @@ namespace FishGame
 
         void TryDelete()
         {
-            if (_phase != Phase.Input || !IAmInputter || _inputBuffer.Count == 0) return;
+            if (_phase != Phase.Input || !IAmInputter || _inputBuffer.Count == 0 || PauseMenu.IsOpen) return;
             SetArrow(_inputBuffer.Count - 1, Direction.Up, false);
             _inputBuffer.RemoveAt(_inputBuffer.Count - 1);
             UpdateInputStatus();
@@ -228,7 +266,7 @@ namespace FishGame
 
         void TrySubmit()
         {
-            if (_phase != Phase.Input || !IAmInputter || _inputBuffer.Count < CurrentLen) return;
+            if (_phase != Phase.Input || !IAmInputter || _inputBuffer.Count < CurrentLen || PauseMenu.IsOpen) return;
             var dirs = new int[_inputBuffer.Count];
             for (int i = 0; i < dirs.Length; i++) dirs[i] = (int)_inputBuffer[i];
             LocalFish.CmdSubmitSequence(netId, dirs);

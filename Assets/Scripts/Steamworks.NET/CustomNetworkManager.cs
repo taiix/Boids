@@ -226,6 +226,38 @@ public class CustomNetworkManager : NetworkManager
         _lastRoleSwap.Remove(conn.connectionId);
     }
 
+    private const string MainMenuScene = "01 - MainMenu";
+    private bool _clientWasConnected;
+
+    public override void OnClientConnect()
+    {
+        base.OnClientConnect();
+        _clientWasConnected = true;
+    }
+
+    /// <summary>
+    /// A pure client lost the host (it quit or left to the main menu, or the connection dropped): go to
+    /// the main menu rather than sit in a dead lobby/game scene. Checked a moment later so a deliberate
+    /// leave (lobby Back, the Escape menu), which loads the menu itself, isn't doubled up. Failed
+    /// connection attempts (never connected) are left alone - the dev auto-join retries those.
+    /// </summary>
+    public override void OnClientDisconnect()
+    {
+        bool lostHost = _clientWasConnected && mode == NetworkManagerMode.ClientOnly;
+        _clientWasConnected = false;
+        base.OnClientDisconnect();
+        if (lostHost) Invoke(nameof(ReturnToMenuIfStranded), 0.25f);
+    }
+
+    private void ReturnToMenuIfStranded()
+    {
+        if (NetworkClient.active || NetworkServer.active) return;
+        if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == MainMenuScene) return;
+        Debug.Log("[Net] Lost the host - returning to the main menu.");
+        SteamLobby.instance?.LeaveLobby();
+        UnityEngine.SceneManagement.SceneManager.LoadScene(MainMenuScene);
+    }
+
     /// <summary>
     /// Server: swap a player between shark and fish by re-spawning them as the other prefab at the same
     /// spot. ReplacePlayerForConnection spawns the new body on every client and destroys the old one, so
