@@ -80,6 +80,11 @@ namespace FishGame
         bool _voiceUnavailable;
         FishRole _treatedRole = FishRole.Unassigned;
 
+        // Steam has ONE microphone recorder for the whole game. When a player's body is replaced (F8
+        // role swap, respawn after being eaten) the new body starts it before the old one is destroyed
+        // on a client, so only the body that currently owns the mic may stop it.
+        static ProximityVoice s_micOwner;
+
         public bool IsSpeaking { get; private set; }
 
         void Awake()
@@ -120,19 +125,21 @@ namespace FishGame
             _compressed = new byte[MaxPayloadBytes * 2];
             SteamUser.StartVoiceRecording();
             _recording = true;
+            s_micOwner = this;
         }
 
         static bool SteamAvailable => SteamManager.Initialized;
 
         void OnDestroy()
         {
-            if (_recording)
-            {
-                // On quit Steam can already be shut down; there's nothing left to stop then.
-                try { SteamUser.StopVoiceRecording(); }
-                catch (System.InvalidOperationException) { }
-                _recording = false;
-            }
+            if (!_recording) return;
+            _recording = false;
+            // A body replaced by a new one of ours leaves the mic running for it.
+            if (s_micOwner != this) return;
+            s_micOwner = null;
+            // On quit Steam can already be shut down; there's nothing left to stop then.
+            try { SteamUser.StopVoiceRecording(); }
+            catch (System.InvalidOperationException) { }
         }
 
         // ---------------------------------------------------------------- capture (local player)
@@ -143,7 +150,15 @@ namespace FishGame
             if (Time.unscaledTime < _nextSendTime) return;
             _nextSendTime = Time.unscaledTime + sendInterval;
 
-            if (SteamUser.GetAvailableVoice(out uint pending) != EVoiceResult.k_EVoiceResultOK || pending == 0)
+            var available = SteamUser.GetAvailableVoice(out uint pending);
+            if (available == EVoiceResult.k_EVoiceResultNotRecording)
+            {
+                // Something stopped the mic under us (e.g. an old body's clean-up) - start it again.
+                SteamUser.StartVoiceRecording();
+                s_micOwner = this;
+                return;
+            }
+            if (available != EVoiceResult.k_EVoiceResultOK || pending == 0)
                 return;
 
             var got = SteamUser.GetVoice(true, _compressed, (uint)_compressed.Length, out uint written);

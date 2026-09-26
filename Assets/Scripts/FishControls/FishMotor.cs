@@ -96,13 +96,66 @@ namespace FishGame
         float _speedLimit;
 
 
-        public Vector3 Velocity => _velocity;
+        // Motion as seen from outside. Another player's copy is moved by the network with this motor
+        // switched off (so is a body blended into a flock), which would leave the values below at zero
+        // and its swim animation frozen. While the motor isn't driving, they're measured from how the
+        // body actually moves instead - sampled once per frame by whoever asks.
+        Vector3 _obsPos, _obsFwd, _obsVelocity;
+        float _obsYawRate, _obsTime = -1f;
+        int _obsFrame = -1;
 
-        public float Speed => _velocity.magnitude;
+        public Vector3 Velocity
+        {
+            get
+            {
+                if (enabled) return _velocity;
+                SampleObservedMotion();
+                return _obsVelocity;
+            }
+        }
+
+        public float Speed => Velocity.magnitude;
         //0..1 fraction of top (boost) speed. Handy for driving tail-beat frequency / FOV / audio.
-        public float SpeedFraction => Mathf.Clamp01(_velocity.magnitude / Mathf.Max(0.01f, boostSpeed));
+        public float SpeedFraction => Mathf.Clamp01(Velocity.magnitude / Mathf.Max(0.01f, boostSpeed));
         //Smoothed horizontal turn rate in deg/sec. Positive = turning right. Drives banking.
-        public float YawRate => _yawRateSmoothed;
+        public float YawRate
+        {
+            get
+            {
+                if (enabled) return _yawRateSmoothed;
+                SampleObservedMotion();
+                return _obsYawRate;
+            }
+        }
+
+        void SampleObservedMotion()
+        {
+            if (_obsFrame == Time.frameCount) return;
+            _obsFrame = Time.frameCount;
+
+            Vector3 pos = transform.position;
+            Vector3 fwd = transform.forward; fwd.y = 0f;
+            float dt = Time.time - _obsTime;
+            if (_obsTime >= 0f && dt > 0f && dt < 0.5f)
+            {
+                // Same smoothing as the motor's own yaw rate; also evens out network interpolation steps.
+                float k = 1f - Mathf.Exp(-10f * dt);
+                _obsVelocity = Vector3.Lerp(_obsVelocity, (pos - _obsPos) / dt, k);
+                float yawRate = fwd.sqrMagnitude > 0.0001f && _obsFwd.sqrMagnitude > 0.0001f
+                    ? Vector3.SignedAngle(_obsFwd, fwd, Vector3.up) / dt
+                    : 0f;
+                _obsYawRate = Mathf.Lerp(_obsYawRate, yawRate, k);
+            }
+            else
+            {
+                // First look, or nobody asked for a while (e.g. just handed over from the motor).
+                _obsVelocity = enabled ? _velocity : Vector3.zero;
+                _obsYawRate = 0f;
+            }
+            _obsPos = pos;
+            _obsFwd = fwd;
+            _obsTime = Time.time;
+        }
 
         /// <summary>True while the fish is in the water; false while airborne (breaching/jumping).</summary>
         public bool IsSubmerged => _isSubmerged;

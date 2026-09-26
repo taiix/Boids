@@ -69,8 +69,13 @@ namespace FishGame
 
             if (TryGetComponent<Rigidbody>(out var rb))
             {
-                rb.linearVelocity = Vector3.zero;
+                // Other players' bodies are already kinematic on this machine (their owner moves
+                // them), and a kinematic body's velocity can't be set.
+                if (!rb.isKinematic) rb.linearVelocity = Vector3.zero;
                 rb.isKinematic = true; // the mouth drives it now, not physics
+                // Interpolation keeps writing the body's last physics pose back over the transform,
+                // which pins the fish where the bite happened instead of letting it ride the jaw.
+                rb.interpolation = RigidbodyInterpolation.None;
             }
 
             if (disableCollidersOnEaten)
