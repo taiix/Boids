@@ -75,6 +75,9 @@ namespace FishGame
         void OnEnable() => _toggle.Enable();
         void OnDisable() => _toggle.Disable();
 
+        bool _quitting;
+        void OnApplicationQuit() => _quitting = true;
+
         // The game scene is going away (back to the lobby / menu, or the host took everyone back):
         // the menus there need a free cursor, and the lobby needs this round's flags cleared.
         void OnDestroy()
@@ -83,7 +86,9 @@ namespace FishGame
             _toggle?.Dispose();
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
-            ResetLobbyFlags();
+            // Not when the game is closing: SteamManager is already gone, and asking it re-creates it
+            // ("Tried to Initialize the SteamAPI twice"). Leaving Steam drops our lobby data anyway.
+            if (!_quitting) ResetLobbyFlags();
         }
 
         void Update()

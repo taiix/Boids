@@ -146,11 +146,19 @@ namespace FishGame
 
         void Update()
         {
+            ReportVoiceStats();
             if (!isLocalPlayer || _voiceUnavailable || !_recording) return;
             if (Time.unscaledTime < _nextSendTime) return;
             _nextSendTime = Time.unscaledTime + sendInterval;
 
             var available = SteamUser.GetAvailableVoice(out uint pending);
+            if (available != _lastMicResult)
+            {
+                // OK / NoData just mean "talking" / "quiet"; anything else is Steam refusing the mic.
+                if (available != EVoiceResult.k_EVoiceResultOK && available != EVoiceResult.k_EVoiceResultNoData)
+                    Debug.LogWarning($"[Voice] Steam microphone reports {available}.");
+                _lastMicResult = available;
+            }
             if (available == EVoiceResult.k_EVoiceResultNotRecording)
             {
                 // Something stopped the mic under us (e.g. an old body's clean-up) - start it again.
@@ -172,11 +180,48 @@ namespace FishGame
 
             IsSpeaking = true;
 
-            if (written > MaxPayloadBytes) return;   // see MaxPayloadBytes
+            if (written > MaxPayloadBytes) { _statTooLarge++; return; }   // see MaxPayloadBytes
 
             var payload = new byte[written];
             System.Buffer.BlockCopy(_compressed, 0, payload, 0, (int)written);
             CmdVoice(payload);
+            _statSent++;
+        }
+
+        // ---------------------------------------------------------------- diagnostics
+        // Voice goes one way only on some setups; these log lines say which end is at fault. Your own
+        // body reports the mic (Steam status, loudness vs the open-mic threshold, packets sent); every
+        // other player's body reports how much of their voice actually arrived here.
+
+        const float StatsInterval = 10f;
+        EVoiceResult _lastMicResult = EVoiceResult.k_EVoiceResultOK;
+        float _statPeakRms;
+        int _statFrames, _statSent, _statTooLarge, _statReceived;
+        float _nextStatsTime = -1f;
+        bool _warnedDecode;
+
+        void ReportVoiceStats()
+        {
+            if (_nextStatsTime < 0f) { _nextStatsTime = Time.unscaledTime + StatsInterval; return; }
+            if (Time.unscaledTime < _nextStatsTime) return;
+            _nextStatsTime = Time.unscaledTime + StatsInterval;
+
+            if (isLocalPlayer)
+            {
+                if (_voiceUnavailable) return; // already warned once
+                if (_statFrames == 0)
+                    Debug.Log($"[Voice] Mic: no audio from Steam in the last {StatsInterval:0}s " +
+                              $"(Steam status {_lastMicResult}) - check Steam > Settings > Voice and Windows microphone access.");
+                else
+                    Debug.Log($"[Voice] Mic: loudest {_statPeakRms:0.000} (open-mic threshold {voiceThreshold:0.000}), " +
+                              $"sent {_statSent} packets" + (_statTooLarge > 0 ? $", {_statTooLarge} too large to send" : "") + ".");
+            }
+            else if (_statReceived > 0)
+            {
+                Debug.Log($"[Voice] Heard {name} (netId {netId}): {_statReceived} packets in the last {StatsInterval:0}s.");
+            }
+            _statPeakRms = 0f;
+            _statFrames = _statSent = _statTooLarge = _statReceived = 0;
         }
 
         /// <summary>
@@ -202,6 +247,8 @@ namespace FishGame
             }
 
             float rms = samples > 0 ? Mathf.Sqrt((float)(sum / samples)) : 0f;
+            _statFrames++;
+            if (rms > _statPeakRms) _statPeakRms = rms;
             if (rms >= voiceThreshold) _loudUntil = Time.unscaledTime + holdSeconds;
 
             return Time.unscaledTime < _loudUntil;
@@ -286,12 +333,18 @@ namespace FishGame
 
             // Our own voice is never played back to us, and the server should not have sent it.
             if (isLocalPlayer) return;
+            _statReceived++;
             if (_source == null) BuildPlayback();
 
             var result = SteamUser.DecompressVoice(data, (uint)data.Length, _decompressScratch,
                 (uint)_decompressScratch.Length, out uint pcmBytes, (uint)_sampleRate);
 
-            if (result != EVoiceResult.k_EVoiceResultOK || pcmBytes == 0) return;
+            if (result != EVoiceResult.k_EVoiceResultOK || pcmBytes == 0)
+            {
+                if (!_warnedDecode) Debug.LogWarning($"[Voice] Could not decode {name}'s voice: {result}.");
+                _warnedDecode = true;
+                return;
+            }
 
             int samples = Mathf.Min((int)pcmBytes / 2, _floatScratch.Length);
             for (int i = 0; i < samples; i++)
