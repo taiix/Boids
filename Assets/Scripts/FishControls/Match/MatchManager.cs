@@ -36,10 +36,6 @@ namespace FishGame
         [Tooltip("Auto-start the round this many seconds after the scene is ready. Negative = wait for StartRound().")]
         [SerializeField] float autoStartDelay = 2f;
 
-        [Header("Roles")]
-        [Tooltip("Fraction of players made sharks (rounded; at least 1 once there is more than one player).")]
-        [Range(0f, 1f)][SerializeField] float sharkFraction = 0.25f;
-
         [Header("Debug")]
         [SerializeField] bool logTransitions = true;
 
@@ -130,7 +126,7 @@ namespace FishGame
         {
             if (!Authority || _phase != MatchPhase.Playing) return;
             foreach (var f in Fish)
-                if (f != null && !f.IsDead) return; // someone is still alive
+                if (f != null && !f.IsDead && !f.TryGetComponent(out SharkAbilities _)) return; // a fish is still alive (sharks have vitals too, but don't count)
             EndRound(MatchPhase.SharkWin);
         }
 
@@ -140,30 +136,27 @@ namespace FishGame
             if (logTransitions) Debug.Log($"[Match] Round over: {result}");
         }
 
+        /// <summary>
+        /// Who is the shark is decided by the body they spawned in: CustomNetworkManager draws the shark
+        /// and gives them the shark prefab (and F8 swaps bodies). Rolling roles again here used to leave
+        /// players with a shark body but a Fish role (or vice versa), so just make each Role match.
+        /// </summary>
         void AssignRoles()
         {
             // Offline sandbox keeps whatever roles the scene objects were authored with.
             if (Offline || !isServer) return;
 
-            var players = new List<FishPlayer>();
+            int players = 0, sharks = 0;
             foreach (var conn in NetworkServer.connections.Values)
-                if (conn?.identity != null && conn.identity.TryGetComponent(out FishPlayer fp))
-                    players.Add(fp);
-            if (players.Count == 0) return;
-
-            int sharks = players.Count <= 1
-                ? 0
-                : Mathf.Max(1, Mathf.RoundToInt(players.Count * sharkFraction));
-
-            for (int i = players.Count - 1; i > 0; i--) // Fisher-Yates shuffle
             {
-                int j = Random.Range(0, i + 1);
-                (players[i], players[j]) = (players[j], players[i]);
+                if (conn?.identity == null || !conn.identity.TryGetComponent(out FishPlayer fp)) continue;
+                bool shark = fp.TryGetComponent(out SharkAbilities _);
+                fp.Role = shark ? FishRole.Shark : FishRole.Fish;
+                players++;
+                if (shark) sharks++;
             }
-            for (int i = 0; i < players.Count; i++)
-                players[i].Role = i < sharks ? FishRole.Shark : FishRole.Fish;
 
-            if (logTransitions) Debug.Log($"[Match] Assigned {sharks} shark(s) / {players.Count} players");
+            if (logTransitions) Debug.Log($"[Match] Round start: {sharks} shark(s) / {players} players");
         }
 
         void SetPhase(MatchPhase p)

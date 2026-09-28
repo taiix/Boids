@@ -88,6 +88,54 @@ public class BoidsManager : MonoBehaviour
     [Tooltip("How hard fish steer up off the seabed.")]
     public float floorWeight = 3.5f;
 
+    [Header("Network sync")]
+    [Tooltip("Seed for the starting layout and the roaming goal (mixed with this school's position, so " +
+             "several schools in a scene differ). Every player gets the identical school from it.")]
+    public uint spawnSeed = 12345;
+    [Tooltip("Seconds between changes of the school's roaming goal. Picked from the shared network clock, " +
+             "so every player's school heads for the same spot.")]
+    public float goalChangeInterval = 0.25f;
+    [Tooltip("Seconds a correction from the host takes to blend in (clients only).")]
+    public float correctionTime = 0.3f;
+    [Tooltip("Corrections larger than this snap instead of blending (metres).")]
+    public float snapDistance = 6f;
+
+    /// <summary>Clock every player agrees on (set to Mirror's NetworkTime by FlockNetSync while
+    /// networked). Offline it's local time.</summary>
+    public static System.Func<double> SharedClock = () => Time.timeAsDouble;
+
+    /// <summary>This school's id on the network: its rank among the loaded schools, ordered by position.
+    /// Every player loads the same scene, so ranks agree without anyone numbering the schools.</summary>
+    public byte NetId
+    {
+        get
+        {
+            int rank = 0;
+            for (int m = 0; m < All.Count; m++)
+                if (All[m] != null && All[m] != this && SortsBefore(All[m], this)) rank++;
+            return (byte)rank;
+        }
+    }
+
+    static bool SortsBefore(BoidsManager a, BoidsManager b)
+    {
+        Vector3 pa = a.transform.position, pb = b.transform.position;
+        if (pa.x != pb.x) return pa.x < pb.x;
+        if (pa.y != pb.y) return pa.y < pb.y;
+        if (pa.z != pb.z) return pa.z < pb.z;
+        return string.CompareOrdinal(a.name, b.name) < 0;
+    }
+
+    // Seed for this school's layout and roaming: the shared seed mixed with where it sits.
+    uint FlockSeed
+    {
+        get
+        {
+            uint h = spawnSeed ^ math.hash((float3)transform.position);
+            return h == 0 ? 1u : h;
+        }
+    }
+
     float _ceiling;
 
     /// <summary>World Y the fish must stay below (or +inf if the ceiling is off).</summary>
@@ -112,8 +160,21 @@ public class BoidsManager : MonoBehaviour
     TransformAccessArray _tArray;
     NativeArray<float3> _influencers;                  // player positions the flock reacts to
     NativeArray<float3> _predators;                    // shark positions the flock flees from
+    NativeArray<float> _speed;                         // current speed per sim slot (written by the job)
     int _count;
     bool _dirty = true;
+
+    // Fish ids are stable: a fish's id is its index in allFish for the whole match, and a dead fish
+    // just leaves a null there. The sim packs live fish into slots, so map both ways.
+    int[] _ids = System.Array.Empty<int>();   // sim slot -> fish id
+    int[] _slot = System.Array.Empty<int>();  // fish id -> sim slot (-1 = dead)
+
+    // Host corrections (clients only), per fish id.
+    Vector3[] _corr = System.Array.Empty<Vector3>();     // position error still to blend in
+    Vector3[] _netPos = System.Array.Empty<Vector3>();   // latest host state, extrapolated to arrival
+    Vector3[] _netHdg = System.Array.Empty<Vector3>();
+    bool[] _netPending = System.Array.Empty<bool>();
+    bool _netDirty, _hasNetData;
 
     // Managed snapshot the player's (managed) Boid reads to school with this flock.
     Vector3[] _snapPos = System.Array.Empty<Vector3>();
@@ -134,23 +195,28 @@ public class BoidsManager : MonoBehaviour
     private void OnEnable() { if (!All.Contains(this)) All.Add(this); }
     private void OnDisable() { All.Remove(this); }
 
-    private void Start()
+    // Spawns in Awake (not Start) so the school exists before a joining client reports ready: the
+    // host's full-state message would otherwise find no fish to apply to.
+    private void Awake()
     {
         instance = this;
 
+        // Seeded, so every player spawns the identical school (fish id i starts at the same spot).
+        var rng = new Unity.Mathematics.Random(FlockSeed);
         allFish = new GameObject[fishCount];
         for (int i = 0; i < fishCount; i++)
         {
-            allFish[i] = Instantiate(prefab,
-                transform.position + new Vector3(Random.Range(-area.x, area.x),
-                            Random.Range(-area.y, area.y),
-                            Random.Range(-area.z, area.z)) / 2, Random.rotation);
+            float3 offset = rng.NextFloat3(-(float3)area, (float3)area) * 0.5f;
+            allFish[i] = Instantiate(prefab, transform.position + (Vector3)offset, rng.NextQuaternionRotation());
 
             // Manager drives flock fish via the job, so the per-fish Boid Update is off here.
             if (allFish[i].TryGetComponent(out Boid boid)) { boid.SetManager(this); boid.enabled = false; }
         }
         _dirty = true;
+    }
 
+    private void Start()
+    {
         previousMinSpeed = new Vector3(minSpeed, 0, 0);
         previousMaxSpeed = new Vector3(maxSpeed, 0, 0);
         previousNeighbourDist = new Vector3(neighbourDist, 0, 0);
@@ -169,9 +235,7 @@ public class BoidsManager : MonoBehaviour
         if (waterSurface != null) waterLevel = waterSurface.transform.position.y;
         _ceiling = waterLevel - waterMargin;
 
-        if (Random.Range(0, 100) < 10)
-            goalPos = transform.position + new Vector3(Random.Range(-area.x, area.x),
-                            Random.Range(-area.y, area.y), Random.Range(-area.z, area.z));
+        goalPos = GoalAt(SharedClock());
 
         // Don't let the roaming goal sit above water, or the fish chase it upward.
         if (keepBelowWater) goalPos.y = Mathf.Min(goalPos.y, _ceiling);
@@ -184,6 +248,8 @@ public class BoidsManager : MonoBehaviour
         if (allFish == null || allFish.Length == 0) return;
         EnsureArrays();
         if (_count == 0) return;
+
+        ApplyHostCorrections(Time.deltaTime);
 
         float cellSize = Mathf.Max(0.01f, neighbourDist);
 
@@ -240,7 +306,7 @@ public class BoidsManager : MonoBehaviour
             keepBelow = keepBelowWater, ceiling = _ceiling,
             floorHits = _floorHits, keepAboveFloor = keepAboveFloor, floorCastHeight = floorCastHeight,
             floorMargin = floorMargin, floorClearance = floorClearance, floorWeight = floorWeight,
-            outPositions = _posB, outHeadings = _hdgB,
+            outPositions = _posB, outHeadings = _hdgB, outSpeeds = _speed,
         };
         job.Schedule(_tArray, JobHandle.CombineDependencies(castDep, floorDep)).Complete();
 
@@ -267,6 +333,7 @@ public class BoidsManager : MonoBehaviour
 
         DisposeNative();
         _count = n;
+        EnsurePerFish();
 
         _posA = new NativeArray<float3>(n, Allocator.Persistent);
         _posB = new NativeArray<float3>(n, Allocator.Persistent);
@@ -279,7 +346,11 @@ public class BoidsManager : MonoBehaviour
         _grid = new NativeParallelMultiHashMap<int, int>(math.max(1, n), Allocator.Persistent);
         _influencers = new NativeArray<float3>(MaxInfluencers, Allocator.Persistent);
         _predators = new NativeArray<float3>(MaxPredators, Allocator.Persistent);
+        _speed = new NativeArray<float>(math.max(1, n), Allocator.Persistent);
         _tArray = new TransformAccessArray(n);
+
+        _ids = new int[n];
+        for (int i = 0; i < _slot.Length; i++) _slot[i] = -1;
 
         int k = 0;
         for (int i = 0; i < allFish.Length; i++)
@@ -289,9 +360,23 @@ public class BoidsManager : MonoBehaviour
             _tArray.Add(f.transform);
             _posA[k] = (float3)f.transform.position;
             _hdgA[k] = (float3)f.transform.forward;
+            _ids[k] = i;
+            _slot[i] = k;
             k++;
         }
         _dirty = false;
+    }
+
+    // Per-fish-id arrays follow allFish's length (it only changes via the debug Add/Remove buttons).
+    void EnsurePerFish()
+    {
+        int len = allFish.Length;
+        if (_slot.Length == len) return;
+        System.Array.Resize(ref _slot, len);
+        System.Array.Resize(ref _corr, len);
+        System.Array.Resize(ref _netPos, len);
+        System.Array.Resize(ref _netHdg, len);
+        System.Array.Resize(ref _netPending, len);
     }
 
     void DisposeNative()
@@ -308,6 +393,7 @@ public class BoidsManager : MonoBehaviour
         if (_grid.IsCreated) _grid.Dispose();
         if (_influencers.IsCreated) _influencers.Dispose();
         if (_predators.IsCreated) _predators.Dispose();
+        if (_speed.IsCreated) _speed.Dispose();
         if (_tArray.isCreated) _tArray.Dispose();
     }
 
@@ -338,13 +424,15 @@ public class BoidsManager : MonoBehaviour
         }
     }
 
-    /// <summary>Pull a fish out of the flock (so the sim stops driving it) and return it.</summary>
+    /// <summary>Pull fish <paramref name="index"/> out of the flock (so the sim stops driving it) and
+    /// return it, or null if it's already gone. The slot is left empty rather than closed up, so every
+    /// other fish keeps its id - ids must match on all players for network sync.</summary>
     public GameObject RemoveAt(int index)
     {
         if (allFish == null || index < 0 || index >= allFish.Length) return null;
         var fish = allFish[index];
-        for (int i = index; i < allFish.Length - 1; i++) allFish[i] = allFish[i + 1];
-        System.Array.Resize(ref allFish, allFish.Length - 1);
+        if (fish == null) return null;
+        allFish[index] = null;
         _dirty = true; // rebuild native arrays / TransformAccessArray next sim step
         return fish;
     }
@@ -352,7 +440,13 @@ public class BoidsManager : MonoBehaviour
     /// <summary>Find the nearest flock fish (across ALL flocks) within <paramref name="radius"/>
     /// of <paramref name="pos"/>, remove it from its flock, and return it — or null if none.
     /// Used by the shark to eat NPC fish, which have no colliders.</summary>
-    public static GameObject EatNearestFish(Vector3 pos, float radius)
+    public static GameObject EatNearestFish(Vector3 pos, float radius) =>
+        EatNearestFish(pos, radius, out _, out _);
+
+    /// <inheritdoc cref="EatNearestFish(Vector3, float)"/>
+    /// <param name="flock">The school it came from.</param>
+    /// <param name="id">Its fish id in that school (for telling the network which fish).</param>
+    public static GameObject EatNearestFish(Vector3 pos, float radius, out BoidsManager flock, out int id)
     {
         BoidsManager bestMgr = null;
         int bestIdx = -1;
@@ -371,7 +465,157 @@ public class BoidsManager : MonoBehaviour
             }
         }
 
+        flock = bestMgr;
+        id = bestIdx;
         return bestMgr != null ? bestMgr.RemoveAt(bestIdx) : null;
+    }
+
+    /// <summary>Pull one specific fish out of whichever flock holds it (so the sim stops driving it).
+    /// Returns true if it was found. Used by the shark's focused bite to eat a *locked* flock fish
+    /// rather than just the nearest one.</summary>
+    public static bool DetachFish(GameObject fish) => DetachFish(fish, out _, out _);
+
+    /// <inheritdoc cref="DetachFish(GameObject)"/>
+    public static bool DetachFish(GameObject fish, out BoidsManager flock, out int id)
+    {
+        if (!TryFind(fish, out flock, out id)) return false;
+        flock.RemoveAt(id);
+        return true;
+    }
+
+    /// <summary>Which school a live flock fish belongs to, and its fish id there.</summary>
+    public static bool TryFind(GameObject fish, out BoidsManager flock, out int id)
+    {
+        flock = null;
+        id = -1;
+        if (fish == null) return false;
+        for (int m = 0; m < All.Count; m++)
+        {
+            var mgr = All[m];
+            if (mgr == null || mgr.allFish == null) continue;
+            int i = System.Array.IndexOf(mgr.allFish, fish);
+            if (i >= 0) { flock = mgr; id = i; return true; }
+        }
+        return false;
+    }
+
+    /// <summary>The school with this network id (<see cref="NetId"/>), or null.</summary>
+    public static BoidsManager ById(byte netId)
+    {
+        for (int m = 0; m < All.Count; m++)
+            if (All[m] != null && All[m].NetId == netId) return All[m];
+        return null;
+    }
+
+    /// <summary>The school whose area centre is closest to <paramref name="pos"/>, or null.</summary>
+    public static BoidsManager NearestTo(Vector3 pos)
+    {
+        BoidsManager best = null;
+        float bestSqr = float.MaxValue;
+        for (int m = 0; m < All.Count; m++)
+        {
+            var mgr = All[m];
+            if (mgr == null) continue;
+            float d = (mgr.transform.position - pos).sqrMagnitude;
+            if (d < bestSqr) { bestSqr = d; best = mgr; }
+        }
+        return best;
+    }
+
+    // ---- Network sync (see FlockNetSync) ------------------------------------------------
+
+    /// <summary>Number of fish ids (alive or not).</summary>
+    public int FishCapacity => allFish != null ? allFish.Length : 0;
+
+    public bool IsAlive(int id) => allFish != null && id >= 0 && id < allFish.Length && allFish[id] != null;
+
+    /// <summary>Host: the current simulated state of a live fish.</summary>
+    public bool TryGetState(int id, out Vector3 pos, out Vector3 heading, out float speed)
+    {
+        int k = IsAlive(id) && id < _slot.Length ? _slot[id] : -1;
+        if (k < 0 || k >= _count || !_posA.IsCreated)
+        {
+            pos = heading = default;
+            speed = 0f;
+            return false;
+        }
+        pos = _posA[k];
+        heading = _hdgA[k];
+        speed = _speed[k];
+        return true;
+    }
+
+    /// <summary>Client: the host's state for a fish, already extrapolated to arrival time. Eased in over
+    /// <see cref="correctionTime"/> on the next sim step (or snapped if it's way off).</summary>
+    public void ReceiveHostState(int id, Vector3 pos, Vector3 heading)
+    {
+        if (!IsAlive(id)) return;
+        EnsurePerFish();
+        _netPos[id] = pos;
+        _netHdg[id] = heading;
+        _netPending[id] = true;
+        _netDirty = _hasNetData = true;
+    }
+
+    /// <summary>Remove a fish without any eating animation (it was already gone on the host).</summary>
+    public void DespawnFish(int id)
+    {
+        var fish = RemoveAt(id);
+        if (fish != null) Destroy(fish);
+    }
+
+    // Where the school roams. Derived from the shared clock + seed rather than rolled at random each
+    // frame, so every player's school chases the same goal at the same moment without sending it.
+    Vector3 GoalAt(double time)
+    {
+        long step = (long)System.Math.Floor(time / Mathf.Max(0.01f, goalChangeInterval));
+        uint h = math.hash(new uint3((uint)step, (uint)(step >> 32), FlockSeed));
+        var rng = new Unity.Mathematics.Random(h == 0 ? 1u : h);
+        return transform.position + (Vector3)rng.NextFloat3(-(float3)area, (float3)area);
+    }
+
+    // Clients: fold the host's latest states into the sim, then ease outstanding errors in.
+    void ApplyHostCorrections(float dt)
+    {
+        if (!_hasNetData) return;
+
+        if (_netDirty)
+        {
+            _netDirty = false;
+            float snap2 = snapDistance * snapDistance;
+            for (int id = 0; id < _netPending.Length; id++)
+            {
+                if (!_netPending[id]) continue;
+                _netPending[id] = false;
+                int k = _slot[id];
+                if (k < 0) continue;
+
+                float3 target = _netPos[id];
+                float3 err = target - _posA[k];
+                if (math.lengthsq(err) > snap2)
+                {
+                    _posA[k] = target;                     // way off (e.g. just joined): snap
+                    _hdgA[k] = _netHdg[id];
+                    _corr[id] = Vector3.zero;
+                }
+                else
+                {
+                    _corr[id] = err;                       // blend the rest in over correctionTime
+                    _hdgA[k] = math.normalizesafe(math.lerp(_hdgA[k], (float3)_netHdg[id], 0.5f), _hdgA[k]);
+                }
+            }
+        }
+
+        float a = 1f - Mathf.Exp(-dt / Mathf.Max(0.01f, correctionTime));
+        for (int k = 0; k < _count; k++)
+        {
+            int id = _ids[k];
+            Vector3 c = _corr[id];
+            if (c.sqrMagnitude < 1e-8f) continue;
+            Vector3 step = c * a;
+            _posA[k] += (float3)step;
+            _corr[id] = c - step;
+        }
     }
 
     private void OnDrawGizmos()
@@ -408,6 +652,7 @@ public class BoidsManager : MonoBehaviour
 
         [WriteOnly] public NativeArray<float3> outPositions;
         [WriteOnly] public NativeArray<float3> outHeadings;
+        [WriteOnly] public NativeArray<float> outSpeeds;
 
         public void Execute(int index, TransformAccess t)
         {
@@ -558,6 +803,7 @@ public class BoidsManager : MonoBehaviour
 
             outPositions[index] = newPos;
             outHeadings[index] = newFwd;
+            outSpeeds[index] = effSpeed;
             t.position = newPos;
             t.rotation = quaternion.LookRotationSafe(newFwd, math.up());
         }

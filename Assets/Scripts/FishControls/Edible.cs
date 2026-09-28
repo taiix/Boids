@@ -43,6 +43,7 @@ namespace FishGame
         public bool IsEaten { get; private set; }
 
         int _eatenId;
+        bool _despawn = true;
 
         void Awake()
         {
@@ -55,7 +56,9 @@ namespace FishGame
         /// fish pulled into and parented to it (rides the jaw). Returns false if already eaten.
         /// In multiplayer, call this on the SERVER (fanned out via RPC).
         /// </summary>
-        public bool Devour(GameObject predator, Transform mouth = null)
+        /// <param name="despawn">Destroy the fish after <see cref="despawnDelay"/>. Pass false for a
+        /// networked player, whose body the server replaces itself when it respawns them.</param>
+        public bool Devour(GameObject predator, Transform mouth = null, bool despawn = true)
         {
             if (IsEaten) return false;
             IsEaten = true;
@@ -66,8 +69,13 @@ namespace FishGame
 
             if (TryGetComponent<Rigidbody>(out var rb))
             {
-                rb.linearVelocity = Vector3.zero;
+                // Other players' bodies are already kinematic on this machine (their owner moves
+                // them), and a kinematic body's velocity can't be set.
+                if (!rb.isKinematic) rb.linearVelocity = Vector3.zero;
                 rb.isKinematic = true; // the mouth drives it now, not physics
+                // Interpolation keeps writing the body's last physics pose back over the transform,
+                // which pins the fish where the bite happened instead of letting it ride the jaw.
+                rb.interpolation = RigidbodyInterpolation.None;
             }
 
             if (disableCollidersOnEaten)
@@ -85,9 +93,10 @@ namespace FishGame
 
             OnDevoured?.Invoke(predator);
 
+            _despawn = despawn;
             if (mouth != null)
                 StartCoroutine(IntoMouth(mouth));
-            else if (despawnDelay >= 0f)
+            else if (_despawn && despawnDelay >= 0f)
                 Destroy(gameObject, despawnDelay); // swap for NetworkServer.Destroy in MP
 
             return true;
@@ -131,7 +140,7 @@ namespace FishGame
             transform.localPosition = Vector3.zero;
             transform.localRotation = Quaternion.identity;
 
-            if (despawnDelay >= 0f)
+            if (_despawn && despawnDelay >= 0f)
                 Destroy(gameObject, despawnDelay); // swap for NetworkServer.Destroy in MP
         }
     }

@@ -242,7 +242,7 @@ MonoBehaviour:
   evaluationMethod: 0
   evaluationInterval: 3
   timeInterpolationGui: 0
-  gameSceneName: 03 - Island
+  gameSceneName: IslandTest
   sharkPrefab: {fileID: 2433337675563196249, guid: 34432f29ab76ca743bfcfaa472dc4773, type: 3}
   editorForcedRole: 0
 --- !u!114 &9116207

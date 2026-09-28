@@ -82,6 +82,7 @@ namespace FishGame
         float _freeYaw;    // camera-only orbit offset while free-looking
         float _freePitch;  // camera-only orbit offset while free-looking
         Vector3 _posVelocity; // SmoothDamp scratch
+        Transform _spectating; // watching another creature through its view (input ignored)
 
         /// <summary>World-space direction the player is aiming (camera forward). Steer the fish toward this.</summary>
         public Vector3 AimDirection => Quaternion.Euler(_pitch, _yaw, 0f) * Vector3.forward;
@@ -121,8 +122,21 @@ namespace FishGame
         }
         public void SetTarget(Transform t)
         {
+            _spectating = null;
             target = t;
             if (t != null) _yaw = t.eulerAngles.y;
+        }
+
+        /// <summary>
+        /// Watch another creature through its own view: sit behind it and turn with its heading (e.g.
+        /// the shark eating us sees roughly what its own camera does). Input is ignored until
+        /// <see cref="SetTarget"/> is called again.
+        /// </summary>
+        public void Spectate(Transform other)
+        {
+            _spectating = other;
+            target = other;
+            _freeYaw = _freePitch = 0f;
         }
         void OnEnable()
         {
@@ -156,9 +170,21 @@ namespace FishGame
 
         void Update()
         {
+            // Spectating: follow the other creature's heading instead of our own input.
+            if (_spectating != null)
+            {
+                Vector3 f = _spectating.forward;
+                float yaw = Mathf.Atan2(f.x, f.z) * Mathf.Rad2Deg;
+                float pitch = Mathf.Clamp(-Mathf.Asin(Mathf.Clamp(f.y, -1f, 1f)) * Mathf.Rad2Deg, -pitchLimit, pitchLimit);
+                float k = 1f - Mathf.Exp(-6f * Time.deltaTime);
+                _yaw = Mathf.LerpAngle(_yaw, yaw, k);
+                _pitch = Mathf.Lerp(_pitch, pitch, k);
+                return;
+            }
+
             // Flip steering mode on the toggle key.
             var kb = Keyboard.current;
-            if (kb != null && kb[toggleSteeringKey].wasPressedThisFrame)
+            if (kb != null && kb[toggleSteeringKey].wasPressedThisFrame && !PauseMenu.IsOpen)
             {
                 keyboardSteering = !keyboardSteering;
                 Debug.Log($"[FishOrbitCamera] Steering = {(keyboardSteering ? "KEYBOARD (A/D yaw, Up/Down arrows pitch)" : "MOUSE")}");
@@ -166,7 +192,8 @@ namespace FishGame
 
             // Mouse delta is already per-frame movement, so we DON'T multiply by deltaTime.
             // Gamepad is a sustained axis, so that one is time-scaled.
-            Vector2 look = _lookAction.ReadValue<Vector2>();
+            // The Escape menu frees the mouse for its buttons; it mustn't also swing the camera.
+            Vector2 look = PauseMenu.IsOpen ? Vector2.zero : _lookAction.ReadValue<Vector2>();
             bool fromGamepad = Gamepad.current != null && _lookAction.activeControl?.device == Gamepad.current;
 
             float dx, dy;

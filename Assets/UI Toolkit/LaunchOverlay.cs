@@ -21,8 +21,13 @@ namespace ReefRun
     {
         public static LaunchOverlay Instance { get; private set; }
 
-        [Tooltip("Scene name that ends the overlay (fades out once it loads and the round starts).")]
+        [Tooltip("Fallback only: the overlay ends when the NetworkManager's Game Scene Name loads (and the " +
+                 "round starts). This is used just if no CustomNetworkManager is around.")]
         public string GameSceneName = "03 - Island";
+
+        // The match scene is set once, on the NetworkManager - a second copy here got out of step once
+        // (the overlay then never faded).
+        string MatchScene => Mirror.NetworkManager.singleton is CustomNetworkManager nm ? nm.GameSceneName : GameSceneName;
 
         [Tooltip("Shown while this machine has loaded but others are still loading.")]
         public string WaitingText = "Waiting for everyone to reach the reef...";
@@ -78,7 +83,7 @@ namespace ReefRun
 
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            if (!_playing || _overlay == null || scene.name != GameSceneName) return;
+            if (!_playing || _overlay == null || scene.name != MatchScene) return;
             StartCoroutine(FadeOutWhenRoundStarts(0.6f));
         }
 
