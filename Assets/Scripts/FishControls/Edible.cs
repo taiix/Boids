@@ -58,7 +58,9 @@ namespace FishGame
         /// </summary>
         /// <param name="despawn">Destroy the fish after <see cref="despawnDelay"/>. Pass false for a
         /// networked player, whose body the server replaces itself when it respawns them.</param>
-        public bool Devour(GameObject predator, Transform mouth = null, bool despawn = true)
+        /// <param name="bloodSeed">Shapes the blood cloud. Networked callers pass one made from ids every
+        /// machine shares (<see cref="BloodInWater.SeedFor"/>) so all players see the same cloud; 0 = random.</param>
+        public bool Devour(GameObject predator, Transform mouth = null, bool despawn = true, int bloodSeed = 0)
         {
             if (IsEaten) return false;
             IsEaten = true;
@@ -92,6 +94,12 @@ namespace FishGame
             }
 
             OnDevoured?.Invoke(predator);
+
+            // Every machine reaches this once per catch (the host's RPC for player fish, FlockNetSync
+            // for school fish), so everyone sees the blood; the shared seed makes it the same cloud.
+            // It bursts from the jaws when we know them: that's where each machine draws the shark,
+            // even when its copy of the fish lags or drifts a little from the host's.
+            BloodInWater.Spill(mouth != null ? mouth.position : transform.position, mouth, bloodSeed);
 
             _despawn = despawn;
             if (mouth != null)

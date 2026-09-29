@@ -358,8 +358,9 @@ namespace FishGame
                 identity.TryGetComponent(out eater);
 
             if (!fish.TryGetComponent(out Edible edible)) edible = fish.AddComponent<Edible>();
-            if (eater != null) edible.Devour(eater.gameObject, eater.MouthAnchor);
-            else edible.Devour(null);
+            int blood = BloodInWater.SeedFor(mgr.NetId, fishId); // same seed the biting shark used
+            if (eater != null) edible.Devour(eater.gameObject, eater.MouthAnchor, bloodSeed: blood);
+            else edible.Devour(null, bloodSeed: blood);
         }
 
         static bool TryGetSpawned(uint netId, out NetworkIdentity identity) =>

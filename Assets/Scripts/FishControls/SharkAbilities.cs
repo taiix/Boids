@@ -236,7 +236,7 @@ namespace FishGame
             _eatWindow = 0f;
 
             if (!fish.TryGetComponent(out Edible edible)) edible = fish.AddComponent<Edible>();
-            edible.Devour(gameObject, mouthAnchor);
+            edible.Devour(gameObject, mouthAnchor, bloodSeed: BloodInWater.SeedFor(flock.NetId, id)); // same seed FlockNetSync uses
             if (CaughtFlockFish != null) CaughtFlockFish.Invoke(flock, id); // networked: the host feeds us once it confirms
             else FeedFor(playerFish: false);                                // single-player / test
         }

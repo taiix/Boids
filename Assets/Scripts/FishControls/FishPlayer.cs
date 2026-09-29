@@ -404,7 +404,8 @@ public class FishPlayer : NetworkBehaviour
         if ((victim.transform.position - transform.position).sqrMagnitude > MaxBiteDistance * MaxBiteDistance) return;
 
         victim._eaten = true;
-        victim.RpcEatenBy(netIdentity);
+        // The host picks the blood's seed and hands it to everyone, so every player sees the same cloud.
+        victim.RpcEatenBy(netIdentity, BloodInWater.SeedFor((int)victim.netId, (int)netId));
         if (TryGetComponent(out SharkAbilities shark)) shark.FeedFor(playerFish: true);
         if (NetworkManager.singleton is CustomNetworkManager nm) nm.ServerRespawnAfterEaten(victim);
     }
@@ -412,10 +413,10 @@ public class FishPlayer : NetworkBehaviour
     /// <summary>
     /// Everyone: this fish was caught by <paramref name="shark"/>. Its control and position syncing stop,
     /// it's pulled into the shark's jaws, and on the victim's own screen the camera watches through the
-    /// shark's view until the server respawns them.
+    /// shark's view until the server respawns them. <paramref name="bloodSeed"/> shapes the blood cloud.
     /// </summary>
     [ClientRpc]
-    private void RpcEatenBy(NetworkIdentity shark)
+    private void RpcEatenBy(NetworkIdentity shark, int bloodSeed)
     {
         _eaten = true;
         SetLocallyControlled(false);
@@ -423,7 +424,7 @@ public class FishPlayer : NetworkBehaviour
 
         var jaws = shark != null ? shark.GetComponent<SharkAbilities>() : null;
         if (!TryGetComponent(out Edible edible)) edible = gameObject.AddComponent<Edible>();
-        edible.Devour(shark != null ? shark.gameObject : null, jaws != null ? jaws.MouthAnchor : null, despawn: false);
+        edible.Devour(shark != null ? shark.gameObject : null, jaws != null ? jaws.MouthAnchor : null, despawn: false, bloodSeed);
 
         if (isLocalPlayer && shark != null)
         {
