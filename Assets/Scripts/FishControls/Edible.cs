@@ -98,8 +98,10 @@ namespace FishGame
             // Every machine reaches this once per catch (the host's RPC for player fish, FlockNetSync
             // for school fish), so everyone sees the blood; the shared seed makes it the same cloud.
             // It bursts from the jaws when we know them: that's where each machine draws the shark,
-            // even when its copy of the fish lags or drifts a little from the host's.
-            BloodInWater.Spill(mouth != null ? mouth.position : transform.position, mouth, bloodSeed);
+            // even when its copy of the fish lags or drifts a little from the host's. A player fish's
+            // blood lingers far longer than a school fish's - the shark eats hundreds of those.
+            BloodInWater.Spill(mouth != null ? mouth.position : transform.position, mouth, bloodSeed,
+                               linger: TryGetComponent(out FishPlayer _));
 
             _despawn = despawn;
             if (mouth != null)

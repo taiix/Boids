@@ -1,3 +1,5 @@
+// Editor-only tool, but it lives outside an Editor folder - without this guard, player builds fail to compile.
+#if UNITY_EDITOR
 using System;
 using System.IO;
 using UnityEditor;
@@ -66,3 +68,4 @@ public class KeyArtCaptureWindow : EditorWindow
         return path;
     }
 }
+#endif

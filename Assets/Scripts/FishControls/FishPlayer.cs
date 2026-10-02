@@ -315,9 +315,29 @@ public class FishPlayer : NetworkBehaviour
         }
 
         // F8 swaps this player between fish and shark (the server re-spawns us as the other; everyone
-        // sees it). The server decides whether that's allowed. Networked only - offline has no server.
-        if (_controlsLive && !_offlineLocal && Keyboard.current != null && Keyboard.current.f8Key.wasPressedThisFrame)
-            CmdSwitchRole();
+        // sees it). The server decides whether that's allowed. Offline there's no server, so we swap here.
+        if (_controlsLive && Keyboard.current != null && Keyboard.current.f8Key.wasPressedThisFrame)
+        {
+            if (_offlineLocal) SwapBodyOffline();
+            else CmdSwitchRole();
+        }
+    }
+
+    /// <summary>True for a body driven by the offline sandbox (no host or client running).</summary>
+    public bool IsOfflineSandboxBody => _offlineLocal;
+
+    // Offline sandbox F8: what the server does online - a fresh copy of the other body (fresh vitals)
+    // in our place, and this one goes (its OnDestroy takes our detached camera with it).
+    private void SwapBodyOffline()
+    {
+        if (!(NetworkManager.singleton is CustomNetworkManager nm)) return;
+        FishRole next = IsSharkBody ? FishRole.Fish : FishRole.Shark;
+        GameObject prefab = nm.PrefabFor(next);
+        if (prefab == null) return;
+
+        var body = Instantiate(prefab, transform.position, transform.rotation);
+        if (body.TryGetComponent(out FishPlayer fp)) fp.Role = next; // before its Start sets up the view
+        Destroy(gameObject);
     }
 
     // The spawn lands during the scene's first, very long frames; waiting a few more means "loaded" is

@@ -147,7 +147,9 @@ namespace FishGame
             foreach (var fp in Resources.FindObjectsOfTypeAll<FishPlayer>())
             {
                 if (fp == null || fp.gameObject.scene != active) continue;          // skip prefab assets
-                if (!fp.TryGetComponent(out NetworkIdentity id) || id.sceneId == 0) continue; // scene-placed only
+                // Scene-placed bodies, plus any the sandbox made itself (F8 swaps one in offline).
+                bool sandboxBody = fp.IsOfflineSandboxBody;
+                if (!sandboxBody && (!fp.TryGetComponent(out NetworkIdentity id) || id.sceneId == 0)) continue;
                 doomed.Add(fp.gameObject);
             }
             foreach (var go in doomed)

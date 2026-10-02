@@ -230,6 +230,7 @@ Material:
     - _PPDPrimitiveLength: 1
     - _PPDPrimitiveWidth: 1
     - _PerPixelSorting: 0
+    - _Push_Strength: 0
     - _QueueControl: 0
     - _QueueOffset: 0
     - _RayTracing: 0

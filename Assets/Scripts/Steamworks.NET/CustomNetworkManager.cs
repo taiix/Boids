@@ -33,6 +33,9 @@ public class CustomNetworkManager : NetworkManager
     /// <summary>The scene the lobby loads when the host starts the match.</summary>
     public string GameSceneName => gameSceneName;
 
+    /// <summary>The body prefab for a role (the fish one if no shark prefab is set).</summary>
+    public GameObject PrefabFor(FishRole role) => role == FishRole.Shark && sharkPrefab != null ? sharkPrefab : playerPrefab;
+
     private const float RoleSwapCooldown = 1f;
     private readonly Dictionary<int, float> _lastRoleSwap = new Dictionary<int, float>();
 

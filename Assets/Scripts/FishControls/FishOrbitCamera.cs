@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering;
 
 namespace FishGame
 {
@@ -12,6 +14,12 @@ namespace FishGame
     /// Hold the free-look button (right mouse by default) to orbit the camera around the
     /// fish WITHOUT steering it: the aim freezes, the camera swings freely, and on release
     /// the camera eases back behind the fish.
+    ///
+    /// The first-person key (V / right stick click) switches to looking out of the creature's own
+    /// eyes - fish and shark alike - and back. Steering is the same either way; in first person the
+    /// free-look button looks around without turning. The body you're in is hidden from your own view
+    /// (it still casts its shadow, and everyone else sees it as normal). The choice is remembered
+    /// across role swaps, respawns and sessions; spectating (being eaten) is always third person.
     /// </summary>
     public class FishOrbitCamera : MonoBehaviour
     {
@@ -71,6 +79,40 @@ namespace FishGame
                  "(so it never clips); this only smooths the recovery.")]
         [SerializeField] float zoomReturnSharpness = 8f;
 
+        [Header("First person (toggle)")]
+        [Tooltip("Key that switches between first and third person (gamepad: right stick click).")]
+        [SerializeField] Key firstPersonKey = Key.V;
+        [Tooltip("Where the eyes are, in the body's own space (before its scale). Zero = worked out from the " +
+                 "model: up at the front, a little above the middle.")]
+        [SerializeField] Vector3 eyeOffset;
+        [Tooltip("Seconds the view takes to swing between third and first person.")]
+        [SerializeField] float viewBlendSeconds = 0.25f;
+        [Tooltip("How far the first-person eye keeps from the seabed and rocks (metres). The eyes sit up at the " +
+                 "nose, ahead of the body the collider keeps out of the ground - nosing into the sand would " +
+                 "otherwise put the view under it - so it's pulled back toward the body's middle when needed.")]
+        [SerializeField] float firstPersonClearance = 0.2f;
+        [Tooltip("Near clip plane in first person: close, so a surface right in front of your face isn't " +
+                 "sliced open (third person keeps the camera's own).")]
+        [SerializeField] float firstPersonNearClip = 0.05f;
+
+        const string FirstPersonPref = "FishGame.FirstPerson";
+        static bool s_firstPerson;
+        static bool s_prefLoaded;
+
+        /// <summary>True while the player has chosen to look out of the creature's eyes.</summary>
+        public static bool FirstPerson => s_firstPerson;
+
+        InputAction _viewAction;
+        float _fpBlend;            // 0 = third person, 1 = first person (eased between)
+        Vector3 _tpPos;            // where the third-person rig is, kept up to date even in first person
+        bool _tpPosValid;
+        Vector3 _eyeLocal;         // eye point in the target's own space
+        Transform _eyeFor;         // the target _eyeLocal was worked out for
+        readonly List<(Renderer renderer, ShadowCastingMode mode)> _hidden = new List<(Renderer, ShadowCastingMode)>();
+        Transform _hiddenBody;     // the body we've hidden from our own view, if any
+        Camera _camera;
+        float _thirdPersonNearClip = -1f; // the camera's own near plane, put back in third person
+
         readonly RaycastHit[] _camHits = new RaycastHit[8];
         float _currentDistance;
 
@@ -112,6 +154,16 @@ namespace FishGame
                 .With("Up", "<Keyboard>/upArrow")
                 .With("Down", "<Keyboard>/downArrow");
 
+            _viewAction = new InputAction("FirstPerson", InputActionType.Button);
+            _viewAction.AddBinding("<Gamepad>/rightStickPress");
+
+            if (!s_prefLoaded)
+            {
+                s_prefLoaded = true;
+                s_firstPerson = PlayerPrefs.GetInt(FirstPersonPref, 0) == 1;
+            }
+            _fpBlend = s_firstPerson ? 1f : 0f; // a new body starts straight in the view you left
+
             // Start aligned with the target's current heading.
             if (target != null)
             {
@@ -143,6 +195,7 @@ namespace FishGame
             _lookAction.Enable();
             _freeLookAction.Enable();
             _turnAction.Enable();
+            _viewAction.Enable();
         }
 
         void OnDisable()
@@ -150,6 +203,8 @@ namespace FishGame
             _lookAction.Disable();
             _freeLookAction.Disable();
             _turnAction.Disable();
+            _viewAction.Disable();
+            HideBody(null); // never leave a body invisible
         }
 
         void Start()
@@ -188,6 +243,14 @@ namespace FishGame
             {
                 keyboardSteering = !keyboardSteering;
                 Debug.Log($"[FishOrbitCamera] Steering = {(keyboardSteering ? "KEYBOARD (A/D yaw, Up/Down arrows pitch)" : "MOUSE")}");
+            }
+
+            // First / third person.
+            if (!PauseMenu.IsOpen &&
+                ((kb != null && kb[firstPersonKey].wasPressedThisFrame) || _viewAction.WasPressedThisFrame()))
+            {
+                s_firstPerson = !s_firstPerson;
+                PlayerPrefs.SetInt(FirstPersonPref, s_firstPerson ? 1 : 0);
             }
 
             // Mouse delta is already per-frame movement, so we DON'T multiply by deltaTime.
@@ -278,17 +341,127 @@ namespace FishGame
             else
                 _currentDistance = Mathf.Lerp(_currentDistance, targetDist, 1f - Mathf.Exp(-zoomReturnSharpness * dt));
 
-            // Smooth the follow (lag as the fish moves), then place the camera along the arm.
+            // Smooth the follow (lag as the fish moves), then place the camera along the arm. Tracked even
+            // in first person, so switching back swings out to where the rig would be by now.
             Vector3 desiredPos = pivot + backDir * _currentDistance;
-            transform.position = Vector3.SmoothDamp(transform.position, desiredPos, ref _posVelocity, followSmoothTime);
+            if (!_tpPosValid) { _tpPos = transform.position; _tpPosValid = true; }
+            _tpPos = Vector3.SmoothDamp(_tpPos, desiredPos, ref _posVelocity, followSmoothTime);
 
             // Look at the fish. Guard against a near-zero direction when zoomed in tight, which
             // would make the rotation jitter — fall back to the orbit direction instead.
             Vector3 lookTarget = target.position + Vector3.up * lookAheadHeight;
-            Vector3 lookDir = lookTarget - transform.position;
-            transform.rotation = lookDir.sqrMagnitude > 0.0004f
+            Vector3 lookDir = lookTarget - _tpPos;
+            Quaternion tpRot = lookDir.sqrMagnitude > 0.0004f
                 ? Quaternion.LookRotation(lookDir, Vector3.up)
                 : camRot;
+
+            // First person: out of the creature's eyes, looking where it aims (free-look looks around).
+            // Kept level - the body banks and rolls, the view doesn't. Spectating is always third person.
+            bool firstPerson = s_firstPerson && _spectating == null;
+            _fpBlend = Mathf.MoveTowards(_fpBlend, firstPerson ? 1f : 0f, dt / Mathf.Max(viewBlendSeconds, 0.01f));
+            if (_fpBlend <= 0f)
+            {
+                transform.SetPositionAndRotation(_tpPos, tpRot);
+            }
+            else
+            {
+                float e = _fpBlend * _fpBlend * (3f - 2f * _fpBlend);
+                transform.SetPositionAndRotation(Vector3.Lerp(_tpPos, SafeEyePoint(), e), Quaternion.Slerp(tpRot, camRot, e));
+            }
+
+            // Our own body would fill the view from inside it: hide it (shadow kept) once we're mostly in.
+            bool inside = firstPerson && _fpBlend > 0.5f;
+            HideBody(inside ? target : null);
+            SetNearClip(inside);
         }
+
+        // ---------------------------------------------------------------- first person
+
+        Vector3 EyePoint()
+        {
+            if (_eyeFor != target)
+            {
+                _eyeFor = target;
+                _eyeLocal = eyeOffset != Vector3.zero ? eyeOffset : AutoEye(target);
+            }
+            return target.TransformPoint(_eyeLocal);
+        }
+
+        // The eye, kept out of the seabed and rocks: a sphere is swept from the body's middle (which its
+        // collider keeps clear of the ground) out to the eye, and stops short of anything in the way.
+        Vector3 SafeEyePoint()
+        {
+            Vector3 eye = EyePoint();
+            if (!avoidClipping) return eye;
+            Vector3 from = target.position;
+            Vector3 d = eye - from;
+            float len = d.magnitude;
+            if (len < 1e-4f) return eye;
+            d /= len;
+            int n = Physics.SphereCastNonAlloc(from, firstPersonClearance, d, _camHits, len, collisionMask,
+                                               QueryTriggerInteraction.Ignore);
+            float nearest = len;
+            for (int i = 0; i < n; i++)
+            {
+                var hit = _camHits[i];
+                if (hit.collider.transform.IsChildOf(target)) continue; // our own body
+                // (Something already overlapping the middle reports distance 0: the eye stays at the middle.)
+                if (hit.distance < nearest) nearest = hit.distance;
+            }
+            return from + d * nearest;
+        }
+
+        void SetNearClip(bool firstPerson)
+        {
+            if (_camera == null && !TryGetComponent(out _camera)) return;
+            if (_thirdPersonNearClip < 0f) _thirdPersonNearClip = _camera.nearClipPlane;
+            float want = firstPerson ? Mathf.Min(firstPersonNearClip, _thirdPersonNearClip) : _thirdPersonNearClip;
+            if (!Mathf.Approximately(_camera.nearClipPlane, want)) _camera.nearClipPlane = want;
+        }
+
+        // The body's meshes measured in its own space (nose along +Z): eyes near the front, a little above
+        // the middle - right for a small fish and a five-metre shark alike.
+        static Vector3 AutoEye(Transform body)
+        {
+            bool any = false;
+            Vector3 min = Vector3.positiveInfinity, max = Vector3.negativeInfinity;
+            foreach (var r in body.GetComponentsInChildren<Renderer>())
+            {
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                Transform space = r is SkinnedMeshRenderer smr && smr.rootBone != null ? smr.rootBone : r.transform;
+                Bounds lb = r.localBounds;
+                for (int i = 0; i < 8; i++)
+                {
+                    var corner = lb.center + Vector3.Scale(lb.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    var local = body.InverseTransformPoint(space.TransformPoint(corner));
+                    min = Vector3.Min(min, local);
+                    max = Vector3.Max(max, local);
+                    any = true;
+                }
+            }
+            if (!any) return new Vector3(0f, 0.2f, 0.5f);
+            Vector3 c = (min + max) * 0.5f, ext = (max - min) * 0.5f;
+            return new Vector3(c.x, c.y + ext.y * 0.35f, max.z - ext.z * 0.25f);
+        }
+
+        // Hide the body we're looking out of (only on this machine - shadows stay), or put the last one back.
+        void HideBody(Transform body)
+        {
+            if (_hiddenBody == body) return;
+            foreach (var (r, mode) in _hidden)
+                if (r != null) r.shadowCastingMode = mode;
+            _hidden.Clear();
+            _hiddenBody = body;
+            if (body == null) return;
+            foreach (var r in body.GetComponentsInChildren<Renderer>())
+            {
+                if (!(r is MeshRenderer) && !(r is SkinnedMeshRenderer)) continue;
+                if (r.transform.IsChildOf(transform)) continue;
+                _hidden.Add((r, r.shadowCastingMode));
+                r.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
+            }
+        }
+
+        void OnDestroy() => HideBody(null);
     }
 }

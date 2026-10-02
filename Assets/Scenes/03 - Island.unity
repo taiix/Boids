@@ -1103,8 +1103,8 @@ MonoBehaviour:
   - {fileID: 680556474456380593, guid: a5d256fb5b4f8b6459fbbf5582010970, type: 3}
   - {fileID: 680556474456380593, guid: 8cf364092748bf446bd72ffde8d565c4, type: 3}
   - {fileID: 680556474456380593, guid: 47ece038b5525f844a156cd109484b78, type: 3}
-  - {fileID: 886573931990757153, guid: 634ab9a57ddb9bd4d8b189f66f28e3bf, type: 3}
-  - {fileID: 8338871706494605346, guid: 031a52c08262f0c499ab567002ff2103, type: 3}
+  - {fileID: 2605152628424658703, guid: a216a1677befcc24f9bc130488c385cb, type: 3}
+  - {fileID: 3402496881491192059, guid: 907378407d1ee384d905d972023abd87, type: 3}
   - {fileID: 4169909374474516048, guid: aae6e15b69dbb23478c8edc3adfa3409, type: 3}
   - {fileID: 5453727988437484607, guid: 4708bbcb5624d1d4eb7d0f45f6a6438d, type: 3}
   - {fileID: 2224961197607438699, guid: a1ad5ba828ff0644fba6bf48851ffd1d, type: 3}
@@ -3129,6 +3129,19 @@ MonoBehaviour:
   waterLevel: 0
   waterSurface: {fileID: 0}
   waterMargin: 0.5
+  keepAboveFloor: 1
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 8
+  floorCastHeight: 2
+  floorProbe: 160
+  floorMargin: 4
+  floorClearance: 1.5
+  floorWeight: 3.5
+  spawnSeed: 12345
+  goalChangeInterval: 0.25
+  correctionTime: 0.3
+  snapDistance: 6
   goalPos: {x: 0, y: 0, z: 0}
   OnMinSpeedChanged:
     m_PersistentCalls:
@@ -3781,6 +3794,19 @@ MonoBehaviour:
   waterLevel: 0
   waterSurface: {fileID: 0}
   waterMargin: 0.5
+  keepAboveFloor: 1
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 8
+  floorCastHeight: 2
+  floorProbe: 160
+  floorMargin: 4
+  floorClearance: 1.5
+  floorWeight: 3.5
+  spawnSeed: 12345
+  goalChangeInterval: 0.25
+  correctionTime: 0.3
+  snapDistance: 6
   goalPos: {x: 0, y: 0, z: 0}
   OnMinSpeedChanged:
     m_PersistentCalls:
@@ -4447,6 +4473,19 @@ MonoBehaviour:
   waterLevel: 0
   waterSurface: {fileID: 0}
   waterMargin: 0.5
+  keepAboveFloor: 1
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 8
+  floorCastHeight: 2
+  floorProbe: 160
+  floorMargin: 4
+  floorClearance: 1.5
+  floorWeight: 3.5
+  spawnSeed: 12345
+  goalChangeInterval: 0.25
+  correctionTime: 0.3
+  snapDistance: 6
   goalPos: {x: 0, y: 0, z: 0}
   OnMinSpeedChanged:
     m_PersistentCalls:
@@ -4828,6 +4867,19 @@ MonoBehaviour:
   waterLevel: 0
   waterSurface: {fileID: 0}
   waterMargin: 0.5
+  keepAboveFloor: 1
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 8
+  floorCastHeight: 2
+  floorProbe: 160
+  floorMargin: 4
+  floorClearance: 1.5
+  floorWeight: 3.5
+  spawnSeed: 12345
+  goalChangeInterval: 0.25
+  correctionTime: 0.3
+  snapDistance: 6
   goalPos: {x: 0, y: 0, z: 0}
   OnMinSpeedChanged:
     m_PersistentCalls:
@@ -5178,6 +5230,19 @@ MonoBehaviour:
   waterLevel: 0
   waterSurface: {fileID: 0}
   waterMargin: 0.5
+  keepAboveFloor: 1
+  floorMask:
+    serializedVersion: 2
+    m_Bits: 8
+  floorCastHeight: 2
+  floorProbe: 160
+  floorMargin: 4
+  floorClearance: 1.5
+  floorWeight: 3.5
+  spawnSeed: 12345
+  goalChangeInterval: 0.25
+  correctionTime: 0.3
+  snapDistance: 6
   goalPos: {x: 0, y: 0, z: 0}
   OnMinSpeedChanged:
     m_PersistentCalls:

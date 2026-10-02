@@ -59,6 +59,7 @@ namespace FishGame
             Prune();
             foreach (var veg in s_reefs)
                 InitSeeded(veg);
+            KelpForests.RebuildAll(); // same seed, same seabed - same forests for everyone
         }
 
         static void InitSeeded(ProceduralVegetation veg)

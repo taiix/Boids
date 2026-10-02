@@ -1,0 +1,158 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3402496881491192059
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6941578591009005045}
+  - component: {fileID: 4511657046378064118}
+  - component: {fileID: 5069244850827234718}
+  m_Layer: 0
+  m_Name: SeaweedKelpB
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6941578591009005045
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3402496881491192059}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 3, y: 3, z: 3}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8568914701197955860}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!205 &4511657046378064118
+LODGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3402496881491192059}
+  serializedVersion: 3
+  m_LocalReferencePoint: {x: 0.09407979, y: 1.2256262, z: 0.057163298}
+  m_Size: 2.6429324
+  m_FadeMode: 0
+  m_AnimateCrossFading: 0
+  m_LastLODIsBillboard: 0
+  m_LODs:
+  - screenRelativeHeight: 0.029245747
+    fadeTransitionWidth: 0
+    renderers:
+    - renderer: {fileID: 636449555061725914}
+  m_Enabled: 1
+  m_GlobalIlluminationLOD: 0
+--- !u!114 &5069244850827234718
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3402496881491192059}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3f53d404331e2f4d8431f74f19ccb2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.SeaweedBoneSpring
+  leanWhenHitLow: 1
+  leanWhenHitHigh: 0.5
+  maxBend: 1.5
+  stiffness: 20
+  damping: 5
+  extraReach: 0.3
+  plantLean: 0.35
+--- !u!1001 &8169635243699713279
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6941578591009005045}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -453385235764908507, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -453385235764908507, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: m_MotionVectors
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -453385235764908507, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: m_SkinnedMotionVectors
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -453385235764908507, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 0da2ed3357d48384f911ec5d612a339f, type: 2}
+    - target: {fileID: 919132149155446097, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+      propertyPath: m_Name
+      value: SM_Seabed_023_b_Rigged
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+--- !u!137 &636449555061725914 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -453385235764908507, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+  m_PrefabInstance: {fileID: 8169635243699713279}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8568914701197955860 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 8e94e173a2094dc45996379a5c1d5a05, type: 3}
+  m_PrefabInstance: {fileID: 8169635243699713279}
+  m_PrefabAsset: {fileID: 0}

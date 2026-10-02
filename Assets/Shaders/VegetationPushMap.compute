@@ -1,0 +1,64 @@
+// Builds the push map plants bend from (see VegetationPushMap.cs / VegetationPush.hlsl).
+// One pass per frame: carry last frame's map over (it follows the camera), fade it, then let every
+// swimmer near this texel claim it if it needs more room here than what's already recorded.
+//
+// Each texel: rg = which way and how far (m) a plant standing here must move to clear the body at its
+// widest, b = height of the body's axis there, a = the body's radius (the plant shader uses b and a to
+// clear the body's surface at each vertex's own height).
+#pragma kernel Advance
+
+Texture2D<float4> _Prev;
+RWTexture2D<float4> _Result;
+SamplerState s_linear_clamp_sampler;
+
+float4 _Area;       // xy = centre (world x,z), z = size (m), w = resolution (texels)
+float4 _PrevArea;   // last frame's centre / size
+float _Fade;        // how much of last frame's push survives this frame (0..1)
+float _Margin;      // extra room left around a body, in metres
+int _PusherCount;
+StructuredBuffer<float4> _Pushers;   // xyz = body centre, w = body radius
+StructuredBuffer<float4> _Segments;  // xyz = half the body's straight length along its axis, w = strength
+
+[numthreads(8, 8, 1)]
+void Advance(uint3 id : SV_DispatchThreadID)
+{
+    float res = _Area.w;
+    if (id.x >= (uint)res || id.y >= (uint)res)
+        return;
+
+    float2 world = _Area.xy + ((float2(id.xy) + 0.5) / res - 0.5) * _Area.z;
+
+    // Last frame's push at this spot, faded - the wake that lets plants close back in behind a swimmer.
+    float4 result = 0;
+    float2 prevUV = (world - _PrevArea.xy) / _PrevArea.z + 0.5;
+    if (all(prevUV >= 0.0) && all(prevUV <= 1.0))
+        result = _Prev.SampleLevel(s_linear_clamp_sampler, prevUV, 0);
+    result.rg *= _Fade;
+    float best = length(result.rg);
+
+    for (int i = 0; i < _PusherCount; i++)
+    {
+        float4 p = _Pushers[i];
+        float4 s = _Segments[i];
+
+        // Closest point on the body's axis, seen from above.
+        float3 a = p.xyz - s.xyz;
+        float3 b = p.xyz + s.xyz;
+        float2 ab = b.xz - a.xz;
+        float len2 = dot(ab, ab);
+        float t = len2 > 1e-6 ? saturate(dot(world - a.xz, ab) / len2) : 0.5;
+        float2 off = world - (a.xz + ab * t);
+        float d = length(off);
+
+        float need = (p.w + _Margin - d) * s.w;   // how far a plant here must go to clear the body
+        if (need <= best)
+            continue;
+        best = need;
+
+        // Straight out from the axis; a plant right on it goes to one side.
+        float2 dir = d > 1e-4 ? off / d : (len2 > 1e-6 ? normalize(float2(-ab.y, ab.x)) : float2(1.0, 0.0));
+        result = float4(dir * need, lerp(a.y, b.y, t), p.w);
+    }
+
+    _Result[id.xy] = result;
+}
