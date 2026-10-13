@@ -926,8 +926,35 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 12779356cdad0a14f947217fe07b5230, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 84868648}
   m_SourcePrefab: {fileID: 100100000, guid: 12779356cdad0a14f947217fe07b5230, type: 3}
+--- !u!1 &84868647 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 12779356cdad0a14f947217fe07b5230, type: 3}
+  m_PrefabInstance: {fileID: 84868646}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &84868648
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 84868647}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3f53d404331e2f4d8431f74f19ccb2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.SeaweedBoneSpring
+  leanWhenHitLow: 1.35
+  leanWhenHitHigh: 0.5
+  maxBend: 1.5
+  stiffness: 40
+  damping: 5
+  extraReach: 0.3
+  plantLean: 0.35
 --- !u!1 &162327321
 GameObject:
   m_ObjectHideFlags: 0
@@ -1257,6 +1284,72 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   waterSurface: {fileID: 1146493789}
   decalGameObject: {fileID: 987506203}
+--- !u!1 &212683741
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 212683743}
+  - component: {fileID: 212683742}
+  m_Layer: 0
+  m_Name: TrashTask
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &212683742
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 212683741}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fece30deac7b3954b90ec5bfba028a92, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.TrashTask
+  sinkholePrefab: {fileID: 4949559545681564535, guid: e21ac20744b0f324083cce6ffe37563e, type: 3}
+  trash:
+  - prefab: {fileID: 5533592252895567413, guid: f3895a4468152e14e9253e8130ba74d3, type: 3}
+    count: 4
+  - prefab: {fileID: 9140765125609687066, guid: 3f029138ee3026f4c8c20ee035ffe8be, type: 3}
+    count: 3
+  - prefab: {fileID: 7294753366511616984, guid: 067492b5e4b383648b57ed9010265b37, type: 3}
+    count: 3
+  sinkholeCount: 3
+  sinkholeSpacing: 45
+  minFlatness: 0.9
+  edgeMargin: 25
+  keepClearRadius: 18
+  forestMargin: 4
+  distanceFromSinkhole: {x: 14, y: 45}
+  trashSpacing: 5
+  trashMinFlatness: 0.93
+  goal: 9
+  secondsPerPoint: 4
+  completionSeconds: 30
+  progressRange: 7
+  completeMessageSeconds: 5
+--- !u!4 &212683743
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 212683741}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &221205151
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1271,7 +1364,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6047608287022751566, guid: e472776d97012c44cac5ea7ec48a2dfd, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -55.71951
+      value: 39
       objectReference: {fileID: 0}
     - target: {fileID: 6047608287022751566, guid: e472776d97012c44cac5ea7ec48a2dfd, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1312,8 +1405,40 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 9070776553601067101, guid: e472776d97012c44cac5ea7ec48a2dfd, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 221205153}
   m_SourcePrefab: {fileID: 100100000, guid: e472776d97012c44cac5ea7ec48a2dfd, type: 3}
+--- !u!1 &221205152 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9070776553601067101, guid: e472776d97012c44cac5ea7ec48a2dfd, type: 3}
+  m_PrefabInstance: {fileID: 221205151}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &221205153
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 221205152}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a090d9878869a60409a5e7d25b83d5a0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.ArenaWalls
+  liftSeconds: 10
+  liftHeights: 1
+  escapeMargin: 1
+  bubblesTemplate: {fileID: 1900770652}
+  liftBubblesPerSecond: 500
+  markerBubblesPerSecond: 90
+  bubbleSize: {x: 0.15, y: 0.45}
+  bubbleRiseSpeed: {x: 2, y: 4}
+  bubbleLifetime: 22
+  seabedLayers:
+    serializedVersion: 2
+    m_Bits: 8
 --- !u!21 &238619086
 Material:
   serializedVersion: 8
@@ -2845,6 +2970,68 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &714922123
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 714922125}
+  - component: {fileID: 714922124}
+  m_Layer: 0
+  m_Name: SandTrails
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &714922124
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 714922123}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15f8823959747a3489a1a80b4eafe0f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.SandTrails
+  compute: {fileID: 7200000, guid: 200b9b3ad0ca5ee4b975b9f0aed7f01a, type: 3}
+  resolution: 2048
+  fadeSeconds: 45
+  touchHeight: 0.3
+  furrowWidth: 1.6
+  minFurrowWidth: 0.35
+  sideTilt: 0.35
+  darken: 0.7
+  rimLight: 0.5
+  schoolFish: 1
+  schoolFishRange: 60
+  schoolFishDepth: 0.6
+  puffs: 1
+  puffSpacing: 0.7
+  puffMinSpeed: 0.6
+  puffSize: {x: 0.8, y: 1.6}
+  puffLifetime: {x: 2.5, y: 4.5}
+  maxPuffs: 600
+--- !u!4 &714922125
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 714922123}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!21 &732628531
 Material:
   serializedVersion: 8
@@ -3419,6 +3606,56 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 1060662616134595829, guid: dd50aaae29f4bbd48bfecee2a6a755a5, type: 3}
   m_PrefabInstance: {fileID: 766238212}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &790550601
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 790550603}
+  - component: {fileID: 790550602}
+  m_Layer: 0
+  m_Name: FishSpawnZone
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &790550602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 790550601}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88592d02ac5e610469aa102414b3e69b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.RoleSpawnZone
+  role: 1
+  mode: 0
+  size: {x: 16, y: 4, z: 12}
+  minSeparation: 4
+  placementAttempts: 24
+  randomYaw: 0
+--- !u!4 &790550603
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 790550601}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -50, z: -455}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &825108992
 GameObject:
   m_ObjectHideFlags: 0
@@ -3644,6 +3881,7 @@ MonoBehaviour:
   syncInterval: 0
   roundDurationSeconds: 600
   autoStartDelay: 2
+  skipClockKey: 100
   logTransitions: 1
 --- !u!4 &832258413
 Transform:
@@ -4379,8 +4617,35 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: fdd72098788f4f64e8bb620874b122ed, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1027598621}
   m_SourcePrefab: {fileID: 100100000, guid: fdd72098788f4f64e8bb620874b122ed, type: 3}
+--- !u!1 &1027598620 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: fdd72098788f4f64e8bb620874b122ed, type: 3}
+  m_PrefabInstance: {fileID: 1027598619}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1027598621
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1027598620}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3f53d404331e2f4d8431f74f19ccb2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.SeaweedBoneSpring
+  leanWhenHitLow: 1.35
+  leanWhenHitHigh: 0.5
+  maxBend: 1.5
+  stiffness: 40
+  damping: 5
+  extraReach: 0.3
+  plantLean: 0.35
 --- !u!1 &1037221107
 GameObject:
   m_ObjectHideFlags: 0
@@ -4544,6 +4809,64 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 54e987ea1f03d7249acf266c45ede815, type: 3}
+--- !u!1 &1134147146
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1134147148}
+  - component: {fileID: 1134147147}
+  m_Layer: 0
+  m_Name: SeaweedForests
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1134147147
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1134147146}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 662e41b55032c2945b79854228f0a9f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.KelpForests
+  plantPrefabs:
+  - {fileID: 2605152628424658703, guid: a216a1677befcc24f9bc130488c385cb, type: 3}
+  - {fileID: 3402496881491192059, guid: 907378407d1ee384d905d972023abd87, type: 3}
+  undergrowthPrefabs: []
+  undergrowthPerForest: 0
+  forestCount: 10
+  plantsPerForest: {x: 30, y: 42}
+  forestRadius: {x: 3.5, y: 6}
+  forestSpacing: 30
+  plantSpacing: 0.7
+  plantScale: {x: 0.9, y: 1.25}
+  minFlatness: 0.75
+  edgeMargin: 15
+  keepClearRadius: 14
+--- !u!4 &1134147148
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1134147146}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1146493788
 GameObject:
   m_ObjectHideFlags: 0
@@ -4771,23 +5094,6 @@ Transform:
   - {fileID: 443919951}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1186418465 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: -8531851653898265351, guid: 2a3afa26b35b7534f8f71380bb645209, type: 3}
-  m_PrefabInstance: {fileID: 2143507956}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1186418469
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1186418465}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2716e8291f26f6c4c9c12cbefe3cd58d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SeaweedInteractionTarget
 --- !u!1001 &1329936647
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4972,6 +5278,60 @@ Material:
     - _FlipbookSize: {r: 8, g: 8, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
+--- !u!1 &1352450376
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1352450378}
+  - component: {fileID: 1352450377}
+  m_Layer: 0
+  m_Name: VegetationPush
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1352450377
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1352450376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9af8b72572401544aa2f20f9c1cb2b4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.VegetationPushMap
+  compute: {fileID: 7200000, guid: f3657a5ef6b3a9844b2f3bbee23214eb, type: 3}
+  areaSize: 64
+  resolution: 256
+  wakeHalfLife: 0.35
+  margin: 0.2
+  maxPush: 3
+  leanAbove: 2.5
+  rootHold: 0.4
+  schoolFishPush: 1
+  schoolFishStrength: 0.5
+--- !u!4 &1352450378
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1352450376}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1390915810
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9370,6 +9730,56 @@ MonoBehaviour:
   range: {x: 0, y: 1}
   texture: {fileID: 0}
   version: 1
+--- !u!1 &2015355555
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2015355557}
+  - component: {fileID: 2015355556}
+  m_Layer: 0
+  m_Name: SharkSpawnZone
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2015355556
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2015355555}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88592d02ac5e610469aa102414b3e69b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.RoleSpawnZone
+  role: 2
+  mode: 1
+  size: {x: 1, y: 1, z: 1}
+  minSeparation: 0
+  placementAttempts: 24
+  randomYaw: 0
+--- !u!4 &2015355557
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2015355555}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
+  m_LocalPosition: {x: 0, y: -46, z: -228}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2086837268
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9580,7 +9990,7 @@ PrefabInstance:
     - target: {fileID: -4177915823952759106, guid: 2a3afa26b35b7534f8f71380bb645209, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: a8f4bb92527dcd245b91227f73cf3084, type: 2}
+      objectReference: {fileID: -1733125695579981564, guid: 2a3afa26b35b7534f8f71380bb645209, type: 3}
     - target: {fileID: 919132149155446097, guid: 2a3afa26b35b7534f8f71380bb645209, type: 3}
       propertyPath: m_Name
       value: SeaweedC
@@ -9593,10 +10003,34 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: -8531851653898265351, guid: 2a3afa26b35b7534f8f71380bb645209, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2a3afa26b35b7534f8f71380bb645209, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1186418469}
+      addedObject: {fileID: 2143507958}
   m_SourcePrefab: {fileID: 100100000, guid: 2a3afa26b35b7534f8f71380bb645209, type: 3}
+--- !u!1 &2143507957 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 2a3afa26b35b7534f8f71380bb645209, type: 3}
+  m_PrefabInstance: {fileID: 2143507956}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2143507958
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2143507957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3f53d404331e2f4d8431f74f19ccb2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.SeaweedBoneSpring
+  leanWhenHitLow: 1.35
+  leanWhenHitHigh: 0.5
+  maxBend: 1.5
+  stiffness: 40
+  damping: 5
+  extraReach: 0.3
+  plantLean: 0.35
 --- !u!1001 &510113171621353997
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9740,8 +10174,35 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2913494436844102918, guid: 5fc6f693114b6e645aa6a5c728d86764, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 510113171621353999}
   m_SourcePrefab: {fileID: 100100000, guid: 5fc6f693114b6e645aa6a5c728d86764, type: 3}
+--- !u!1 &510113171621353998 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2913494436844102918, guid: 5fc6f693114b6e645aa6a5c728d86764, type: 3}
+  m_PrefabInstance: {fileID: 510113171621353997}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &510113171621353999
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 510113171621353998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3f53d404331e2f4d8431f74f19ccb2f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.SeaweedBoneSpring
+  leanWhenHitLow: 1.35
+  leanWhenHitHigh: 0.5
+  maxBend: 1.5
+  stiffness: 40
+  damping: 5
+  extraReach: 0.3
+  plantLean: 0.35
 --- !u!1001 &1786031617229513556
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9949,11 +10410,11 @@ PrefabInstance:
     - target: {fileID: 7674521019488521387, guid: acfb874ef09c44a4dbb6e706e0a67f4e, type: 3}
       propertyPath: 'folderPrefabs.Array.data[34]'
       value: 
-      objectReference: {fileID: 886573931990757153, guid: 634ab9a57ddb9bd4d8b189f66f28e3bf, type: 3}
+      objectReference: {fileID: 2605152628424658703, guid: a216a1677befcc24f9bc130488c385cb, type: 3}
     - target: {fileID: 7674521019488521387, guid: acfb874ef09c44a4dbb6e706e0a67f4e, type: 3}
       propertyPath: 'folderPrefabs.Array.data[35]'
       value: 
-      objectReference: {fileID: 8338871706494605346, guid: 031a52c08262f0c499ab567002ff2103, type: 3}
+      objectReference: {fileID: 3402496881491192059, guid: 907378407d1ee384d905d972023abd87, type: 3}
     - target: {fileID: 7674521019488521387, guid: acfb874ef09c44a4dbb6e706e0a67f4e, type: 3}
       propertyPath: 'folderPrefabs.Array.data[36]'
       value: 
@@ -10032,3 +10493,9 @@ SceneRoots:
   - {fileID: 483114685}
   - {fileID: 221205151}
   - {fileID: 1102544221}
+  - {fileID: 1352450378}
+  - {fileID: 1134147148}
+  - {fileID: 212683743}
+  - {fileID: 714922125}
+  - {fileID: 790550603}
+  - {fileID: 2015355557}

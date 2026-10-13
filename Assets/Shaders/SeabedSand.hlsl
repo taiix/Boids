@@ -13,6 +13,8 @@
 #ifndef SEABED_SAND_INCLUDED
 #define SEABED_SAND_INCLUDED
 
+#include "Assets/Shaders/SandTrail.hlsl" // furrows where fish drag along the bottom
+
 // Integer hash (PCG): stable per lattice vertex, identical on every machine and frame.
 uint SeabedPcg(uint v)
 {
@@ -140,6 +142,9 @@ void SeabedSand_float(UnityTexture2D BaseMap, UnityTexture2D NormalMap, float3 P
     n.xy *= NormalStrength * lerp(1.0 - PatchRipple, 1.0, ripple);
     float3 t = float3(n.xy + NormalWS.xz, abs(n.z) * NormalWS.y);
     NormalOut = normalize(t.xzy);
+
+    // Furrows dragged through the sand by fish (SandTrail.hlsl).
+    SandTrail(PositionWS, NormalWS, Albedo, NormalOut);
 }
 
 #endif

@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -45,6 +46,12 @@ namespace FishGame
         int _eatenId;
         bool _despawn = true;
 
+        // What Devour changed, so Release can put it back (a player fish that breaks free).
+        Transform _parentBefore;
+        Vector3 _scaleBefore;
+        RigidbodyInterpolation _interpolationBefore;
+        readonly List<Collider> _collidersOff = new List<Collider>();
+
         void Awake()
         {
             if (animator == null) animator = GetComponentInChildren<Animator>();
@@ -64,6 +71,8 @@ namespace FishGame
         {
             if (IsEaten) return false;
             IsEaten = true;
+            _parentBefore = transform.parent;
+            _scaleBefore = transform.localScale;
 
             if (disableOnEaten != null)
                 foreach (var b in disableOnEaten)
@@ -74,15 +83,17 @@ namespace FishGame
                 // Other players' bodies are already kinematic on this machine (their owner moves
                 // them), and a kinematic body's velocity can't be set.
                 if (!rb.isKinematic) rb.linearVelocity = Vector3.zero;
+                _interpolationBefore = rb.interpolation;
                 rb.isKinematic = true; // the mouth drives it now, not physics
                 // Interpolation keeps writing the body's last physics pose back over the transform,
                 // which pins the fish where the bite happened instead of letting it ride the jaw.
                 rb.interpolation = RigidbodyInterpolation.None;
             }
 
+            _collidersOff.Clear();
             if (disableCollidersOnEaten)
                 foreach (var c in GetComponentsInChildren<Collider>())
-                    c.enabled = false;
+                    if (c.enabled) { c.enabled = false; _collidersOff.Add(c); }
 
             // Play the prey's in-mouth clip. Kill root motion so the swim/eat clip can't drag
             // the fish out of the mouth while it's parented there.
@@ -98,8 +109,10 @@ namespace FishGame
             // Every machine reaches this once per catch (the host's RPC for player fish, FlockNetSync
             // for school fish), so everyone sees the blood; the shared seed makes it the same cloud.
             // It bursts from the jaws when we know them: that's where each machine draws the shark,
-            // even when its copy of the fish lags or drifts a little from the host's.
-            BloodInWater.Spill(mouth != null ? mouth.position : transform.position, mouth, bloodSeed);
+            // even when its copy of the fish lags or drifts a little from the host's. A player fish's
+            // blood lingers far longer than a school fish's - the shark eats hundreds of those.
+            BloodInWater.Spill(mouth != null ? mouth.position : transform.position, mouth, bloodSeed,
+                               linger: TryGetComponent(out FishPlayer _));
 
             _despawn = despawn;
             if (mouth != null)
@@ -108,6 +121,29 @@ namespace FishGame
                 Destroy(gameObject, despawnDelay); // swap for NetworkServer.Destroy in MP
 
             return true;
+        }
+
+        /// <summary>
+        /// The fish got away (a player fish that broke free of the bite): undo <see cref="Devour"/> - out of
+        /// the jaws at its own size, solid again, its behaviours back on. Whoever drives the body puts its
+        /// physics back (the rigidbody stays kinematic here). Nothing happens if it isn't being eaten.
+        /// </summary>
+        public void Release()
+        {
+            if (!IsEaten) return;
+            IsEaten = false;
+            StopAllCoroutines(); // no more pulling it into the mouth
+
+            transform.SetParent(_parentBefore, worldPositionStays: true);
+            transform.localScale = _scaleBefore;
+
+            foreach (var c in _collidersOff)
+                if (c != null) c.enabled = true;
+            _collidersOff.Clear();
+            if (disableOnEaten != null)
+                foreach (var b in disableOnEaten)
+                    if (b != null) b.enabled = true;
+            if (TryGetComponent<Rigidbody>(out var rb)) rb.interpolation = _interpolationBefore;
         }
 
         bool HasParameter(int hash)

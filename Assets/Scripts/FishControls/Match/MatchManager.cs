@@ -1,21 +1,25 @@
 using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace FishGame
 {
     public enum MatchPhase : byte
     {
-        Warmup = 0,   // waiting to start
+        Warmup = 0,   // waiting for every player to load in
         Playing = 1,  // the survival clock is ticking
-        FishWin = 2,  // clock ran out with fish still alive
-        SharkWin = 3, // every fish was eaten
+        FishWin = 2,  // round over: more than half the fish escaped
+        SharkWin = 3, // round over: half or more of the fish didn't make it
+        Escape = 4,   // the clock ran out: a wall has lifted and the fish make a run for it
     }
 
     /// <summary>
-    /// Server-authoritative match state: the survival countdown the fish must outlast, role
-    /// assignment (who is the shark) and win/lose resolution. Completing tasks calls
-    /// <see cref="ReduceRemaining"/> to shave time off the clock so the fish win sooner.
+    /// Server-authoritative round: the fish survive a countdown (tasks shave time off it), then one of the
+    /// walls around the seabed lifts (<see cref="ArenaWalls"/>) and they have to swim out through the gap.
+    /// From that moment the shark sees every fish. The round ends once no fish is left in the water -
+    /// each one escaped, was eaten, or died - and the fish win if more than half of them escaped.
+    /// Every player's outcome is kept in <see cref="Roster"/> for the results screen.
     ///
     /// Runs in three modes:
     ///   * Host / dedicated server - simulates and replicates state through SyncVars.
@@ -31,10 +35,16 @@ namespace FishGame
         public static MatchManager Instance { get; private set; }
 
         [Header("Round")]
-        [Tooltip("How long the fish must survive, in seconds (600 = 10 min, 900 = 15 min).")]
+        [Tooltip("How long the fish must survive before the exit opens, in seconds (600 = 10 min).")]
         [SerializeField] float roundDurationSeconds = 600f;
-        [Tooltip("Auto-start the round this many seconds after the scene is ready. Negative = wait for StartRound().")]
+        [Tooltip("Offline sandbox only: start the round this many seconds after the scene is ready. Negative = " +
+                 "wait for StartRound(). Online the clock starts when every player has loaded in.")]
         [SerializeField] float autoStartDelay = 2f;
+
+        [Header("Testing")]
+        [Tooltip("Development builds and the editor only: the host presses this to run the clock out now, so " +
+                 "the escape can be tested without waiting.")]
+        [SerializeField] Key skipClockKey = Key.F7;
 
         [Header("Debug")]
         [SerializeField] bool logTransitions = true;
@@ -42,25 +52,44 @@ namespace FishGame
         [SyncVar] double _roundEndTime;
         [SyncVar] double _roundStartTime;
         [SyncVar(hook = nameof(OnPhaseChanged))] MatchPhase _phase = MatchPhase.Warmup;
+        // Which wall lifted (ArenaWalls index, -1 = none yet) and when, on the shared clock.
+        [SyncVar] sbyte _exitWall = -1;
+        [SyncVar] double _exitOpenedAt;
 
-        // Every living/dead fish registers here so the server knows when they are all gone.
+        // One line per player for the results screen. Server-side, each player's line is found by
+        // their connection, so a new body (F8 swap) updates the same line.
+        readonly SyncList<RoundPlayer> _roster = new SyncList<RoundPlayer>();
+        readonly Dictionary<int, int> _rosterLine = new Dictionary<int, int>();
+
+        // Every living/dead fish registers here so the offline sandbox knows when they are all gone.
         static readonly HashSet<FishVitals> Fish = new HashSet<FishVitals>();
         double _autoStartAt = -1;
 
         public MatchPhase Phase => _phase;
         public bool IsPlaying => _phase == MatchPhase.Playing;
+        /// <summary>The round is underway: the clock is ticking or the fish are escaping.</summary>
+        public bool RoundRunning => _phase == MatchPhase.Playing || _phase == MatchPhase.Escape;
+        public bool IsOver => _phase == MatchPhase.FishWin || _phase == MatchPhase.SharkWin;
+        /// <summary>The exit is open: every fish is shown to the shark, wherever it is.</summary>
+        public bool FishRevealed => _phase == MatchPhase.Escape;
         public float RoundDuration => roundDurationSeconds;
+        /// <summary>The wall that lifted (an <see cref="ArenaWalls"/> index), or -1.</summary>
+        public int ExitWall => _exitWall;
+        /// <summary>When the exit started opening, on <see cref="Now"/>'s clock.</summary>
+        public double ExitOpenedAt => _exitOpenedAt;
+        /// <summary>Every player in this round and how it went for them.</summary>
+        public IReadOnlyList<RoundPlayer> Roster => _roster;
 
         /// <summary>No NetworkManager running at all -> this instance is the local authority.</summary>
         public static bool Offline => !NetworkServer.active && !NetworkClient.active;
         bool Authority => Offline || isServer;
 
-        // Networked play shares the server clock; offline falls back to local time.
-        static double Now => (NetworkServer.active || NetworkClient.active)
+        /// <summary>The round's clock: the server's when networked (the same on every machine), local time offline.</summary>
+        public static double Now => (NetworkServer.active || NetworkClient.active)
             ? NetworkTime.time
             : Time.timeAsDouble;
 
-        /// <summary>Seconds left on the survival clock (0 once the round is decided).</summary>
+        /// <summary>Seconds left on the survival clock (0 once the exit is open).</summary>
         public float RemainingSeconds
         {
             get
@@ -78,15 +107,9 @@ namespace FishGame
             if (Instance == this) Instance = null;
         }
 
-        public override void OnStartServer()
-        {
-            base.OnStartServer();
-            if (autoStartDelay >= 0f) _autoStartAt = Now + autoStartDelay;
-        }
-
         void Start()
         {
-            // Offline sandbox: OnStartServer never fires, so arm the auto-start here instead.
+            // Offline sandbox: nobody has to load in, so arm the auto-start here.
             if (Offline && autoStartDelay >= 0f) _autoStartAt = Now + autoStartDelay;
         }
 
@@ -94,17 +117,24 @@ namespace FishGame
         {
             if (!Authority) return;
 
-            if (_phase == MatchPhase.Warmup && _autoStartAt >= 0 && Now >= _autoStartAt)
+            // Online the clock starts the moment every player has loaded (when the launch overlay lifts).
+            if (_phase == MatchPhase.Warmup && (Offline ? _autoStartAt >= 0 && Now >= _autoStartAt : FishPlayer.ServerRoundLive))
                 StartRound();
 
-            if (_phase == MatchPhase.Playing && Now >= _roundEndTime)
-                EndRound(MatchPhase.FishWin);
+            if (_phase == MatchPhase.Playing && (Now >= _roundEndTime || SkipClockPressed()))
+                OpenExit();
+
+            if (_phase == MatchPhase.Escape)
+                ServerCheckEscapes();
         }
+
+        bool SkipClockPressed() =>
+            Debug.isDebugBuild && Keyboard.current != null && Keyboard.current[skipClockKey].wasPressedThisFrame;
 
         /// <summary>Begin the survival round: assign roles and start the clock.</summary>
         public void StartRound()
         {
-            if (!Authority || _phase == MatchPhase.Playing) return;
+            if (!Authority || _phase != MatchPhase.Warmup) return;
             AssignRoles();
             _roundStartTime = Now;
             _roundEndTime = Now + roundDurationSeconds;
@@ -121,13 +151,150 @@ namespace FishGame
             if (logTransitions) Debug.Log($"[Match] Task shaved {seconds:0.#}s -> {RemainingSeconds:0}s left");
         }
 
-        /// <summary>Called by a fish when it dies; if none are left alive the shark wins. Authority-only.</summary>
+        // ------------------------------------------------------------------ the escape
+
+        /// <summary>The clock ran out: lift a random wall. From here on the fish can leave through it.</summary>
+        void OpenExit()
+        {
+            var walls = ArenaWalls.Instance;
+            if (walls == null || walls.Count == 0)
+            {
+                // Nothing to lift in this scene, so running the clock out is the escape.
+                Debug.LogWarning("[Match] No ArenaWalls in this scene - every fish still alive escapes.");
+                SetPhase(MatchPhase.Escape);
+                foreach (var fp in FishPlayer.All)
+                    if (InTheWater(fp)) ServerSetOutcome(fp, PlayerOutcome.Escaped);
+                return;
+            }
+
+            _exitWall = (sbyte)Random.Range(0, walls.Count);
+            _exitOpenedAt = Now;
+            SetPhase(MatchPhase.Escape);
+            if (logTransitions) Debug.Log($"[Match] Time's up - the {walls.NameOf(_exitWall)} wall is lifting.");
+            CheckRoundOver(); // a round with no fish left in it ends here
+        }
+
+        // A fish that has swum out past where the open wall stood has escaped.
+        void ServerCheckEscapes()
+        {
+            var walls = ArenaWalls.Instance;
+            if (walls == null || _exitWall < 0) return;
+            foreach (var fp in FishPlayer.All)
+                if (InTheWater(fp) && walls.IsPastExit(_exitWall, fp.transform.position))
+                    ServerSetOutcome(fp, PlayerOutcome.Escaped);
+        }
+
+        static bool InTheWater(FishPlayer fp) => fp != null && !fp.IsSharkBody && !fp.IsOut && !fp.IsBeingEaten;
+
+        // ------------------------------------------------------------------ who's still in
+
+        /// <summary>
+        /// Server: a body was spawned for a player (round start, late join, F8 swap). Notes who they are and
+        /// which side they're on. A swap keeps the same line; someone already out stays out.
+        /// </summary>
+        public void ServerTrackPlayer(FishPlayer fp)
+        {
+            if (!NetworkServer.active || fp == null || fp.connectionToClient == null || IsOver) return;
+            int conn = fp.connectionToClient.connectionId;
+            var line = new RoundPlayer
+            {
+                name = fp.PlayerName,
+                role = fp.IsSharkBody ? FishRole.Shark : FishRole.Fish,
+                outcome = PlayerOutcome.Alive,
+            };
+            if (_rosterLine.TryGetValue(conn, out int i))
+            {
+                if (_roster[i].outcome != PlayerOutcome.Alive) return;
+                _roster[i] = line;
+            }
+            else
+            {
+                _rosterLine[conn] = _roster.Count;
+                _roster.Add(line);
+            }
+        }
+
+        /// <summary>Server: a player told us their (Steam) name.</summary>
+        public void ServerRenamePlayer(FishPlayer fp)
+        {
+            if (!NetworkServer.active || fp == null || fp.connectionToClient == null) return;
+            if (!_rosterLine.TryGetValue(fp.connectionToClient.connectionId, out int i)) return;
+            var line = _roster[i];
+            line.name = fp.PlayerName;
+            _roster[i] = line;
+        }
+
+        /// <summary>
+        /// Server: this player is out of the round - escaped, eaten or died. Their body goes (everyone),
+        /// they start spectating (them), and if that was the last fish in the water the round ends.
+        /// </summary>
+        public void ServerSetOutcome(FishPlayer fp, PlayerOutcome outcome)
+        {
+            if (!NetworkServer.active || fp == null || fp.IsOut || IsOver || outcome == PlayerOutcome.Alive) return;
+            fp.Outcome = outcome; // SyncVar: its hook hides the body / starts spectating on every machine
+            if (fp.connectionToClient != null) SetOutcome(fp.connectionToClient.connectionId, outcome);
+            if (logTransitions) Debug.Log($"[Match] {fp.PlayerName}: {outcome}");
+            CheckRoundOver();
+        }
+
+        /// <summary>Server: a player disconnected. They no longer count for either side.</summary>
+        public void ServerPlayerLeft(int connectionId)
+        {
+            if (!NetworkServer.active || IsOver) return;
+            if (!_rosterLine.TryGetValue(connectionId, out int i) || _roster[i].outcome != PlayerOutcome.Alive) return;
+            SetOutcome(connectionId, PlayerOutcome.Left);
+            CheckRoundOver();
+        }
+
+        void SetOutcome(int connectionId, PlayerOutcome outcome)
+        {
+            if (!_rosterLine.TryGetValue(connectionId, out int i)) return;
+            var line = _roster[i];
+            line.outcome = outcome;
+            _roster[i] = line;
+        }
+
+        /// <summary>Called by a fish when it dies (starving, cuts). Authority-only.</summary>
         public void NotifyFishDied(FishVitals who)
         {
-            if (!Authority || _phase != MatchPhase.Playing) return;
-            foreach (var f in Fish)
-                if (f != null && !f.IsDead && !f.TryGetComponent(out SharkAbilities _)) return; // a fish is still alive (sharks have vitals too, but don't count)
-            EndRound(MatchPhase.SharkWin);
+            if (!Authority || !RoundRunning || who == null) return;
+
+            if (Offline)
+            {
+                // No players to keep track of in the sandbox: the shark wins once no fish has vitals left.
+                foreach (var f in Fish)
+                    if (f != null && !f.IsDead && !f.TryGetComponent(out SharkAbilities _)) return;
+                EndRound(MatchPhase.SharkWin);
+                return;
+            }
+
+            if (who.TryGetComponent(out FishPlayer fp) && !fp.IsSharkBody)
+                ServerSetOutcome(fp, PlayerOutcome.Died);
+        }
+
+        /// <summary>
+        /// The round is over once no fish is left in the water. More than half of them escaping is a win
+        /// for the fish; anything less, the shark's. Players who left don't count either way.
+        /// </summary>
+        void CheckRoundOver()
+        {
+            if (!RoundRunning) return;
+            int fish = 0, inWater = 0, escaped = 0;
+            bool anyFish = false;
+            foreach (var p in _roster)
+            {
+                if (p.role != FishRole.Fish) continue;
+                anyFish = true;
+                if (p.outcome == PlayerOutcome.Left) continue;
+                fish++;
+                if (p.outcome == PlayerOutcome.Alive) inWater++;
+                else if (p.outcome == PlayerOutcome.Escaped) escaped++;
+            }
+            // No fish at all (a lone shark testing) - nothing to decide.
+            if (!anyFish || inWater > 0) return;
+
+            EndRound(escaped * 2 > fish ? MatchPhase.FishWin : MatchPhase.SharkWin);
+            if (logTransitions) Debug.Log($"[Match] {escaped} of {fish} fish escaped.");
         }
 
         void EndRound(MatchPhase result)
@@ -150,8 +317,9 @@ namespace FishGame
             foreach (var conn in NetworkServer.connections.Values)
             {
                 if (conn?.identity == null || !conn.identity.TryGetComponent(out FishPlayer fp)) continue;
-                bool shark = fp.TryGetComponent(out SharkAbilities _);
+                bool shark = fp.IsSharkBody;
                 fp.Role = shark ? FishRole.Shark : FishRole.Fish;
+                ServerTrackPlayer(fp);
                 players++;
                 if (shark) sharks++;
             }

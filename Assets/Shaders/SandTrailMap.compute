@@ -1,0 +1,56 @@
+// Stamps furrows into the sand trail map (see SandTrails.cs / SandTrail.hlsl).
+//
+// The map covers the whole seabed, top-down. Each texel: r = when the sand there was last disturbed
+// (seconds since the scene loaded), g = how deep the furrow was then (0..1). Storing the time instead of
+// a fading depth means nothing has to touch the map to make trails fade - the sand shader works the fade
+// out itself - so the only work is right where something drags along the bottom.
+#pragma kernel Clear
+#pragma kernel Stamp
+
+RWTexture2D<float2> _Trail;
+int _Size;          // texels across
+int2 _Origin;       // first texel this Stamp dispatch covers
+float4 _Area;       // xy = seabed's min corner (world x,z), z = texels per metre
+float4 _Seg;        // the furrow's path this frame: xy = from (world x,z), zw = to
+float4 _Stamp;      // x = furrow half-width (m), y = depth (0..1), z = now (s), w = fade time (s)
+
+// How deep a furrow made at depth d, age seconds ago, still is.
+float Remaining(float d, float age, float fadeSeconds)
+{
+    float f = saturate(1.0 - age / max(fadeSeconds, 0.01));
+    return d * f * f;
+}
+
+[numthreads(8, 8, 1)]
+void Clear(uint3 id : SV_DispatchThreadID)
+{
+    if ((int)id.x < _Size && (int)id.y < _Size)
+        _Trail[id.xy] = float2(-10000.0, 0.0); // never disturbed
+}
+
+[numthreads(8, 8, 1)]
+void Stamp(uint3 id : SV_DispatchThreadID)
+{
+    int2 px = _Origin + int2(id.xy);
+    if (any(px < 0) || any(px >= _Size))
+        return;
+
+    float2 world = _Area.xy + (float2(px) + 0.5) / _Area.z;
+    float2 a = _Seg.xy;
+    float2 ab = _Seg.zw - _Seg.xy;
+    float len2 = dot(ab, ab);
+    float t = len2 > 1e-6 ? saturate(dot(world - a, ab) / len2) : 0.0;
+    float d = length(world - (a + ab * t));
+    float r = _Stamp.x;
+    if (d >= r)
+        return;
+
+    // A rounded furrow: deepest along the middle of the path, easing up to the edges.
+    float x = d / r;
+    float depth = _Stamp.y * (1.0 - x * x);
+
+    float2 old = _Trail[px];
+    if (depth <= Remaining(old.y, _Stamp.z - old.x, _Stamp.w))
+        return; // a deeper (or fresher) furrow is already here
+    _Trail[px] = float2(_Stamp.z, depth);
+}

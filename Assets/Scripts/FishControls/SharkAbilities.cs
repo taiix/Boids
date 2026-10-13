@@ -75,6 +75,8 @@ namespace FishGame
         [SerializeField] string biteTrigger = "Bite";
         [Tooltip("Trigger for the devour/eat clip, played when a fish is actually caught.")]
         [SerializeField] string devourTrigger = "Devour";
+        [Tooltip("Bool held on while a caught player fish is being shaken in the jaws (the thrash loop).")]
+        [SerializeField] string holdingBool = "Holding";
 
         /// <summary>The shark's mouth anchor, so a networked eat handler can pass it to Edible.Devour.</summary>
         public Transform MouthAnchor => mouthAnchor;
@@ -101,10 +103,16 @@ namespace FishGame
         float _eatWindow; // > 0 while a dash can connect into a bite
         int _biteId;
         int _devourId;
+        int _holdingId;
+        bool _holding;          // a player fish is in our jaws, struggling
+        float _noBitesUntil;    // a fish just broke free: a moment before we can bite again
         readonly Collider[] _hits = new Collider[8];
 
         public bool AttackReady => _attackCd <= 0f;
         public bool LungeReady => _lungeCd <= 0f;
+
+        /// <summary>A caught player fish is in our jaws (being shaken until it's swallowed or breaks free).</summary>
+        public bool IsHolding => _holding;
 
         void Awake()
         {
@@ -113,6 +121,7 @@ namespace FishGame
             if (targeting == null) TryGetComponent(out targeting);
             _biteId = Animator.StringToHash(biteTrigger);
             _devourId = Animator.StringToHash(devourTrigger);
+            _holdingId = Animator.StringToHash(holdingBool);
 
             _attackAction = new InputAction("Attack", InputActionType.Button);
             _attackAction.AddBinding("<Mouse>/leftButton");
@@ -141,6 +150,13 @@ namespace FishGame
             if (_attackCd > 0f) _attackCd -= dt;
             if (_lungeCd > 0f) _lungeCd -= dt;
             if (_eatWindow > 0f) _eatWindow -= dt;
+
+            // Jaws full (or the last catch just tore free): no new bites for now.
+            if (_holding || Time.time < _noBitesUntil)
+            {
+                _eatWindow = 0f;
+                return;
+            }
 
             // Don't let a new ability interrupt an in-progress dash.
             if (!motor.IsDashing)
@@ -253,7 +269,10 @@ namespace FishGame
         {
             // Keep most of the shark's momentum so it eats on the move instead of stopping dead.
             motor.CancelDash(momentumOnCatch);
-            TriggerDevour();      // the eat/devour clip
+            // A player fish isn't eaten outright: once the host confirms the bite we hold and shake it
+            // (SetHolding) while it struggles. Anything else goes straight down.
+            bool player = edible != null && CaughtPrey != null && edible.GetComponentInParent<FishPlayer>() != null;
+            if (!player) TriggerDevour();
             _eatWindow = 0f;
 
             if (edible != null)
@@ -272,6 +291,25 @@ namespace FishGame
                 // pull-into-the-mouth treatment as the player prey, then it despawns itself.
                 fish.AddComponent<Edible>().Devour(gameObject, mouthAnchor);
             }
+        }
+
+        /// <summary>Every machine: shake a caught player fish in the jaws (the thrash loop), or stop. While
+        /// holding, this shark (on its owner's machine) can't bite anything else.</summary>
+        public void SetHolding(bool holding)
+        {
+            _holding = holding;
+            if (animator != null && !string.IsNullOrEmpty(holdingBool))
+                animator.SetBool(_holdingId, holding);
+        }
+
+        /// <summary>Every machine: the violent eat - a school fish going down, or the final swallow of a player.</summary>
+        public void PlayDevour() => TriggerDevour();
+
+        /// <summary>The catch tore free: no bites for <paramref name="seconds"/>, so it gets a head start.</summary>
+        public void Stun(float seconds)
+        {
+            _noBitesUntil = Time.time + seconds;
+            _eatWindow = 0f;
         }
 
         void TriggerBite()

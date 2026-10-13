@@ -26,12 +26,11 @@ public class CustomNetworkManager : NetworkManager
              "body. Handy for testing (e.g. two fish for the comms task); turn off for real matches.")]
     [SerializeField] private bool allowRoleSwap = true;
 
-    [Tooltip("Testing stand-in for death: a player fish eaten by the shark watches through the shark's " +
-             "view for this many seconds, then respawns as a fresh fish.")]
-    [SerializeField] private float respawnAfterEatenSeconds = 3f;
-
     /// <summary>The scene the lobby loads when the host starts the match.</summary>
     public string GameSceneName => gameSceneName;
+
+    /// <summary>The body prefab for a role (the fish one if no shark prefab is set).</summary>
+    public GameObject PrefabFor(FishRole role) => role == FishRole.Shark && sharkPrefab != null ? sharkPrefab : playerPrefab;
 
     private const float RoleSwapCooldown = 1f;
     private readonly Dictionary<int, float> _lastRoleSwap = new Dictionary<int, float>();
@@ -217,6 +216,11 @@ public class CustomNetworkManager : NetworkManager
         // If the chosen shark drops before ever spawning, redraw so the round is not left sharkless.
         bool sharkLeftBeforeSpawning = conn.connectionId == _sharkConnectionId && conn.identity == null;
 
+        // They no longer count for either side (and may have been the last fish in the water).
+        if (MatchManager.Instance != null) MatchManager.Instance.ServerPlayerLeft(conn.connectionId);
+        // A shark leaving with a fish in its jaws lets go first - the fish would go down with its body.
+        if (conn.identity != null && conn.identity.TryGetComponent(out FishPlayer leaving)) leaving.ServerReleasePrey();
+
         base.OnServerDisconnect(conn);
 
         if (_gameStarted && sharkLeftBeforeSpawning) DrawShark();
@@ -268,9 +272,10 @@ public class CustomNetworkManager : NetworkManager
         if (!allowRoleSwap || !_gameStarted) return;
         if (conn?.identity == null || !conn.identity.TryGetComponent(out FishPlayer cur)) return;
         if (_lastRoleSwap.TryGetValue(conn.connectionId, out float last) && Time.unscaledTime - last < RoleSwapCooldown) return;
-        // Not while being eaten (the respawn handles that body), nor while a shark has someone in its
-        // jaws - the prey is parented to its mouth and would be destroyed along with the old body.
-        if (cur.IsBeingEaten || HasPreyInJaws(cur)) return;
+        // Not once out of the round or after it's decided, nor while a shark has someone in its jaws -
+        // the prey is parented to its mouth and would be destroyed along with the old body.
+        if (cur.IsBeingEaten || cur.IsOut || HasPreyInJaws(cur)) return;
+        if (MatchManager.Instance != null && MatchManager.Instance.IsOver) return;
 
         FishRole newRole = cur.Role == FishRole.Shark ? FishRole.Fish : FishRole.Shark;
         GameObject prefab = newRole == FishRole.Shark ? sharkPrefab : playerPrefab;
@@ -293,41 +298,6 @@ public class CustomNetworkManager : NetworkManager
         foreach (var fp in body.GetComponentsInChildren<FishPlayer>())
             if (fp != body) return true;
         return false;
-    }
-
-    /// <summary>Server: an eaten player gets a fresh fish body once they've watched the shark for a bit.</summary>
-    public void ServerRespawnAfterEaten(FishPlayer victim)
-    {
-        if (victim == null || victim.connectionToClient == null) return;
-        StartCoroutine(RespawnAfterEaten(victim.connectionToClient, victim.netIdentity));
-    }
-
-    private IEnumerator RespawnAfterEaten(NetworkConnectionToClient conn, NetworkIdentity eatenBody)
-    {
-        yield return new WaitForSeconds(respawnAfterEatenSeconds);
-
-        // Left, or already in another body (not the one that was eaten)? Nothing to do.
-        if (!NetworkServer.active || conn == null || !NetworkServer.connections.ContainsKey(conn.connectionId)) yield break;
-        if (conn.identity != null && conn.identity != eatenBody) yield break;
-
-        GameObject go = TryGetSpawnPose(FishRole.Fish, out Vector3 pos, out Quaternion rot)
-            ? Instantiate(playerPrefab, pos, rot)
-            : Instantiate(playerPrefab);
-        if (go.TryGetComponent(out FishPlayer fp)) fp.Role = FishRole.Fish;
-
-        if (conn.identity != null) NetworkServer.ReplacePlayerForConnection(conn, go, ReplacePlayerOptions.Destroy);
-        else NetworkServer.AddPlayerForConnection(conn, go);
-        Debug.Log($"[Net] Connection {conn.connectionId} was eaten; respawned as a fresh fish.");
-    }
-
-    // A role's spawn zone if the scene has one, else Mirror's start positions (NetworkStartPosition).
-    private bool TryGetSpawnPose(FishRole role, out Vector3 pos, out Quaternion rot)
-    {
-        if (RoleSpawnZone.TryGetSpawn(role, out pos, out rot)) return true;
-        Transform start = GetStartPosition();
-        pos = start != null ? start.position : Vector3.zero;
-        rot = start != null ? start.rotation : Quaternion.identity;
-        return start != null;
     }
 
 #if UNITY_EDITOR

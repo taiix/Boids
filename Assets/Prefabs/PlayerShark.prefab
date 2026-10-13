@@ -315,6 +315,11 @@ MonoBehaviour:
   minDistance: 0.8
   collisionBuffer: 0.2
   zoomReturnSharpness: 8
+  firstPersonKey: 36
+  eyeOffset: {x: 0, y: 0, z: 0}
+  viewBlendSeconds: 0.25
+  firstPersonClearance: 0.2
+  firstPersonNearClip: 0.05
 --- !u!114 &295640766182954770
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -452,6 +457,7 @@ GameObject:
   - component: {fileID: 7577274561067325504}
   - component: {fileID: 8150557907158319265}
   - component: {fileID: 3372306430526131834}
+  - component: {fileID: 7396388390114501310}
   m_Layer: 0
   m_Name: PlayerShark
   m_TagString: Untagged
@@ -605,6 +611,7 @@ MonoBehaviour:
   momentumOnCatch: 0.91
   biteTrigger: Bite
   devourTrigger: Devour
+  holdingBool: Holding
 --- !u!114 &6715980123969372486
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -651,8 +658,18 @@ MonoBehaviour:
   syncInterval: 0
   camera: {fileID: 0}
   Role: 1
+  Outcome: 0
+  PlayerName: 
   eatRange: 1.6
   mouthOffset: 1
+  remoteEatSlack: 1.5
+  struggleSeconds: 4.5
+  struggleGainPerPress: 0.1
+  struggleHoldRate: {x: 3.5, y: 9}
+  breakFreeDamage: 30
+  breakFreeMinHealth: 5
+  breakFreeSpeed: 10
+  sharkStunSeconds: 1.5
   RoundLive: 0
   BlendFlock: 0
 --- !u!114 &2267869316475219035
@@ -734,6 +751,7 @@ MonoBehaviour:
   tintStrength: 3
   solidTint: 1
   showMarker: 1
+  revealColor: {r: 1, g: 0.2, b: 0.25, a: 1}
 --- !u!114 &3372306430526131834
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -754,7 +772,22 @@ MonoBehaviour:
   maxHunger: 100
   hungerDrainPerSecond: 0.6
   feedRestore: 30
+  bleedSecondsOnDamage: 20
   disableOnDeath: []
+--- !u!114 &7396388390114501310
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2433337675563196249}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c549c5d16ea06643b2b11d1cbf65e7b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.VegetationPusher
+  radius: 0
+  clearance: 1
 --- !u!1 &2579237804410564153
 GameObject:
   m_ObjectHideFlags: 0

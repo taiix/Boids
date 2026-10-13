@@ -163,6 +163,10 @@ namespace FishGame
         //Called by the driver (player/AI) every frame to set intent.
         public void SetInput(in ControlInput input) => _input = input;
 
+        /// <summary>Forward throttle the driver is asking for right now (0 while the motor is off), e.g. to
+        /// tell a fish swimming into something from one just resting against it.</summary>
+        public float Throttle => enabled ? _input.Throttle : 0f;
+
         /// <summary>Force the internal velocity, e.g. when resuming control after an external
         /// takeover (flock blend) so the motor continues smoothly instead of snapping.</summary>
         public void SetVelocity(Vector3 v) => _velocity = v;

@@ -14,15 +14,17 @@ namespace FishGame
     {
         static MatchHud s_instance;
 
-        /// <summary>Show the HUD in the current (game) scene, once.</summary>
+        /// <summary>Show the HUD (and the round's banners / results, RoundScreen) in the current (game)
+        /// scene, once.</summary>
         public static void Show()
         {
+            RoundScreen.Show();
             if (s_instance != null) return;
             s_instance = new GameObject("MatchHud").AddComponent<MatchHud>();
         }
 
-        static string s_prompt;
-        static int s_promptFrame = -10;
+        static string s_prompt, s_status;
+        static int s_promptFrame = -10, s_statusFrame = -10;
         static GUIStyle s_promptStyle, s_shadowStyle;
 
         /// <summary>Show an interaction prompt (e.g. "Press E to eat") this frame. Call it every frame
@@ -31,6 +33,14 @@ namespace FishGame
         {
             s_prompt = text;
             s_promptFrame = Time.frameCount;
+        }
+
+        /// <summary>Show a task status line (e.g. "1/2 fish pushing") this frame, just under the prompt so
+        /// the two never fight over one spot. Same rules as <see cref="ShowPrompt"/>.</summary>
+        public static void ShowStatus(string text)
+        {
+            s_status = text;
+            s_statusFrame = Time.frameCount;
         }
 
         static Texture2D _px;
@@ -58,6 +68,7 @@ namespace FishGame
 
         void OnGUI()
         {
+            if (RoundScreen.ShowingResults) return; // the results cover the round
             DrawPrompt();
             GUI.skin.label.richText = true;
 
@@ -66,9 +77,25 @@ namespace FishGame
             var m = MatchManager.Instance;
             if (m != null)
             {
-                GUILayout.Label($"<b>Phase:</b> {m.Phase}");
-                int s = Mathf.CeilToInt(m.RemainingSeconds);
-                GUILayout.Label($"<b>Survive:</b> {s / 60:00}:{s % 60:00}");
+                switch (m.Phase)
+                {
+                    case MatchPhase.Warmup:
+                        GUILayout.Label("<b>Waiting for everyone...</b>");
+                        break;
+                    case MatchPhase.Playing:
+                        int s = Mathf.CeilToInt(m.RemainingSeconds);
+                        GUILayout.Label($"<b>Exit opens in:</b> {s / 60:00}:{s % 60:00}");
+                        break;
+                    case MatchPhase.Escape:
+                        string wall = ArenaWalls.Instance != null ? ArenaWalls.Instance.NameOf(m.ExitWall) : "";
+                        GUILayout.Label(string.IsNullOrEmpty(wall)
+                            ? "<b><color=#ffc857>EXIT OPEN</color></b>"
+                            : $"<b><color=#ffc857>EXIT OPEN:</color></b> {wall} wall");
+                        break;
+                    default:
+                        GUILayout.Label("<b>Round over</b>");
+                        break;
+                }
             }
             else
             {
@@ -92,23 +119,35 @@ namespace FishGame
             GUILayout.EndArea();
         }
 
-        // Centred near the top, the same spot and look as the reef puzzle's prompt.
+        // Centred near the top, the same spot and look as the reef puzzle's prompt; the status line
+        // sits just below it, a little smaller.
         static void DrawPrompt()
         {
-            if (string.IsNullOrEmpty(s_prompt) || Time.frameCount - s_promptFrame > 1) return;
+            bool prompt = !string.IsNullOrEmpty(s_prompt) && Time.frameCount - s_promptFrame <= 1;
+            bool status = !string.IsNullOrEmpty(s_status) && Time.frameCount - s_statusFrame <= 1;
+            if (!prompt && !status) return;
             if (s_promptStyle == null)
             {
-                s_promptStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, wordWrap = false };
+                s_promptStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, wordWrap = false, richText = true };
                 s_shadowStyle = new GUIStyle(s_promptStyle);
             }
             int size = Mathf.Max(16, Screen.height / 26);
-            s_promptStyle.fontSize = s_shadowStyle.fontSize = size;
             s_promptStyle.normal.textColor = Color.white;
             s_shadowStyle.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
 
-            var r = new Rect(0f, Screen.height * 0.29f, Screen.width, size * 1.6f);
-            GUI.Label(new Rect(r.x + 2f, r.y + 2f, r.width, r.height), s_prompt, s_shadowStyle);
-            GUI.Label(r, s_prompt, s_promptStyle);
+            float y = Screen.height * 0.29f;
+            if (prompt) DrawCentred(s_prompt, y, size);
+            if (status) DrawCentred(s_status, y + size * 1.6f, Mathf.RoundToInt(size * 0.8f));
+        }
+
+        static void DrawCentred(string text, float y, int size)
+        {
+            s_promptStyle.fontSize = s_shadowStyle.fontSize = size;
+            var r = new Rect(0f, y, Screen.width, size * 1.6f);
+            // The shadow drops any colour tags so it stays a shadow.
+            string plain = System.Text.RegularExpressions.Regex.Replace(text, "<.*?>", string.Empty);
+            GUI.Label(new Rect(r.x + 2f, r.y + 2f, r.width, r.height), plain, s_shadowStyle);
+            GUI.Label(r, text, s_promptStyle);
         }
 
         static void Bar(string label, float t, Color fill)
