@@ -14,9 +14,11 @@ namespace FishGame
     {
         static MatchHud s_instance;
 
-        /// <summary>Show the HUD in the current (game) scene, once.</summary>
+        /// <summary>Show the HUD (and the round's banners / results, RoundScreen) in the current (game)
+        /// scene, once.</summary>
         public static void Show()
         {
+            RoundScreen.Show();
             if (s_instance != null) return;
             s_instance = new GameObject("MatchHud").AddComponent<MatchHud>();
         }
@@ -66,6 +68,7 @@ namespace FishGame
 
         void OnGUI()
         {
+            if (RoundScreen.ShowingResults) return; // the results cover the round
             DrawPrompt();
             GUI.skin.label.richText = true;
 
@@ -74,9 +77,25 @@ namespace FishGame
             var m = MatchManager.Instance;
             if (m != null)
             {
-                GUILayout.Label($"<b>Phase:</b> {m.Phase}");
-                int s = Mathf.CeilToInt(m.RemainingSeconds);
-                GUILayout.Label($"<b>Survive:</b> {s / 60:00}:{s % 60:00}");
+                switch (m.Phase)
+                {
+                    case MatchPhase.Warmup:
+                        GUILayout.Label("<b>Waiting for everyone...</b>");
+                        break;
+                    case MatchPhase.Playing:
+                        int s = Mathf.CeilToInt(m.RemainingSeconds);
+                        GUILayout.Label($"<b>Exit opens in:</b> {s / 60:00}:{s % 60:00}");
+                        break;
+                    case MatchPhase.Escape:
+                        string wall = ArenaWalls.Instance != null ? ArenaWalls.Instance.NameOf(m.ExitWall) : "";
+                        GUILayout.Label(string.IsNullOrEmpty(wall)
+                            ? "<b><color=#ffc857>EXIT OPEN</color></b>"
+                            : $"<b><color=#ffc857>EXIT OPEN:</color></b> {wall} wall");
+                        break;
+                    default:
+                        GUILayout.Label("<b>Round over</b>");
+                        break;
+                }
             }
             else
             {

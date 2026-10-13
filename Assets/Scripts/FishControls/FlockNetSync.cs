@@ -359,7 +359,11 @@ namespace FishGame
 
             if (!fish.TryGetComponent(out Edible edible)) edible = fish.AddComponent<Edible>();
             int blood = BloodInWater.SeedFor(mgr.NetId, fishId); // same seed the biting shark used
-            if (eater != null) edible.Devour(eater.gameObject, eater.MouthAnchor, bloodSeed: blood);
+            if (eater != null)
+            {
+                edible.Devour(eater.gameObject, eater.MouthAnchor, bloodSeed: blood);
+                eater.PlayDevour(); // everyone sees the shark's eat, not just the shark's player
+            }
             else edible.Devour(null, bloodSeed: blood);
         }
 

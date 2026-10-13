@@ -69,6 +69,13 @@ namespace FishGame
             return true;
         }
 
+        /// <summary>Centre of every spawn zone in the scene (kelp forests and sinkholes keep away from them).</summary>
+        public static IEnumerable<Vector3> Centres()
+        {
+            foreach (var z in All)
+                if (z != null) yield return z.transform.position;
+        }
+
         /// <summary>Forget who spawned where. Call at the start of a round.</summary>
         public static void ResetClaims() => UsedThisRound.Clear();
 

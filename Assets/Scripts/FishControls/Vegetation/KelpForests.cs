@@ -204,6 +204,7 @@ namespace FishGame
                 points.Add(t.transform.position);
             foreach (var s in FindObjectsByType<Mirror.NetworkStartPosition>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 points.Add(s.transform.position);
+            points.AddRange(RoleSpawnZone.Centres());
             return points;
         }
 

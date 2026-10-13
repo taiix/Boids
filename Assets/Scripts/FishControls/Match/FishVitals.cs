@@ -42,13 +42,17 @@ namespace FishGame
         [SyncVar] double _bleedUntil;
 
         bool _deathApplied;
+        FishPlayer _player;
+
+        // Escaped / eaten: out of the round, so no more hunger, starving or bleeding.
+        bool OutOfRound => _player != null && _player.IsOut;
 
         public float Health => _health;
         public float Hunger => _hunger;
         public float HealthNorm => maxHealth > 0f ? _health / maxHealth : 0f;
         public float HungerNorm => maxHunger > 0f ? _hunger / maxHunger : 0f;
         public bool IsDead => _isDead;
-        public bool IsBleeding => !_isDead && Now < _bleedUntil;
+        public bool IsBleeding => !_isDead && !OutOfRound && Now < _bleedUntil;
 
         bool Offline => !NetworkServer.active && !NetworkClient.active;
         bool Authority => Offline || isServer;
@@ -58,6 +62,7 @@ namespace FishGame
         {
             _health = maxHealth;
             _hunger = maxHunger;
+            _player = GetComponent<FishPlayer>();
         }
 
         void OnEnable() => MatchManager.Register(this);
@@ -68,12 +73,12 @@ namespace FishGame
             // Every machine draws the blood trail of every bleeding fish (purely visual).
             if (IsBleeding) BloodInWater.KeepBleeding(transform);
 
-            if (!Authority || _isDead) return;
+            if (!Authority || _isDead || OutOfRound) return;
 
             // Only drain while a round is actually underway. With no MatchManager at all (bare
             // sandbox) we still drain so the stats can be observed.
             var m = MatchManager.Instance;
-            if (m != null && !m.IsPlaying) return;
+            if (m != null && !m.RoundRunning) return;
 
             float dt = Time.deltaTime;
             if (_hunger > 0f)

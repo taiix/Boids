@@ -151,7 +151,7 @@ namespace FishGame
 
         // The local player's view: their own camera (only the shark's is tagged MainCamera), else the main
         // camera, else their body, else whatever camera is rendering (offline sandbox).
-        static Transform ViewPoint()
+        internal static Transform ViewPoint()
         {
             var lp = Mirror.NetworkClient.localPlayer;
             if (lp != null && lp.TryGetComponent(out FishPlayer fp) && fp.camera != null && fp.camera.activeInHierarchy)

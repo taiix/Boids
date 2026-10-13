@@ -164,7 +164,7 @@ namespace FishGame
             var lf = LocalFish;
             bool joined = IAmJoined;
             bool wasInRange = _localInRange;
-            _localDistance = lf != null && !lf.IsShark ? DistanceTo(lf.transform.position) : float.MaxValue;
+            _localDistance = lf != null && !lf.IsShark && !Gone(lf) ? DistanceTo(lf.transform.position) : float.MaxValue;
             _localInRange = _localDistance <= joinRadius;
             LocalNearAnyTask = (_localInRange || joined) && _phase == Phase.Idle && !_consumed;
             if (_localInRange && !wasInRange) Debug.Log($"[Task] {name}: in range ({_localDistance:0.0} m) - E to join");
@@ -319,7 +319,7 @@ namespace FishGame
             if (!holding && statusLabel != null) statusLabel.color = _statusColor;
 
             var lf = LocalFish;
-            if (lf == null || lf.IsShark) { HidePanel(); if (!holding) SetStatus(null); return; }
+            if (lf == null || lf.IsShark || Gone(lf)) { HidePanel(); if (!holding) SetStatus(null); return; }
 
             switch (_phase)
             {
@@ -417,7 +417,7 @@ namespace FishGame
         [Server]
         public void ServerJoin(FishPlayer fp)
         {
-            if (_phase != Phase.Idle || _consumed || fp == null || fp.IsShark || _players.Contains(fp)) return;
+            if (_phase != Phase.Idle || _consumed || fp == null || fp.IsShark || Gone(fp) || _players.Contains(fp)) return;
             // Same reach rule as the client, plus a little slack for the lag between the two.
             if (DistanceTo(fp.transform.position) > joinRadius + 2f)
             {
@@ -443,8 +443,11 @@ namespace FishGame
         void ServerPruneWaiting()
         {
             if (_phase != Phase.Idle || _players.Count == 0) return;
-            if (_players.RemoveAll(p => p == null) > 0) SyncSeats();
+            if (_players.RemoveAll(Gone) > 0) SyncSeats();
         }
+
+        // Left the game, swapped body, or out of the round (eaten / escaped / dead).
+        static bool Gone(FishPlayer p) => p == null || p.IsOut || p.IsBeingEaten;
 
         [Server]
         void SyncSeats()
@@ -471,7 +474,7 @@ namespace FishGame
                 // Swap who sees / inputs each round.
                 FishPlayer seer = _players[_roundIndex % 2];
                 FishPlayer inputter = _players[(_roundIndex + 1) % 2];
-                if (seer == null || inputter == null) { AbortLeft(); yield break; } // someone left: reset, don't reward
+                if (Gone(seer) || Gone(inputter)) { AbortLeft(); yield break; } // someone left: reset, don't reward
                 _seerNetId = seer.netId;
                 _inputterNetId = inputter.netId;
 
@@ -494,7 +497,7 @@ namespace FishGame
                 float deadline = Time.time + 120f;
                 while (!_gotSubmission && Time.time < deadline)
                 {
-                    if (_players[0] == null || _players[1] == null) { AbortLeft(); yield break; }
+                    if (Gone(_players[0]) || Gone(_players[1])) { AbortLeft(); yield break; }
                     yield return null;
                 }
 

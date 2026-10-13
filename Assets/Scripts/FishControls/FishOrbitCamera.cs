@@ -131,6 +131,12 @@ namespace FishGame
         /// <summary>Full aim rotation (yaw + pitch).</summary>
         public Quaternion AimRotation => Quaternion.Euler(_pitch, _yaw, 0f);
 
+        /// <summary>The creature being watched while spectating (null when following our own).</summary>
+        public Transform SpectateTarget => _spectating;
+
+        // A menu or the results screen has the mouse: it mustn't also swing the camera or flip views.
+        static bool MouseTaken => PauseMenu.IsOpen || RoundScreen.ShowingResults;
+
         void Awake()
         {
             _currentDistance = distance;
@@ -239,14 +245,14 @@ namespace FishGame
 
             // Flip steering mode on the toggle key.
             var kb = Keyboard.current;
-            if (kb != null && kb[toggleSteeringKey].wasPressedThisFrame && !PauseMenu.IsOpen)
+            if (kb != null && kb[toggleSteeringKey].wasPressedThisFrame && !MouseTaken)
             {
                 keyboardSteering = !keyboardSteering;
                 Debug.Log($"[FishOrbitCamera] Steering = {(keyboardSteering ? "KEYBOARD (A/D yaw, Up/Down arrows pitch)" : "MOUSE")}");
             }
 
             // First / third person.
-            if (!PauseMenu.IsOpen &&
+            if (!MouseTaken &&
                 ((kb != null && kb[firstPersonKey].wasPressedThisFrame) || _viewAction.WasPressedThisFrame()))
             {
                 s_firstPerson = !s_firstPerson;
@@ -256,7 +262,7 @@ namespace FishGame
             // Mouse delta is already per-frame movement, so we DON'T multiply by deltaTime.
             // Gamepad is a sustained axis, so that one is time-scaled.
             // The Escape menu frees the mouse for its buttons; it mustn't also swing the camera.
-            Vector2 look = PauseMenu.IsOpen ? Vector2.zero : _lookAction.ReadValue<Vector2>();
+            Vector2 look = MouseTaken ? Vector2.zero : _lookAction.ReadValue<Vector2>();
             bool fromGamepad = Gamepad.current != null && _lookAction.activeControl?.device == Gamepad.current;
 
             float dx, dy;
