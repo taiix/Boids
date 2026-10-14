@@ -95,6 +95,7 @@ public class FishPlayer : NetworkBehaviour
     private float _lastStrugglePress;   // server: presses are capped at ~20 a second
     private InputAction _struggleAction;
     private const float MinStruggleGap = 0.05f;
+    private float _nextSeabedCheck;
 
     /// <summary>Caught and struggling in the shark's jaws (until it's swallowed or breaks free).</summary>
     public bool IsHeld => _inJaws;
@@ -204,6 +205,12 @@ public class FishPlayer : NetworkBehaviour
         // Fish bodies must be edible for the shark's bite to find them (the prefab doesn't carry one).
         if (!TryGetComponent(out SharkAbilities _) && !TryGetComponent(out Edible _))
             gameObject.AddComponent<Edible>();
+
+        // The water's reactions, on every copy so everyone sees them: bubbles and a wake when swimming
+        // fast, splashes in and out of the surface, and the shark's violent eating.
+        if (!TryGetComponent(out SwimTrail _)) gameObject.AddComponent<SwimTrail>();
+        if (!TryGetComponent(out SurfaceSplash _)) gameObject.AddComponent<SurfaceSplash>();
+        if (TryGetComponent(out SharkAbilities _) && !TryGetComponent(out SharkEatFx _)) gameObject.AddComponent<SharkEatFx>();
 
         // Cache now, before OnStartLocalPlayer can unparent the camera.
         _vision = GetComponentInChildren<CreatureVision>(true);
@@ -331,6 +338,7 @@ public class FishPlayer : NetworkBehaviour
         {
             shark.CaughtFlockFish += OnCaughtFlockFish;
             shark.CaughtPrey += OnCaughtPrey;
+            shark.Attacked += CmdShowAttack;
         }
     }
 
@@ -394,6 +402,12 @@ public class FishPlayer : NetworkBehaviour
     {
         if (isServer && _heldBy != 0) ServerStruggleTick();
         if (!isLocalPlayer && !_offlineLocal) return;
+
+        if (_controlsLive && Time.time >= _nextSeabedCheck)
+        {
+            _nextSeabedCheck = Time.time + 0.1f;
+            KeepAboveSeabed();
+        }
 
         // In the jaws: mash to break free.
         if (_inJaws && !_offlineLocal)
@@ -530,6 +544,16 @@ public class FishPlayer : NetworkBehaviour
             if (TryGetComponent(out SharkAbilities shark)) shark.FeedFor(playerFish: false);
         }
         else CmdEatFlockFish(flock.NetId, (ushort)fishId);
+    }
+
+    // Our shark attacked or lunged: everyone else sees the swing and the dash's bubbles (we already did).
+    [Command]
+    private void CmdShowAttack(bool lunge) => RpcShowAttack(lunge);
+
+    [ClientRpc(includeOwner = false)]
+    private void RpcShowAttack(bool lunge)
+    {
+        if (TryGetComponent(out SharkAbilities shark)) shark.PlayAttackFx(lunge);
     }
 
     [Command]
@@ -718,10 +742,15 @@ public class FishPlayer : NetworkBehaviour
         if (TryGetComponent(out NetworkTransformBase netTransform)) netTransform.enabled = true;
 
         if (!isLocalPlayer || !wasInJaws) return;
-        // We drive this body: pop clear of the teeth and shoot away; Update puts the controls back.
+        // We drive this body: pop clear of the teeth and shoot away; Update puts the controls back. Out and a
+        // little up, never down - and never left under the seabed: shaking its catch on the bottom, the shark's
+        // head (and our body with it) can be dragged into the sand, whose surface only stops things from above.
+        Vector3 dir = fling.sqrMagnitude > 1e-4f ? fling.normalized : Vector3.up;
+        if (dir.y < 0.3f) { dir.y = 0.3f; dir.Normalize(); }
+        fling = dir * fling.magnitude;
         Vector3 from = jaws != null && jaws.MouthAnchor != null ? jaws.MouthAnchor.position : transform.position;
-        transform.position = from + fling.normalized * 1.5f;
-        if (fling.sqrMagnitude > 1e-4f) transform.rotation = Quaternion.LookRotation(fling.normalized, Vector3.up);
+        transform.position = AboveSeabed(from + dir * 1.5f);
+        transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
         if (TryGetComponent(out Rigidbody rb))
         {
             rb.position = transform.position;
@@ -732,6 +761,36 @@ public class FishPlayer : NetworkBehaviour
         if (orbit != null) orbit.SetTarget(transform);
         // The motor owns the velocity, so the burst out of the jaws is a short dash, not a push.
         if (TryGetComponent(out FishMotor motor)) motor.BeginDash(fling.magnitude, 0.45f, 0.4f);
+    }
+
+    // ---- Never under the seabed ----
+
+    // Its mesh surface only stops things coming from above: a body that ends up beneath it (released from the
+    // jaws inside the sand, a dash clipping through) would just sink out of the world. Put it back on top.
+    private void KeepAboveSeabed()
+    {
+        Vector3 p = transform.position;
+        if (WaterFx.GroundBelow(p)) return;                          // on top of the world, as it should be
+        if (!WaterFx.SeabedHeight(p, out float ground) || p.y > ground) return; // off the edge, not under it
+        Vector3 safe = AboveSeabed(p);
+        transform.position = safe;
+        if (TryGetComponent(out Rigidbody rb))
+        {
+            rb.position = safe;
+            if (!rb.isKinematic) rb.linearVelocity = Vector3.zero;
+        }
+        if (TryGetComponent(out FishMotor motor)) motor.SetVelocity(Vector3.zero);
+        Debug.Log($"[FishPlayer] {name} was under the seabed at {p}; moved back on top ({safe}).");
+    }
+
+    // The point, lifted clear of the seabed by the body's own height if it's below it.
+    private Vector3 AboveSeabed(Vector3 p)
+    {
+        if (!WaterFx.SeabedHeight(p, out float ground)) return p;
+        float clearance = 0.5f;
+        if (TryGetComponent(out Collider body)) clearance += body.bounds.extents.y;
+        if (p.y < ground + clearance) p.y = ground + clearance;
+        return p;
     }
 
     // ---- Out of the round ----
@@ -837,6 +896,7 @@ public class FishPlayer : NetworkBehaviour
         {
             shark.CaughtFlockFish -= OnCaughtFlockFish;
             shark.CaughtPrey -= OnCaughtPrey;
+            shark.Attacked -= CmdShowAttack;
         }
 
         // The camera was detached from this fish, so it won't be destroyed with us. Clean it up.

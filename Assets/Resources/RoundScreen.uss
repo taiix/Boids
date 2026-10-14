@@ -42,6 +42,23 @@
     text-shadow:0 1px 4px rgba(0,0,0,0.95);
 }
 
+/* ---------- fish teammates ---------- */
+.rs-ally-layer{ position:absolute; left:0; top:0; right:0; bottom:0; }
+.rs-ally{ position:absolute; align-items:center; translate:-50% -100%; }
+.rs-ally-name{
+    font-size:14px; -unity-font-style:bold; color:var(--aqua); letter-spacing:1px;
+    text-shadow:0 1px 4px rgba(0,0,0,0.95); -unity-text-align:middle-center;
+}
+.rs-ally-distance{ font-size:12px; color:var(--text); text-shadow:0 1px 4px rgba(0,0,0,0.95); }
+.rs-ally-pip{
+    width:10px; height:10px; rotate:45deg; margin-bottom:4px;
+    border-width:2px; border-color:var(--aqua); background-color:rgba(63,224,197,0.35);
+}
+.rs-ally.edge{ translate:-50% -50%; }
+.rs-ally.edge .rs-ally-pip{ width:13px; height:13px; }
+.rs-ally.caught .rs-ally-name{ color:var(--shark); }
+.rs-ally.caught .rs-ally-pip{ border-color:var(--shark); background-color:rgba(255,93,108,0.35); }
+
 /* ---------- spectating ---------- */
 .rs-spectate{ position:absolute; left:0; right:0; bottom:6%; align-items:center; }
 .rs-spectate-card{

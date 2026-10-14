@@ -19,6 +19,7 @@ namespace FishGame
         public static void Show()
         {
             RoundScreen.Show();
+            FishAllies.Show();
             if (s_instance != null) return;
             s_instance = new GameObject("MatchHud").AddComponent<MatchHud>();
         }

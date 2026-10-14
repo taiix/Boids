@@ -10,6 +10,7 @@ namespace FishGame
     /// The round's on-screen moments, drawn with UI Toolkit in the lobby's style:
     ///   * at the start, what you are and what to do ("Survive and escape" / "Hunt down all other players"),
     ///   * when the clock runs out, which wall has lifted, plus a marker pointing to the way out,
+    ///   * for a fish, a name tag and distance on every other fish (FishAllies adds a glow on their bodies),
     ///   * caught in the shark's jaws: mash to break free (meter, and how long before it swallows),
     ///   * your own outcome (escaped / eaten / died) and, while you spectate, who you're watching,
     ///   * at the end, the results: who escaped, who was eaten, and which side won - with Play again /
@@ -41,6 +42,8 @@ namespace FishGame
         VisualElement _banner, _marker, _spectate, _results, _columns, _buttons;
         VisualElement _struggle, _struggleFill, _struggleTimeFill;
         Label _struggleSub;
+        VisualElement _allyLayer;
+        readonly List<(VisualElement root, Label name, Label distance)> _allyTags = new List<(VisualElement, Label, Label)>();
         float _struggleShown;
         bool _wasHeld;
         Label _bannerEyebrow, _bannerTitle, _bannerSub, _markerLabel, _spectateName, _spectateHint;
@@ -83,6 +86,9 @@ namespace FishGame
             _bannerEyebrow = Text(_banner, "rs-eyebrow");
             _bannerTitle = Text(_banner, "rs-title");
             _bannerSub = Text(_banner, "rs-sub");
+
+            _allyLayer = Box(_root, "rs-ally-layer");
+            _allyLayer.pickingMode = PickingMode.Ignore;
 
             _marker = Box(_root, "rs-marker");
             Box(_marker, "rs-diamond");
@@ -175,6 +181,7 @@ namespace FishGame
             UpdateStruggle(me);
             UpdateBanner();
             UpdateMarker(m, me);
+            UpdateAllies(me);
             UpdateSpectating(me);
             UpdateResults(m, me);
         }
@@ -265,7 +272,8 @@ namespace FishGame
             {
                 float t = Time.unscaledTime - _bannerShownAt;
                 a = t < 0.4f ? t / 0.4f : t < 0.4f + _bannerHold ? 1f : 1f - (t - 0.4f - _bannerHold) / 0.8f;
-                if (a <= 0f) _bannerShownAt = -1f;
+                // Done only once it has faded out - it also starts at 0, on the frame it's shown.
+                if (t >= 0.4f + _bannerHold + 0.8f) _bannerShownAt = -1f;
             }
             _banner.style.opacity = Mathf.Clamp01(a);
         }
@@ -283,11 +291,20 @@ namespace FishGame
 
             Vector3 eye = cam.transform.position;
             Vector3 exit = walls.ExitPointNear(m.ExitWall, eye);
-            Vector3 sp = cam.WorldToScreenPoint(exit);
-            float w = Screen.width, h = Screen.height, inset = Mathf.Min(w, h) * 0.08f;
+            Place(_marker, cam, exit, 0.08f);
+            _markerLabel.text = $"EXIT  {Vector3.Distance(eye, exit):0} m";
+        }
+
+        // Put a marker over a world point; when that's off to the side or behind, hold it at the edge of the
+        // screen in its direction. Returns false when it had to be held at the edge.
+        bool Place(VisualElement marker, Camera cam, Vector3 world, float insetFraction)
+        {
+            Vector3 sp = cam.WorldToScreenPoint(world);
+            float w = Screen.width, h = Screen.height, inset = Mathf.Min(w, h) * insetFraction;
             var p = new Vector2(sp.x, sp.y);
             bool behind = sp.z < 0f;
-            if (behind || p.x < inset || p.x > w - inset || p.y < inset || p.y > h - inset)
+            bool onScreen = !behind && p.x >= inset && p.x <= w - inset && p.y >= inset && p.y <= h - inset;
+            if (!onScreen)
             {
                 var c = new Vector2(w * 0.5f, h * 0.5f);
                 Vector2 d = p - c;
@@ -299,9 +316,43 @@ namespace FishGame
             }
 
             float scale = _root.resolvedStyle.width > 0f ? _root.resolvedStyle.width / w : 1f;
-            _marker.style.left = p.x * scale;
-            _marker.style.top = (h - p.y) * scale;
-            _markerLabel.text = $"EXIT  {Vector3.Distance(eye, exit):0} m";
+            marker.style.left = p.x * scale;
+            marker.style.top = (h - p.y) * scale;
+            return onScreen;
+        }
+
+        // A name tag and distance over every other fish still in the water (the fish's screen only), held at
+        // the edge of the screen when they're out of view, so a scattered group can find each other.
+        void UpdateAllies(FishPlayer me)
+        {
+            var cam = ViewCamera(me);
+            bool show = cam != null && me != null && !me.IsSharkBody && !me.IsOut && !me.IsHeld && !ShowingResults;
+            int n = show ? FishAllies.Marked.Count : 0;
+
+            while (_allyTags.Count < n)
+            {
+                var tag = Box(_allyLayer, "rs-ally");
+                Box(tag, "rs-ally-pip");
+                var name = Text(tag, "rs-ally-name");
+                var distance = Text(tag, "rs-ally-distance");
+                SetPickingIgnore(tag);
+                _allyTags.Add((tag, name, distance));
+            }
+
+            Vector3 eye = cam != null ? cam.transform.position : Vector3.zero;
+            for (int i = 0; i < _allyTags.Count; i++)
+            {
+                var (tag, name, distance) = _allyTags[i];
+                if (i >= n) { tag.style.display = DisplayStyle.None; continue; }
+                var fish = FishAllies.Marked[i];
+                tag.style.display = DisplayStyle.Flex;
+                Vector3 above = fish.transform.position + Vector3.up * 0.8f;
+                bool inView = Place(tag, cam, above, 0.08f);
+                tag.EnableInClassList("edge", !inView);
+                tag.EnableInClassList("caught", fish.IsBeingEaten);
+                name.text = fish.IsBeingEaten ? $"{fish.PlayerName}  CAUGHT!" : fish.PlayerName;
+                distance.text = $"{Vector3.Distance(eye, fish.transform.position):0} m";
+            }
         }
 
         void UpdateSpectating(FishPlayer me)

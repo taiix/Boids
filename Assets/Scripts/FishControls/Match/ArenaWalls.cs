@@ -59,7 +59,6 @@ namespace FishGame
         }
 
         readonly List<Wall> _walls = new List<Wall>();
-        Material _bubbleMaterial;
         static readonly int HasSdf = Shader.PropertyToID("_HasSdf");
 
         public int Count => _walls.Count;
@@ -76,7 +75,6 @@ namespace FishGame
         void OnDestroy()
         {
             if (Instance == this) Instance = null;
-            if (_bubbleMaterial != null) Destroy(_bubbleMaterial);
         }
 
         void Collect()
@@ -218,20 +216,12 @@ namespace FishGame
 
             if (go.TryGetComponent(out ParticleSystemRenderer pr))
             {
-                // Thousands of these: the template's sphere is 768 triangles, so they get an 80-triangle one.
-                if (pr.renderMode == ParticleSystemRenderMode.Mesh) pr.SetMeshes(new[] { LowPolySphere() });
-                // The underwater fog hides bubbles a few metres out; without it the curtain shows from
-                // across the reef.
-                if (pr.sharedMaterial != null)
-                {
-                    if (_bubbleMaterial == null)
-                    {
-                        _bubbleMaterial = new Material(pr.sharedMaterial) { name = "ExitBubble" };
-                        _bubbleMaterial.SetFloat("_EnableFogOnTransparent", 0f);
-                        _bubbleMaterial.DisableKeyword("_ENABLE_FOG_ON_TRANSPARENT");
-                    }
-                    pr.sharedMaterial = _bubbleMaterial;
-                }
+                // Thousands of these: the template's sphere is 768 triangles, the shared bubble mesh 80.
+                if (pr.renderMode == ParticleSystemRenderMode.Mesh) pr.SetMeshes(new[] { WaterFx.BubbleMesh });
+                // The underwater fog hides bubbles a few metres out; the fog-free bubble shows from across
+                // the reef.
+                var lib = WaterFxLibrary.Get();
+                if (lib != null && lib.bubbleFar != null) pr.sharedMaterial = lib.bubbleFar;
             }
 
             var shape = ps.shape;
@@ -255,57 +245,6 @@ namespace FishGame
             var emission = w.bubbles.emission;
             float rate = k < 1f ? liftBubblesPerSecond : markerBubblesPerSecond;
             if (!Mathf.Approximately(emission.rateOverTimeMultiplier, rate)) emission.rateOverTimeMultiplier = rate;
-        }
-
-        static Mesh s_sphere;
-
-        // An icosphere, subdivided once (80 triangles, radius 0.5 like Unity's sphere).
-        static Mesh LowPolySphere()
-        {
-            if (s_sphere != null) return s_sphere;
-            float t = (1f + Mathf.Sqrt(5f)) * 0.5f;
-            var v = new List<Vector3>
-            {
-                new Vector3(-1, t, 0), new Vector3(1, t, 0), new Vector3(-1, -t, 0), new Vector3(1, -t, 0),
-                new Vector3(0, -1, t), new Vector3(0, 1, t), new Vector3(0, -1, -t), new Vector3(0, 1, -t),
-                new Vector3(t, 0, -1), new Vector3(t, 0, 1), new Vector3(-t, 0, -1), new Vector3(-t, 0, 1),
-            };
-            int[] f =
-            {
-                0, 11, 5, 0, 5, 1, 0, 1, 7, 0, 7, 10, 0, 10, 11, 1, 5, 9, 5, 11, 4, 11, 10, 2, 10, 7, 6, 7, 1, 8,
-                3, 9, 4, 3, 4, 2, 3, 2, 6, 3, 6, 8, 3, 8, 9, 4, 9, 5, 2, 4, 11, 6, 2, 10, 8, 6, 7, 9, 8, 1,
-            };
-            var mids = new Dictionary<long, int>();
-            int Mid(int a, int b)
-            {
-                long key = a < b ? ((long)a << 32) | (uint)b : ((long)b << 32) | (uint)a;
-                if (mids.TryGetValue(key, out int i)) return i;
-                v.Add((v[a] + v[b]) * 0.5f);
-                mids[key] = v.Count - 1;
-                return v.Count - 1;
-            }
-            var tris = new List<int>();
-            for (int i = 0; i < f.Length; i += 3)
-            {
-                int a = f[i], b = f[i + 1], c = f[i + 2];
-                int ab = Mid(a, b), bc = Mid(b, c), ca = Mid(c, a);
-                tris.AddRange(new[] { a, ab, ca, b, bc, ab, c, ca, bc, ab, bc, ca });
-            }
-            var normals = new Vector3[v.Count];
-            var uvs = new Vector2[v.Count];
-            for (int i = 0; i < v.Count; i++)
-            {
-                normals[i] = v[i].normalized;
-                v[i] = normals[i] * 0.5f;
-                uvs[i] = new Vector2(0.5f + Mathf.Atan2(normals[i].z, normals[i].x) / (2f * Mathf.PI), 0.5f + Mathf.Asin(normals[i].y) / Mathf.PI);
-            }
-            s_sphere = new Mesh { name = "ExitBubble" };
-            s_sphere.SetVertices(v);
-            s_sphere.SetNormals(normals);
-            s_sphere.SetUVs(0, uvs);
-            s_sphere.SetTriangles(tris, 0);
-            s_sphere.RecalculateBounds();
-            return s_sphere;
         }
 
         float SeabedHeight(Vector3 at, float fallback)
