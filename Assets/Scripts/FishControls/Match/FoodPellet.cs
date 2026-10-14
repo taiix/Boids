@@ -30,9 +30,9 @@ namespace FishGame
 
         [Header("Despawn")]
         [Tooltip("Hard cap: despawn this many seconds after spawning even if never eaten.")]
-        [SerializeField] float lifetime = 60f;
+        [SerializeField] float lifetime = 180f;
         [Tooltip("Despawn after resting on the bottom this many seconds.")]
-        [SerializeField] float restDespawnDelay = 15f;
+        [SerializeField] float restDespawnDelay = 90f;
 
         public float Nutrition => nutrition;
         public bool IsEaten { get; private set; }

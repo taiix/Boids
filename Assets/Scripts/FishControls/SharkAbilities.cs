@@ -95,6 +95,10 @@ namespace FishGame
         /// </summary>
         public event Action<BoidsManager, int> CaughtFlockFish;
 
+        /// <summary>Raised on the owner when it attacks (false) or lunges (true), so the Mirror layer can show
+        /// the swing and the dash's bubbles to everyone else (<see cref="PlayAttackFx"/>).</summary>
+        public event Action<bool> Attacked;
+
         InputAction _attackAction;
         InputAction _lungeAction;
 
@@ -174,7 +178,8 @@ namespace FishGame
         void DoAttack()
         {
             motor.BeginDash(attackDashSpeed, attackDashDuration, attackSteerControl);
-            TriggerBite(); // bite swing happens whether or not it connects
+            PlayAttackFx(lunge: false); // the swing and its bubbles happen whether or not it connects
+            Attacked?.Invoke(false);
             _attackCd = attackCooldown;
             _eatWindow = attackDashDuration + 0.05f;
         }
@@ -182,8 +187,18 @@ namespace FishGame
         void DoLunge()
         {
             motor.BeginDash(lungeSpeed, lungeDuration, lungeSteerControl);
+            PlayAttackFx(lunge: true);
+            Attacked?.Invoke(true);
             _lungeCd = lungeCooldown;
             _eatWindow = lungeDuration; // contact anywhere along the lunge = a catch
+        }
+
+        /// <summary>Every machine: what an attack looks like - the bite swing (not on a lunge) and the fizz of
+        /// bubbles torn off the body for the length of the dash.</summary>
+        public void PlayAttackFx(bool lunge)
+        {
+            if (!lunge) TriggerBite();
+            if (TryGetComponent(out SwimTrail trail)) trail.Dash(lunge ? lungeDuration : attackDashDuration);
         }
 
         void TryEat()

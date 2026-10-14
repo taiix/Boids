@@ -1316,18 +1316,18 @@ MonoBehaviour:
   sinkholePrefab: {fileID: 4949559545681564535, guid: e21ac20744b0f324083cce6ffe37563e, type: 3}
   trash:
   - prefab: {fileID: 5533592252895567413, guid: f3895a4468152e14e9253e8130ba74d3, type: 3}
-    count: 4
+    count: 8
   - prefab: {fileID: 9140765125609687066, guid: 3f029138ee3026f4c8c20ee035ffe8be, type: 3}
-    count: 3
+    count: 6
   - prefab: {fileID: 7294753366511616984, guid: 067492b5e4b383648b57ed9010265b37, type: 3}
-    count: 3
+    count: 6
   sinkholeCount: 3
   sinkholeSpacing: 45
   minFlatness: 0.9
   edgeMargin: 25
   keepClearRadius: 18
   forestMargin: 4
-  distanceFromSinkhole: {x: 14, y: 45}
+  distanceFromSinkhole: {x: 10, y: 38}
   trashSpacing: 5
   trashMinFlatness: 0.93
   goal: 9

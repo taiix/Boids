@@ -102,14 +102,30 @@ namespace FishGame
         ParticleSystem.EmitParams _emit;
         readonly System.Random _rng = new System.Random(7);
 
+        static SandTrails s_active;
+
+        /// <summary>Kick up a cloud of sand on the seabed at <paramref name="ground"/> (a violent bite on the
+        /// bottom). Nothing happens without sand trails in the scene.</summary>
+        public static void Kick(Vector3 ground, float radius)
+        {
+            if (s_active == null) return;
+            for (int i = 0; i < 3; i++)
+            {
+                Vector2 d = Random.insideUnitCircle.normalized;
+                s_active.Puff(ground, new Vector3(d.x, 0f, d.y), radius, 1f);
+            }
+        }
+
         void OnEnable()
         {
+            s_active = this;
             TerrainNetSync.SeabedChanged += MarkSeabedChanged;
             _heightsDirty = true;
         }
 
         void OnDisable()
         {
+            if (s_active == this) s_active = null;
             TerrainNetSync.SeabedChanged -= MarkSeabedChanged;
             Shader.SetGlobalVector(AreaId, Vector4.zero); // the sand draws no furrows
             if (_map != null) { _map.Release(); _map = null; }

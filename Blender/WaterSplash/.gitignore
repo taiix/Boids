@@ -1,0 +1,11 @@
+# Mantaflow caches and per-frame renders are big and can be re-made from the .blend files.
+cache/
+*/cache/
+frames/
+*/frames/
+frame_*.png
+*/frame_*.png
+*_log.txt
+*.blend1
+# The copy in Assets/VFX/Meshes is the one kept (the builder falls back to it).
+*/SplashMeshes.fbx
