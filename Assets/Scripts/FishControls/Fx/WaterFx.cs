@@ -293,9 +293,10 @@ namespace FishGame
             var rise = ps.velocityOverLifetime;
             rise.enabled = true;
             rise.space = ParticleSystemSimulationSpace.World;
-            rise.x = 0f;
+            // x/y/z must share one curve mode (Unity errors otherwise), so x/z are 0..0 ranges too
+            rise.x = new ParticleSystem.MinMaxCurve(0f, 0f);
             rise.y = new ParticleSystem.MinMaxCurve(0.5f, 1.1f);
-            rise.z = 0f;
+            rise.z = new ParticleSystem.MinMaxCurve(0f, 0f);
             var wobble = ps.noise;
             wobble.enabled = true;
             wobble.strength = 0.35f;

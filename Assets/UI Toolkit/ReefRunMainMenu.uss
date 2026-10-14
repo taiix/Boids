@@ -1,180 +1,84 @@
 /* ============================================================
-   REEF RUN — main menu stylesheet (UI Toolkit / USS)
-   Same engine limitations as ReefRunLobby.uss apply.
-   Background gradient + upper-right glow is a baked texture
-   set from ReefRunMainMenuController.
+   REEF RUN — main menu ("inside the mouth")
+   The background is the live 3D menu scene (MenuSharkCruise: the
+   camera rides in the shark's mouth while it swims the reef), so the
+   stage is transparent. The top/bottom shades are baked gradient
+   textures set from ReefRunMainMenuController.
+   Palette = the game's own UI (see ReefRunLobby.uss).
    ============================================================ */
 
 :root {
-    --text: #eaf6f4;
-    --dim:  #88b4bd;
-    --aqua: #3fe0c5;
-    --glass: rgba(8,40,52,0.55);
-    --border: rgba(99,200,210,0.18);
-    --border-aqua: rgba(63,224,197,0.5);
+    --navy: #051729;
+    --teal: #179499;
+    --teal-l: #2cc3c4;
+    --orange: #ffb84d;
+    --text: #eef6f7;
+    --dim:  #8fb0bb;
+    --line: rgba(143, 176, 187, 0.18);
+    /* names kept for the shared settings overlay below */
+    --aqua: #2cc3c4;
+    --glass: rgba(5, 23, 41, 0.97);
+    --border: rgba(143, 176, 187, 0.18);
+    --border-aqua: rgba(44, 195, 196, 0.5);
 }
 
-/* ---------- stage / root ---------- */
-.mm-stage {
-    flex-grow: 1;
-    -unity-background-scale-mode: scale-and-crop;
-    color: var(--text);
-}
+.mm-stage { flex-grow: 1; color: var(--text); font-size: 16px; -unity-font-definition: url("Fonts/Barlow-Regular.ttf"); }
+/* covers the 3D view until the reef backdrop has loaded, then fades away */
+.mm-veil { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: #030c16; transition: opacity 1.6s ease-in-out; }
+.mm-veil--hidden { opacity: 0; }
+.mm-shade { position: absolute; left: 0; right: 0; -unity-background-scale-mode: stretch-to-fill; }
+.mm-shade--top { top: 0; height: 62%; }
+.mm-shade--bottom { bottom: 0; height: 30%; }
+.mm-ui { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.mm-ui Label { padding: 0; margin: 0; }
 
-.mm-ambient {
-    position: absolute;
-    left: 0; top: 0; right: 0; bottom: 0;
-}
+/* ---------- centre block ---------- */
+.mm-center { position: absolute; left: 0; right: 0; top: 110px; align-items: center; }
+.mm-eyebrow { font-size: 17px; letter-spacing: 6px; color: var(--orange); -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
+.mm-logo { flex-direction: row; margin-top: 2px; }
+.mm-logo-word { font-size: 190px; letter-spacing: -2px; color: var(--text); -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBoldItalic.ttf");
+                text-shadow: 0 8px 40px rgba(0, 0, 0, 0.55); }
+.mm-logo-word--run { color: var(--teal-l); margin-left: 36px; }
+.mm-tagline { font-size: 22px; color: #cfe3e8; margin-top: -4px; }
+.mm-tagline-strong { -unity-font-definition: url("Fonts/Barlow-Bold.ttf"); color: #ffffff; }
 
-.mm-ui {
-    position: absolute;
-    left: 0; top: 0; right: 0; bottom: 0;
-    flex-direction: column;
-    padding: 44px 56px 32px 56px;
-}
+.mm-nav { flex-direction: row; margin-top: 38px; }
+.mm-nav-btn { height: 70px; min-width: 190px; margin: 0 7px; padding: 0 30px; border-radius: 12px;
+              background-color: rgba(5, 23, 41, 0.86); border-width: 1px; border-color: var(--line);
+              color: rgba(238, 246, 247, 0.88); font-size: 28px; letter-spacing: 3px;
+              -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBold.ttf");
+              transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, scale 0.12s ease; }
+.mm-nav-btn:hover, .mm-nav-btn:focus { background-color: var(--orange); border-color: var(--orange); color: var(--navy); scale: 1.04 1.04; }
+.mm-nav-btn:active { scale: 0.98 0.98; }
+.mm-hint { font-size: 16px; color: var(--dim); margin-top: 16px; }
 
-/* ---------- accent line ---------- */
-.mm-accent {
-    width: 30px;
-    height: 2px;
-    background-color: var(--aqua);
-    margin-bottom: 20px;
-}
+/* ---------- friends on the reef (bottom-left chips) ---------- */
+.mm-friends { position: absolute; left: 56px; bottom: 48px; flex-direction: row; }
+.mm-chip { flex-direction: row; align-items: center; height: 54px; padding: 0 14px 0 6px; margin-right: 10px; border-radius: 12px;
+           background-color: rgba(5, 23, 41, 0.86); border-width: 1px; border-color: var(--line); }
+.mm-chip-av { width: 40px; height: 40px; border-radius: 8px; margin-right: 10px; -unity-background-scale-mode: scale-and-crop;
+              background-color: rgba(143, 176, 187, 0.15); }
+.mm-chip-name { font-size: 15px; -unity-font-definition: url("Fonts/Barlow-Bold.ttf"); }
+.mm-chip-status { font-size: 12.5px; color: var(--teal-l); }
+.mm-chip-status--game { color: #7fb2ff; }
+.mm-chip-join { height: 34px; margin: 0 0 0 10px; padding: 0 12px; border-radius: 8px; border-width: 0;
+                background-color: var(--orange); color: var(--navy); font-size: 16px; letter-spacing: 2px;
+                -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBold.ttf"); }
+.mm-chip-join:hover { background-color: #ffc56b; }
 
-/* ---------- logo ---------- */
-.mm-logo-row {
-    flex-direction: row;
-    align-items: flex-end;
-    margin-bottom: 48px;
-}
-
-.mm-logo-white {
-    font-size: 76px;
-    -unity-font-style: bold;
-    color: var(--text);
-    margin-right: 14px;
-}
-
-.mm-logo-aqua {
-    font-size: 76px;
-    -unity-font-style: bold;
-    color: var(--aqua);
-}
-
-/* ---------- nav ---------- */
-.mm-nav {
-    flex-direction: column;
-}
-
-.mm-nav-item {
-    align-self: flex-start;
-    background-color: rgba(0,0,0,0);
-    border-width: 0;
-    border-color: rgba(0,0,0,0);
-    border-radius: 0;
-    color: var(--text);
-    -unity-font-style: bold;
-    font-size: 34px;
-    letter-spacing: 3px;
-    padding: 7px 0;
-    margin-bottom: 2px;
-    -unity-text-align: middle-left;
-    transition: color 0.12s ease;
-}
-
-.mm-nav-item:hover {
-    background-color: rgba(0,0,0,0);
-    border-color: rgba(0,0,0,0);
-    color: var(--aqua);
-}
-
-.mm-nav-item:active {
-    color: rgb(95,240,214);
-}
-
-/* ---------- spacer pushes footer to bottom ---------- */
-.mm-spacer {
-    flex-grow: 1;
-}
-
-/* ---------- footer ---------- */
-.mm-footer {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.mm-version {
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--dim);
-}
-
-/* "PRESS [Enter] TO DIVE" */
-.mm-dive-hint {
-    flex-direction: row;
-    align-items: center;
-}
-
-.mm-hint-text {
-    font-size: 11px;
-    letter-spacing: 3px;
-    color: var(--dim);
-}
-
-.mm-key {
-    font-size: 11px;
-    letter-spacing: 1px;
-    color: var(--text);
-    border-width: 1px;
-    border-color: rgba(180,210,220,0.45);
-    border-radius: 3px;
-    padding: 2px 9px;
-    margin: 0 9px;
-    background-color: rgba(255,255,255,0.05);
-}
-
-/* ---------- player card (bottom-right) ---------- */
-.mm-player-card {
-    flex-direction: row;
-    align-items: center;
-    background-color: var(--glass);
-    border-width: 1px;
-    border-color: var(--border);
-    border-radius: 999px;
-    padding: 6px 18px 6px 6px;
-}
-
-.mm-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 18px;
-    align-items: center;
-    justify-content: center;
-    margin-right: 10px;
-    -unity-background-scale-mode: scale-and-crop;
-}
-
-.mm-avatar-lbl {
-    color: #06283f;
-    -unity-font-style: bold;
-    font-size: 11px;
-}
-
-.mm-player-name {
-    font-size: 13px;
-    -unity-font-style: bold;
-    color: var(--text);
-}
-
-.mm-player-sub {
-    font-size: 11px;
-    color: var(--dim);
-    margin-top: 1px;
-}
+/* ---------- player pill (bottom-right) + version ---------- */
+.mm-player-card { position: absolute; right: 56px; bottom: 48px; flex-direction: row; align-items: center; height: 58px;
+                  padding: 0 18px 0 7px; border-radius: 12px; background-color: rgba(5, 23, 41, 0.86);
+                  border-width: 1px; border-color: var(--line); }
+.mm-player-av { width: 44px; height: 44px; border-radius: 9px; margin-right: 12px; -unity-background-scale-mode: scale-and-crop;
+                background-color: rgba(143, 176, 187, 0.15); }
+.mm-player-name { font-size: 16px; -unity-font-definition: url("Fonts/Barlow-Bold.ttf"); }
+.mm-player-sub { font-size: 12.5px; color: var(--teal-l); }
+.mm-version { position: absolute; right: 60px; top: 44px; font-size: 15px; letter-spacing: 3px; color: rgba(143, 176, 187, 0.7);
+              -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
 
 /* ============================================================
-   SHARED UTILITIES (scoped to main menu — mirrors lobby USS)
+   SHARED UTILITIES (used by the settings overlay)
    ============================================================ */
 
 .mm-glass {
@@ -193,14 +97,16 @@
     border-color: rgba(0,0,0,0);
     margin: 0;
 }
-.mm-btn-aqua { background-color: var(--aqua); color: #06283f; border-color: var(--aqua); }
-.mm-btn-aqua:hover { background-color: rgb(95,240,214); }
+.mm-btn-aqua { background-color: var(--orange); color: #051729; border-color: var(--orange); }
+.mm-btn-aqua:hover { background-color: #ffc56b; }
 
 /* ============================================================
    SETTINGS OVERLAY
    ============================================================ */
 
 .mm-settings-overlay {
+    -unity-font-definition: url("Fonts/Barlow-Regular.ttf");
+    color: var(--text);
     position: absolute;
     left: 0; top: 0; right: 0; bottom: 0;
     background-color: rgba(3,10,16,0.88);
@@ -213,7 +119,7 @@
 
 /* card */
 .mm-settings-card {
-    width: 500px;
+    width: 1000px;
     flex-direction: column;
     padding: 28px;
     border-radius: 4px;
@@ -266,7 +172,7 @@
 }
 
 .mm-setting-name {
-    width: 96px;
+    width: 110px;
     font-size: 13px;
     color: var(--text);
     flex-shrink: 0;
@@ -315,7 +221,8 @@
 
 .mm-dropdown .unity-base-field__label { display: none; }
 
-.mm-dropdown .unity-dropdown-field__input {
+.mm-dropdown .unity-dropdown-field__input,
+.mm-dropdown .unity-base-popup-field__input {
     background-color: rgba(8,40,52,0.8);
     border-width: 1px;
     border-color: var(--border);
@@ -323,14 +230,17 @@
     padding: 8px 12px;
     flex-grow: 1;
 }
-.mm-dropdown .unity-dropdown-field__input:hover { border-color: var(--border-aqua); }
+.mm-dropdown .unity-dropdown-field__input:hover,
+.mm-dropdown .unity-base-popup-field__input:hover { border-color: var(--border-aqua); }
 
-.mm-dropdown .unity-base-dropdown__label {
+.mm-dropdown .unity-base-dropdown__label,
+.mm-dropdown .unity-base-popup-field__text {
     color: var(--text);
     font-size: 13px;
     flex-grow: 1;
 }
-.mm-dropdown .unity-dropdown-field__arrow {
+.mm-dropdown .unity-dropdown-field__arrow,
+.mm-dropdown .unity-base-popup-field__arrow {
     -unity-background-image-tint-color: var(--dim);
     width: 12px;
     height: 12px;
@@ -346,6 +256,10 @@
 .mm-toggle .unity-toggle__label { display: none; }
 
 .mm-toggle .unity-toggle__input {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 40px;
+    min-width: 40px;
     width: 40px;
     height: 22px;
     border-radius: 11px;
@@ -387,3 +301,61 @@
     border-top-width: 1px;
     border-top-color: var(--border);
 }
+
+/* ---- two columns: audio + display | microphone ---- */
+.mm-settings-cols { flex-direction: row; }
+.mm-settings-col { flex-grow: 1; flex-basis: 0; flex-direction: column; }
+.mm-settings-col--right { margin-left: 40px; }
+
+/* ---- microphone ---- */
+/* the meter and the Sensitivity slider share one scale (-60..0 dB), so the orange marker sits where
+   the level has to reach before your voice is sent */
+.mm-meter {
+    flex-grow: 1;
+    height: 10px;
+    margin: 0 10px;
+    border-radius: 5px;
+    background-color: rgba(143, 176, 187, 0.15);
+}
+.mm-meter-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 0%;
+    border-radius: 5px;
+    background-color: rgba(143, 176, 187, 0.6);
+}
+.mm-meter-fill--loud { background-color: var(--aqua); }
+.mm-meter-mark {
+    position: absolute; top: -5px; bottom: -5px;
+    left: 39%;
+    width: 2px;
+    margin-left: -1px;
+    background-color: var(--orange);
+}
+.mm-mic-status {
+    flex-direction: row;
+    align-items: flex-start;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background-color: rgba(2, 10, 18, 0.55);
+    border-width: 1px;
+    border-color: var(--border);
+}
+.mm-mic-dot { width: 10px; height: 10px; border-radius: 5px; margin: 4px 10px 0 0; flex-shrink: 0; background-color: var(--dim); }
+.mm-mic-dot--ok { background-color: #2cc3c4; }
+.mm-mic-dot--warn { background-color: #e6b333; }
+.mm-mic-dot--bad { background-color: #d94040; }
+.mm-mic-status-text { flex-grow: 1; flex-shrink: 1; font-size: 13px; color: var(--text); white-space: normal; padding: 0; margin: 0; }
+.mm-mic-note { font-size: 12px; color: var(--dim); margin-top: 12px; white-space: normal; padding: 0; }
+.mm-link-btn {
+    align-self: flex-start;
+    margin: 8px 0 0 0;
+    padding: 8px 14px;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 1px;
+    border-color: var(--border-aqua);
+    color: var(--aqua);
+    font-size: 13px;
+}
+.mm-link-btn:hover { background-color: rgba(44, 195, 196, 0.12); }

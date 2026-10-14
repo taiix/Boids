@@ -1,12 +1,15 @@
 using System.Collections.Generic;
+using FishGame;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace ReefRun
 {
     /// <summary>
-    /// Drives the settings overlay (ReefRunSettings.uxml): audio sliders, display dropdowns and
-    /// fullscreen/vsync toggles. All values persist to PlayerPrefs and are applied on Apply.
+    /// Drives the settings overlay (ReefRunSettings.uxml): audio sliders, display dropdowns,
+    /// fullscreen/vsync toggles and the microphone section (voice chat on/off, a live mic check
+    /// with the open-mic sensitivity, voice volume, "hear myself" and a link to Steam's own voice
+    /// settings, where the input device is chosen). All values persist to PlayerPrefs on Apply.
     /// Shared by the main menu and the in-game pause menu, so both edit the same settings.
     /// </summary>
     public class ReefRunSettingsPanel
@@ -26,6 +29,15 @@ namespace ReefRun
         readonly DropdownField _resDropdown, _qualityDropdown;
         readonly Toggle _fullscreenToggle, _vsyncToggle;
         Resolution[] _resolutions;
+
+        // microphone
+        readonly Toggle _micToggle, _loopToggle;
+        readonly Slider _thresholdSlider, _voiceVolSlider;
+        readonly Label _thresholdVal, _voiceVolVal, _micDb, _micStatusText;
+        readonly VisualElement _meterFill, _meterMark, _statusDot, _loopRow;
+        readonly MicTester _mic = new();
+        IVisualElementScheduledItem _micPoll;
+        const string SteamVoiceSettingsUrl = "steam://settings/voice";
 
         /// <summary>True from Open until the close fade has finished.</summary>
         public bool IsOpen { get; private set; }
@@ -47,6 +59,29 @@ namespace ReefRun
             _qualityDropdown = root.Q<DropdownField>("quality-dropdown");
             _fullscreenToggle = root.Q<Toggle>("fullscreen-toggle");
             _vsyncToggle = root.Q<Toggle>("vsync-toggle");
+
+            _micToggle = root.Q<Toggle>("mic-toggle");
+            _loopToggle = root.Q<Toggle>("mic-loopback");
+            _loopRow = root.Q<VisualElement>("mic-loopback-row");
+            _thresholdSlider = root.Q<Slider>("mic-threshold");
+            _voiceVolSlider = root.Q<Slider>("voice-volume");
+            _thresholdVal = root.Q<Label>("mic-threshold-val");
+            _voiceVolVal = root.Q<Label>("voice-volume-val");
+            _micDb = root.Q<Label>("mic-db");
+            _micStatusText = root.Q<Label>("mic-status-text");
+            _meterFill = root.Q<VisualElement>("mic-meter-fill");
+            _meterMark = root.Q<VisualElement>("mic-meter-mark");
+            _statusDot = root.Q<VisualElement>("mic-status-dot");
+
+            _thresholdSlider?.RegisterValueChangedCallback(e => ShowThreshold(e.newValue));
+            _voiceVolSlider?.RegisterValueChangedCallback(e => _voiceVolVal.text = Pct(e.newValue));
+            _loopToggle?.RegisterValueChangedCallback(e =>
+            {
+                _mic.SetLoopback(e.newValue);
+                if (e.newValue && !_mic.LoopbackOn) _loopToggle.SetValueWithoutNotify(false);
+            });
+            var steam = root.Q<Button>("mic-steam");
+            if (steam != null) steam.clicked += () => Application.OpenURL(SteamVoiceSettingsUrl);
 
             var close = root.Q<Button>("settings-close");
             if (close != null) close.clicked += Close;
@@ -121,6 +156,49 @@ namespace ReefRun
             bool vsync = PlayerPrefs.GetInt(K_VSYNC, QualitySettings.vSyncCount > 0 ? 1 : 0) == 1;
             _fullscreenToggle?.SetValueWithoutNotify(fs);
             _vsyncToggle?.SetValueWithoutNotify(vsync);
+
+            _micToggle?.SetValueWithoutNotify(VoiceSettings.MicOn);
+            if (_thresholdSlider != null)
+            {
+                _thresholdSlider.SetValueWithoutNotify(VoiceSettings.RmsToMeter(VoiceSettings.Threshold));
+                ShowThreshold(_thresholdSlider.value);
+            }
+            if (_voiceVolSlider != null)
+            {
+                _voiceVolSlider.SetValueWithoutNotify(VoiceSettings.Volume);
+                _voiceVolVal.text = Pct(VoiceSettings.Volume);
+            }
+            _loopToggle?.SetValueWithoutNotify(false);
+        }
+
+        void ShowThreshold(float meter)
+        {
+            if (_thresholdVal != null) _thresholdVal.text = $"{Mathf.RoundToInt(meter * 60f - 60f)} dB";
+            if (_meterMark != null) _meterMark.style.left = Length.Percent(meter * 100f);
+        }
+
+        // ~20x a second while open: run the mic check and paint the meter + verdict.
+        void PollMic()
+        {
+            if (_thresholdSlider == null) return;
+            float thresholdMeter = _thresholdSlider.value;
+            _mic.Poll(VoiceSettings.MeterToRms(thresholdMeter), _micToggle == null || _micToggle.value);
+
+            if (_meterFill != null)
+            {
+                _meterFill.style.width = Length.Percent(_mic.Meter * 100f);
+                _meterFill.EnableInClassList("mm-meter-fill--loud", _mic.Meter >= thresholdMeter);
+            }
+            if (_micDb != null) _micDb.text = _mic.Meter > 0.01f ? $"{Mathf.RoundToInt(_mic.LevelDb)} dB" : "–";
+            if (_micStatusText != null) _micStatusText.text = _mic.Message;
+            if (_statusDot != null)
+            {
+                var v = _mic.State;
+                _statusDot.EnableInClassList("mm-mic-dot--ok", v == MicTester.Verdict.Heard);
+                _statusDot.EnableInClassList("mm-mic-dot--warn", v == MicTester.Verdict.TooQuiet || v == MicTester.Verdict.MicOff
+                                                                || v == MicTester.Verdict.Silent || v == MicTester.Verdict.NoAudio);
+                _statusDot.EnableInClassList("mm-mic-dot--bad", v == MicTester.Verdict.NoSteam || v == MicTester.Verdict.SteamError);
+            }
         }
 
         public void Open()
@@ -132,6 +210,12 @@ namespace ReefRun
             _overlay.style.display = DisplayStyle.Flex;
             _overlay.schedule.Execute(
                 () => _overlay.AddToClassList("show")).StartingIn(16);
+
+            // mic check runs only while the screen is open
+            _mic.Start();
+            if (_loopRow != null) _loopRow.style.display = _mic.UsingGameMic ? DisplayStyle.None : DisplayStyle.Flex;
+            if (_micPoll == null) _micPoll = _overlay.schedule.Execute(PollMic).Every(50);
+            else _micPoll.Resume();
         }
 
         public void Close()
@@ -139,6 +223,9 @@ namespace ReefRun
             if (_overlay == null) return;
             // revert live master volume preview to last saved value
             AudioListener.volume = PlayerPrefs.GetFloat(K_MASTER, 1f);
+            _micPoll?.Pause();
+            _mic.Stop();
+            _loopToggle?.SetValueWithoutNotify(false);
             _overlay.RemoveFromClassList("show");
             _overlay.schedule.Execute(() =>
             {
@@ -179,6 +266,9 @@ namespace ReefRun
             PlayerPrefs.SetInt(K_RES_IDX, ri);
             PlayerPrefs.SetInt(K_FULLSCREEN, fs ? 1 : 0);
             PlayerPrefs.SetInt(K_VSYNC, vsync);
+            if (_micToggle != null) VoiceSettings.MicOn = _micToggle.value;
+            if (_thresholdSlider != null) VoiceSettings.Threshold = VoiceSettings.MeterToRms(_thresholdSlider.value);
+            if (_voiceVolSlider != null) VoiceSettings.Volume = _voiceVolSlider.value;
             PlayerPrefs.Save();
 
             Close();

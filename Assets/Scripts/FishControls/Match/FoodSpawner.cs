@@ -29,7 +29,9 @@ namespace FishGame
         void Awake()
         {
             // Make sure remote clients know how to spawn the pellet (server spawns it below).
-            if (foodPrefab != null && foodPrefab.TryGetComponent<NetworkIdentity>(out _))
+            // Only once: registration outlives the scene, and re-registering warns "Replacing existing prefab".
+            if (foodPrefab != null && foodPrefab.TryGetComponent<NetworkIdentity>(out var id)
+                && !(NetworkClient.prefabs.TryGetValue(id.assetId, out var known) && known == foodPrefab))
                 NetworkClient.RegisterPrefab(foodPrefab);
         }
 
@@ -61,7 +63,7 @@ namespace FishGame
         }
 
         static int CountAlive() =>
-            FindObjectsByType<FoodPellet>(FindObjectsSortMode.None).Length;
+            FindObjectsByType<FoodPellet>().Length;
 
         // Always-on gizmo so the spawn area is visible without selecting the object. Pellets spawn
         // at a random (x, z) inside this rectangle, at areaCenter.y (the water surface), then sink.

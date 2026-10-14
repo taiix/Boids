@@ -35,15 +35,20 @@ namespace ReefRun
         [Tooltip("Give up waiting for the round and reveal the scene after this many seconds.")]
         public float MaxWaitSeconds = 120f;
 
+        [Tooltip("Depth the gauge counts down to (the seabed under the spawn is ~80 m).")]
+        public float SeabedDepth = 80f;
+
         UIDocument _doc;
         VisualElement _overlay;
         bool _playing;
+        string _line2Text;
+        float _depth01;          // 0..1 of the way down, shown on the gauge
 
         void Awake()
         {
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            DontDestroyOnLoad(transform.root.gameObject);   // lives under Bootstrapper; DDOL needs the root
         }
 
         void OnEnable()
@@ -64,6 +69,7 @@ namespace ReefRun
             if (root == null) yield break;
             _overlay = root.Q<VisualElement>("overlay") ?? root;
             _overlay.style.display = DisplayStyle.None;
+            _line2Text = _overlay.Q<Label>("ov-line-2")?.text;
         }
 
         /// <summary>
@@ -76,9 +82,40 @@ namespace ReefRun
             _playing = true;
             _overlay.style.display = DisplayStyle.Flex;
             _overlay.style.opacity = 1f;   // instant full-dark cover (no lobby flash)
+            var line2 = _overlay.Q<Label>("ov-line-2");
+            if (line2 != null && _line2Text != null) line2.text = _line2Text;   // a previous round may have left "waiting..."
+            _depth01 = 0f;
+            StartCoroutine(Animate());
             // text reveals still animate via USS .ov-line transitions
             _overlay.schedule.Execute(() => _overlay.AddToClassList("phase1")).StartingIn(1700);
             _overlay.schedule.Execute(() => _overlay.AddToClassList("phase2")).StartingIn(3000);
+        }
+
+        // While playing: the dots pulse one after another and the depth gauge sinks towards the seabed,
+        // easing in so it never quite arrives until the match is actually ready (FadeOutWhenSettled).
+        System.Collections.IEnumerator Animate()
+        {
+            var dots = _overlay.Query(className: "ov-dot").ToList();
+            var depthLabel = _overlay.Q<Label>("ov-depth-val");
+            var bar = _overlay.Q<VisualElement>("ov-bar-fill");
+            float t = 0f;
+            while (_playing)
+            {
+                t += Time.unscaledDeltaTime;
+                int lit = Mathf.FloorToInt(t / 0.35f) % (dots.Count + 1);
+                for (int i = 0; i < dots.Count; i++) dots[i].EnableInClassList("ov-dot--on", i < lit);
+
+                _depth01 = Mathf.Max(_depth01, 1f - Mathf.Exp(-t / 2.5f));   // eases in, ~0.95 after ~7 s
+                _depth01 = Mathf.Min(_depth01, 0.95f);
+                ShowDepth(depthLabel, bar, _depth01);
+                yield return null;
+            }
+        }
+
+        void ShowDepth(Label label, VisualElement bar, float f)
+        {
+            if (label != null) label.text = $"{Mathf.RoundToInt(f * SeabedDepth)} M";
+            if (bar != null) bar.style.width = Length.Percent(f * 100f);
         }
 
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -115,6 +152,8 @@ namespace ReefRun
             yield return null;
             yield return null;
             yield return null;
+
+            ShowDepth(_overlay.Q<Label>("ov-depth-val"), _overlay.Q<VisualElement>("ov-bar-fill"), 1f);   // on the seabed
 
             float t = 0f;
             while (t < dur)

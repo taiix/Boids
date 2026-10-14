@@ -93,14 +93,17 @@ public class SteamLobby : MonoBehaviour
 
         if (lobbyId != _currentLobbyId) return;
 
+        var lobbyUi = FindAnyObjectByType<ReefRunLobbyController>();
         if (memberId != lobbyId)
         {
-            var controller = FindAnyObjectByType<ReefRunLobbyController>();
-            if (controller == null) return;
+            if (lobbyUi == null) return;
             string val = SteamMatchmaking.GetLobbyMemberData(lobbyId, memberId, "ready");
-            controller.SetReady(memberId, val == "1");
+            lobbyUi.SetReady(memberId, val == "1");
             return;
         }
+
+        // Lobby-level data (e.g. the host's survival clock choice).
+        if (lobbyUi != null) lobbyUi.RefreshLobbyData();
 
         // Host pressed Start — play the launch overlay on every client. Mirror
         // will pull clients into the game scene right after (host's StartMatch).
@@ -155,9 +158,21 @@ public class SteamLobby : MonoBehaviour
     {
         if (SteamManager.Initialized)
         {
-            Debug.Log("bimbams");
-            SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypeFriendsOnly, networkManager.maxConnections);
+            // Reef Run is 4 divers (3 fish + 1 shark); Steam turns away a 5th.
+            networkManager.maxConnections = ReefRunLobbyController.MaxSlots;
+            SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypeFriendsOnly, ReefRunLobbyController.MaxSlots);
         }
+    }
+
+    /// <summary>
+    /// Join a Steam lobby directly (e.g. a friend's, from the main menu). The rest is the same path as
+    /// accepting an invite: OnLobbyEntered -> OnLobbyDataUpdate connects to the host and loads the lobby.
+    /// </summary>
+    public void JoinLobby(CSteamID lobbyId)
+    {
+        if (!SteamManager.Initialized || !lobbyId.IsValid()) return;
+        if (_currentLobbyId.IsValid() && _currentLobbyId != lobbyId) LeaveLobby();
+        SteamMatchmaking.JoinLobby(lobbyId);
     }
 
     private void ConstructPlayer(bool isHost, CSteamID steamId)

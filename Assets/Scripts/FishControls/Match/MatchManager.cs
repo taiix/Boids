@@ -34,6 +34,12 @@ namespace FishGame
     {
         public static MatchManager Instance { get; private set; }
 
+        /// <summary>
+        /// Survival clock chosen by the host in the lobby, in seconds. When set (> 0) the server uses it
+        /// instead of <see cref="roundDurationSeconds"/>; it lives in a static so it survives the scene load.
+        /// </summary>
+        public static float RoundSecondsOverride = -1f;
+
         [Header("Round")]
         [Tooltip("How long the fish must survive before the exit opens, in seconds (600 = 10 min).")]
         [SerializeField] float roundDurationSeconds = 600f;
@@ -105,6 +111,13 @@ namespace FishGame
         void OnDestroy()
         {
             if (Instance == this) Instance = null;
+        }
+
+        public override void OnStartServer()
+        {
+            base.OnStartServer();
+            if (RoundSecondsOverride > 0f) roundDurationSeconds = RoundSecondsOverride;
+            if (autoStartDelay >= 0f) _autoStartAt = Now + autoStartDelay;
         }
 
         void Start()

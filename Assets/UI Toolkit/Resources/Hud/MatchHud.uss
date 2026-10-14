@@ -1,0 +1,86 @@
+/* ============================================================
+   REEF RUN — in-game HUD (built in code by MatchHud)
+   Same palette and type as the menu/lobby: navy panels #051729,
+   teal #179499 key tiles with orange #ffb84d glyphs, health #d94040,
+   hunger #e6b333. Authored at 1920x1080 (HudPanelSettings scales).
+   ============================================================ */
+
+:root {
+    --navy: #051729;
+    --panel: rgba(5, 23, 41, 0.78);
+    --teal: #179499;
+    --teal-l: #2cc3c4;
+    --orange: #ffb84d;
+    --red: #d94040;
+    --shark: #ff6b6b;
+    --amber: #e6b333;
+    --text: #eef6f7;
+    --dim: #8fb0bb;
+    --line: rgba(143, 176, 187, 0.18);
+}
+
+.hud { position: absolute; left: 0; top: 0; right: 0; bottom: 0; color: var(--text); font-size: 16px;
+       -unity-font-definition: url("../../Fonts/Barlow-Regular.ttf"); }
+.hud Label { padding: 0; margin: 0; }
+.hud-panel { background-color: var(--panel); border-width: 1px; border-color: var(--line); border-radius: 12px; }
+.xb { -unity-font-definition: url("../../Fonts/BarlowCondensed-ExtraBold.ttf"); }
+.cb { -unity-font-definition: url("../../Fonts/BarlowCondensed-Bold.ttf"); }
+.sb { -unity-font-definition: url("../../Fonts/Barlow-SemiBold.ttf"); }
+
+/* key tile, like the reef-puzzle arrows */
+.key { min-width: 32px; height: 32px; padding: 0 8px; margin: 0 12px; border-radius: 7px; background-color: var(--teal);
+       color: var(--orange); font-size: 18px; -unity-text-align: middle-center;
+       -unity-font-definition: url("../../Fonts/BarlowCondensed-ExtraBold.ttf"); }
+
+/* ---------- survival clock (top centre) ---------- */
+.clock { position: absolute; top: 20px; left: 50%; translate: -50% 0; width: 150px; align-items: center; padding: 6px 14px 8px 14px; }
+.clock-label { font-size: 11px; letter-spacing: 3px; color: var(--orange); }
+.clock-time { font-size: 32px; letter-spacing: 2px; margin-top: 2px; }
+.clock-time--low { color: var(--red); }
+.clock-bar { width: 100%; height: 3px; margin-top: 5px; border-radius: 2px; background-color: rgba(143, 176, 187, 0.18); }
+.clock-fill { height: 3px; width: 100%; border-radius: 2px; background-color: var(--teal-l); }
+.clock-fill--low { background-color: var(--red); }
+
+.hidden { display: none; }
+
+/* ---------- vitals (bottom left) ---------- */
+.vitals { position: absolute; left: 32px; bottom: 32px; width: 380px; padding: 14px 18px; }
+.vrow { flex-direction: row; align-items: center; height: 30px; }
+.vlabel { width: 92px; font-size: 15px; letter-spacing: 2.5px; color: var(--dim); }
+.vbar { flex-grow: 1; height: 10px; border-radius: 5px; background-color: rgba(143, 176, 187, 0.16); }
+.vfill { height: 10px; border-radius: 5px; width: 100%; }
+.vfill--health { background-color: var(--red); }
+.vfill--hunger { background-color: var(--amber); }
+.vval { width: 52px; font-size: 15px; -unity-text-align: middle-right; }
+.vlabel--alert { color: var(--red); }
+
+/* ---------- voice (bottom right) ---------- */
+.voice { position: absolute; right: 32px; bottom: 32px; flex-direction: row; align-items: center; padding: 9px 16px 9px 12px; }
+.voice-label { font-size: 15px; letter-spacing: 2px; color: var(--dim); margin-left: 8px; }
+.voice--talking { border-color: var(--teal-l); }
+.voice--talking .voice-label { color: var(--teal-l); }
+.voice--off .voice-label { color: var(--amber); }
+
+/* ---------- prompt + progress (lower centre) ---------- */
+.prompt { position: absolute; left: 0; right: 0; top: 66%; align-items: center; }
+.prompt-pill { flex-direction: row; align-items: center; padding: 10px 20px; }
+.prompt-text { font-size: 20px; -unity-font-definition: url("../../Fonts/Barlow-SemiBold.ttf"); }
+.status { margin-top: 8px; padding: 6px 16px; }
+.status-text { font-size: 17px; color: var(--dim); -unity-font-definition: url("../../Fonts/Barlow-SemiBold.ttf"); }
+.progress { width: 340px; height: 8px; margin-top: 10px; border-radius: 4px; background-color: rgba(5, 23, 41, 0.78); }
+.progress-fill { height: 8px; border-radius: 4px; width: 0%; background-color: var(--teal-l); }
+
+/* ---------- flash (centre, under the prompt) ---------- */
+.flash { position: absolute; left: 0; right: 0; top: 58%; align-items: center; opacity: 0; transition: opacity 0.2s ease; }
+.flash--show { opacity: 1; }
+.flash-text { font-size: 22px; letter-spacing: 1px; color: var(--orange); padding: 6px 18px; }
+
+/* ---------- banner: eaten / round over ---------- */
+.banner { position: absolute; left: 0; right: 0; top: 36%; align-items: center; padding: 26px 0 30px 0;
+          background-color: rgba(3, 12, 22, 0.72); border-top-width: 1px; border-bottom-width: 1px; border-color: var(--line);
+          opacity: 0; transition: opacity 0.4s ease; }
+.banner--show { opacity: 1; }
+.banner-title { font-size: 84px; letter-spacing: 4px; }
+.banner-sub { font-size: 20px; color: var(--dim); margin-top: 4px; }
+.banner--fish .banner-title { color: var(--teal-l); }
+.banner--shark .banner-title { color: var(--shark); }

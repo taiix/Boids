@@ -33,7 +33,7 @@ namespace FishGame
         // more than once during startup, so everything here is idempotent.
         static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            foreach (var veg in Object.FindObjectsByType<ProceduralVegetation>(FindObjectsSortMode.None))
+            foreach (var veg in Object.FindObjectsByType<ProceduralVegetation>())
             {
                 if (veg == null || !s_reefs.Add(veg)) continue;
                 TestTerrain.OnCreatingDone.RemoveListener(veg.Init); // we run it, seeded

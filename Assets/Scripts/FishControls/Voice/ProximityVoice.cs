@@ -33,8 +33,8 @@ namespace FishGame
         [SerializeField] float fullVolumeDistance = 3f;
 
         [Header("Open mic")]
-        [Tooltip("Loudness (RMS, 0-1) the mic must exceed before anything is transmitted.")]
-        [Range(0f, 0.2f)][SerializeField] float voiceThreshold = 0.015f;
+        // The loudness gate itself is the player's setting (VoiceSettings.Threshold, Settings > Microphone):
+        // a fixed value here left quiet microphones never transmitting at all.
         [Tooltip("Keep transmitting this long after you drop below the threshold, so the ends of " +
                  "words are not clipped off.")]
         [SerializeField] float holdSeconds = 0.35f;
@@ -87,10 +87,27 @@ namespace FishGame
 
         public bool IsSpeaking { get; private set; }
 
+        /// <summary>The local player's voice, while it is recording - the settings screen reads the mic
+        /// level from here in-game instead of pulling audio out of Steam itself (which would steal it).</summary>
+        public static ProximityVoice LocalMic => s_micOwner != null && s_micOwner._recording ? s_micOwner : null;
+
+        /// <summary>Loudness (RMS) of the latest mic frame, and when it arrived (unscaled time).</summary>
+        public float MicLevel { get; private set; }
+        public float MicLevelTime { get; private set; } = -1f;
+        public EVoiceResult MicStatus => _lastMicResult;
+
         void Awake()
         {
             _player = GetComponent<FishPlayer>();
             _vitals = GetComponent<FishVitals>();   // fish and shark both have one; null is treated as alive
+        }
+
+        void OnEnable() => VoiceSettings.Changed += ApplyVolume;
+        void OnDisable() => VoiceSettings.Changed -= ApplyVolume;
+
+        void ApplyVolume()
+        {
+            if (_source != null) _source.volume = VoiceSettings.Volume;
         }
 
         public override void OnStartClient()
@@ -172,7 +189,8 @@ namespace FishGame
             var got = SteamUser.GetVoice(true, _compressed, (uint)_compressed.Length, out uint written);
             if (got != EVoiceResult.k_EVoiceResultOK || written == 0) return;
 
-            if (!PassesGate(_compressed, written))
+            // Measure even with the mic switched off, so the settings meter still shows the level.
+            if (!PassesGate(_compressed, written) || !VoiceSettings.MicOn)
             {
                 IsSpeaking = false;
                 return;
@@ -181,6 +199,11 @@ namespace FishGame
             IsSpeaking = true;
 
             if (written > MaxPayloadBytes) { _statTooLarge++; return; }   // see MaxPayloadBytes
+            // Mid scene change (back to the lobby) the connection is not ready and the server drops
+            // commands with a warning - the frame is lost either way, so don't send it.
+            // On the host the server side goes not-ready a frame before the client side notices.
+            if (!NetworkClient.ready || NetworkClient.isLoadingScene || NetworkServer.isLoadingScene) return;
+            if (isServer && connectionToClient != null && !connectionToClient.isReady) return;
 
             var payload = new byte[written];
             System.Buffer.BlockCopy(_compressed, 0, payload, 0, (int)written);
@@ -213,7 +236,7 @@ namespace FishGame
                     Debug.Log($"[Voice] Mic: no audio from Steam in the last {StatsInterval:0}s " +
                               $"(Steam status {_lastMicResult}) - check Steam > Settings > Voice and Windows microphone access.");
                 else
-                    Debug.Log($"[Voice] Mic: loudest {_statPeakRms:0.000} (open-mic threshold {voiceThreshold:0.000}), " +
+                    Debug.Log($"[Voice] Mic: loudest {_statPeakRms:0.000} (open-mic threshold {VoiceSettings.Threshold:0.000}), " +
                               $"sent {_statSent} packets" + (_statTooLarge > 0 ? $", {_statTooLarge} too large to send" : "") + ".");
             }
             else if (_statReceived > 0)
@@ -247,9 +270,11 @@ namespace FishGame
             }
 
             float rms = samples > 0 ? Mathf.Sqrt((float)(sum / samples)) : 0f;
+            MicLevel = rms;
+            MicLevelTime = Time.unscaledTime;
             _statFrames++;
             if (rms > _statPeakRms) _statPeakRms = rms;
-            if (rms >= voiceThreshold) _loudUntil = Time.unscaledTime + holdSeconds;
+            if (rms >= VoiceSettings.Threshold) _loudUntil = Time.unscaledTime + holdSeconds;
 
             return Time.unscaledTime < _loudUntil;
         }
@@ -316,6 +341,7 @@ namespace FishGame
             _source.loop = true;
             _source.playOnAwake = false;
             _source.dopplerLevel = 0f;                       // voices should not warble as fish dart about
+            _source.volume = VoiceSettings.Volume;           // Settings > Microphone > Voice volume
 
             _lowPass = gameObject.AddComponent<AudioLowPassFilter>();
             _lowPass.enabled = false;

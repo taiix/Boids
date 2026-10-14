@@ -91,7 +91,7 @@ namespace FishGame
             if (_cameraData == null) _cameraData = GetComponent<HDAdditionalCameraData>();
 
             if (water == null)
-                water = FindFirstObjectByType<WaterSurface>();
+                water = FindAnyObjectByType<WaterSurface>();
 
             if (water != null && !_capturedDefault)
             {

@@ -71,9 +71,13 @@ public class SteamManager : MonoBehaviour
     protected virtual void Awake()
     {
         // Only one instance of SteamManager at a time!
+        // Remove just this duplicate component, never its GameObject: in Bootstrap it shares "Steam" with
+        // SteamLobby, the NetworkManager and the transport. Reading Initialized before Bootstrap has loaded
+        // creates a stand-alone SteamManager first, and destroying the whole object here then took the
+        // lobby with it (HOST silently did nothing).
         if (s_instance != null)
         {
-            Destroy(gameObject);
+            Destroy(this);
             return;
         }
         s_instance = this;
@@ -88,7 +92,7 @@ public class SteamManager : MonoBehaviour
         }
 
         // We want our SteamManager Instance to persist across scenes.
-        DontDestroyOnLoad(gameObject);
+        DontDestroyOnLoad(transform.root.gameObject);   // we may be a child (Bootstrapper/Steam); DDOL needs the root
 
         if (!Packsize.Test())
         {
