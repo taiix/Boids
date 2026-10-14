@@ -96,6 +96,7 @@ public class FishPlayer : NetworkBehaviour
     private InputAction _struggleAction;
     private const float MinStruggleGap = 0.05f;
     private float _nextSeabedCheck;
+    private float _underSince = -1f;   // when the body was first found under the seabed (-1: it isn't)
 
     /// <summary>Caught and struggling in the shark's jaws (until it's swallowed or breaks free).</summary>
     public bool IsHeld => _inJaws;
@@ -435,13 +436,13 @@ public class FishPlayer : NetworkBehaviour
             SetLocallyControlled(live);
 
         // Fish only (pellets are fish food): prompt when a pellet is in reach - unless we're next to a
-        // task, where E joins it instead.
-        if (_controlsLive && !IsSharkBody && !NetworkedSequenceTask.LocalNearAnyTask && PelletInReach() != null)
+        // task, where E joins it (or bites the turtle's rope) instead.
+        bool taskOwnsE = NetworkedSequenceTask.LocalNearAnyTask || TangledTurtle.LocalAtRope;
+        if (_controlsLive && !IsSharkBody && !taskOwnsE && PelletInReach() != null)
             MatchHud.ShowPrompt("Press E to eat");
 
         // E eats — unless we're next to a task, where E joins it instead (the task handles that press).
-        if (_controlsLive && _eatAction != null && _eatAction.WasPressedThisFrame()
-            && !NetworkedSequenceTask.LocalNearAnyTask)
+        if (_controlsLive && _eatAction != null && _eatAction.WasPressedThisFrame() && !taskOwnsE)
         {
             if (_offlineLocal) ServerEatNearestPellet(); // offline: eat directly (no Command/server)
             else CmdEat();
@@ -769,9 +770,19 @@ public class FishPlayer : NetworkBehaviour
     // jaws inside the sand, a dash clipping through) would just sink out of the world. Put it back on top.
     private void KeepAboveSeabed()
     {
+        // The body, not the pivot: a fish's pivot sits under its body (0.4 m below the middle of its capsule),
+        // so swimming along the bottom it's in the sand while the fish is fine. Under the world means all of
+        // it is below the seabed - and still is a moment later, not just for one physics step.
         Vector3 p = transform.position;
-        if (WaterFx.GroundBelow(p)) return;                          // on top of the world, as it should be
-        if (!WaterFx.SeabedHeight(p, out float ground) || p.y > ground) return; // off the edge, not under it
+        Bounds body = TryGetComponent(out Collider solid) ? solid.bounds : new Bounds(p, Vector3.one * 0.4f);
+        bool under = !WaterFx.GroundBelow(body.center)
+                     && WaterFx.SeabedHeight(body.center, out float ground)      // (none: off the edge, not under it)
+                     && body.max.y < ground - 0.05f;
+        if (!under) { _underSince = -1f; return; }
+        if (_underSince < 0f) _underSince = Time.time;
+        if (Time.time - _underSince < 0.3f) return;
+        _underSince = -1f;
+
         Vector3 safe = AboveSeabed(p);
         transform.position = safe;
         if (TryGetComponent(out Rigidbody rb))
