@@ -399,6 +399,11 @@ MonoBehaviour:
   minDistance: 0.8
   collisionBuffer: 0.2
   zoomReturnSharpness: 8
+  firstPersonKey: 36
+  eyeOffset: {x: 0, y: 0, z: 0}
+  viewBlendSeconds: 0.25
+  firstPersonClearance: 0.2
+  firstPersonNearClip: 0.05
 --- !u!114 &2242292346414140160
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -416,8 +421,8 @@ MonoBehaviour:
   fishLayer: PostFxFish
   sharkLayer: PostFxShark
   rolePriority: 10
-  fishAbsorptionDistance: 31
-  sharkAbsorptionDistance: 46
+  fishAbsorptionDistance: 110
+  sharkAbsorptionDistance: 150
   water: {fileID: 0}
   blendSeconds: 1.5
   forceTemporalAA: 1
@@ -720,9 +725,18 @@ MonoBehaviour:
   syncInterval: 0
   camera: {fileID: 0}
   Role: 1
+  Outcome: 0
+  PlayerName: 
   eatRange: 1.6
   mouthOffset: 1
   remoteEatSlack: 1.5
+  struggleSeconds: 4.5
+  struggleGainPerPress: 0.1
+  struggleHoldRate: {x: 3.5, y: 9}
+  breakFreeDamage: 30
+  breakFreeMinHealth: 5
+  breakFreeSpeed: 10
+  sharkStunSeconds: 1.5
   RoundLive: 0
   BlendFlock: 0
 --- !u!114 &7517325213802545162
@@ -764,7 +778,6 @@ MonoBehaviour:
   syncInterval: 0
   earshot: 30
   fullVolumeDistance: 3
-  voiceThreshold: 0.015
   holdSeconds: 0.35
   sendInterval: 0.05
   sharkLowPassHz: 900
@@ -821,6 +834,7 @@ MonoBehaviour:
   minThrottle: 0.2
   minFacing: 0.3
   remoteSlack: 1.5
+  pushSpeedMargin: 0.6
 --- !u!1 &6744179510574502864
 GameObject:
   m_ObjectHideFlags: 0

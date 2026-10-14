@@ -40,8 +40,10 @@ namespace FishGame
 
         [Header("Underwater view range")]
         // NOTE: these are the RAW WaterSurface.absorptionDistance values. The surface also has an
-        // absorptionDistanceMultiplier (2.4 on the Island ocean), so the effective range is roughly
-        // 2.4x these numbers: ~74m for the fish and ~132m for the shark against a ~89m default.
+        // absorptionDistanceMultiplier (0.84 on IslandTest's ocean, 2.4 in the menu), so the effective
+        // range is that many times these numbers. The water mostly sets how much sunlight survives the
+        // depth (HDRP dims the volumetric light by depth x absorption); how far each role sees is mostly
+        // the haze in its grading profile (Fog mean free path) plus its depth of field.
         // Tune by eye, not by reading these as metres.
         [Tooltip("Raw water absorption distance while playing as prey. Lower = murkier, sees less. " +
                  "This is the dominant underwater visibility lever. The water surface multiplies it " +

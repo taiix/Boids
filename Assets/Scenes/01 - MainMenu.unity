@@ -1340,8 +1340,8 @@ MonoBehaviour:
   fishLayer: PostFxFish
   sharkLayer: PostFxShark
   rolePriority: 10
-  fishAbsorptionDistance: 31
-  sharkAbsorptionDistance: 46
+  fishAbsorptionDistance: 38
+  sharkAbsorptionDistance: 52
   water: {fileID: 0}
   blendSeconds: 1.5
   forceTemporalAA: 1
@@ -12019,10 +12019,10 @@ MonoBehaviour:
   maxTessellationFactor: 3
   tessellationFactorFadeStart: 150
   tessellationFactorFadeRange: 1850
-  refractionColor: {r: 0.14083776, g: 0.72538227, b: 0.8562991, a: 1}
+  refractionColor: {r: 0.18, g: 0.82, b: 0.9, a: 1}
   maxRefractionDistance: 2
-  absorptionDistance: 68
-  scatteringColor: {r: 0, g: 0.10753616, b: 0.3812781, a: 1}
+  absorptionDistance: 46
+  scatteringColor: {r: 0, g: 0.32, b: 0.62, a: 1}
   ambientScattering: 0.446
   heightScattering: 0.5
   displacementScattering: 1
@@ -12030,7 +12030,7 @@ MonoBehaviour:
   directLightBodyScattering: 0.5
   maximumHeightOverride: 5
   caustics: 1
-  causticsIntensity: 1.6
+  causticsIntensity: 3
   causticsPlaneBlendDistance: 3
   causticsResolution: 1024
   causticsBand: 2
@@ -13457,7 +13457,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1032596573}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.1717131, y: -0.5943313, z: 0.13176008, w: 0.77454776}
+  m_LocalRotation: {x: -0.3477832, y: 0.54715115, z: -0.26686344, w: -0.7130613}
   m_LocalPosition: {x: 0, y: 74.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -13495,7 +13495,7 @@ MonoBehaviour:
   m_ObsoleteContactShadows: 0
   m_SpotIESCutoffPercent: 100
   m_LightDimmer: 1
-  m_VolumetricDimmer: 1
+  m_VolumetricDimmer: 3
   m_FadeDistance: 10000
   m_VolumetricFadeDistance: 10000
   m_AffectDiffuse: 1
@@ -13615,8 +13615,8 @@ Light:
   m_Enabled: 1
   serializedVersion: 13
   m_Type: 1
-  m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
-  m_Intensity: 130000
+  m_Color: {r: 0.82, g: 0.96, b: 1, a: 1}
+  m_Intensity: 85947.14
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 0
@@ -20171,6 +20171,65 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1764023309201174998, guid: 4b39feface1afa8459d0747bf007103c, type: 3}
   m_PrefabInstance: {fileID: 1516522606}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1521989792
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1521989794}
+  - component: {fileID: 1521989793}
+  m_Layer: 0
+  m_Name: Underwater Ambience
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1521989793
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1521989792}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 931697737d2ca954da0425d80fd7fe70, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.UnderwaterAmbience
+  sunbeams: 1
+  cellSize: 8
+  density: 0.42
+  radius: 52
+  width: {x: 2.5, y: 7}
+  length: {x: 22, y: 42}
+  sway: 0.7
+  flicker: 0.55
+  specks: 1
+  maxSpecks: 1600
+  specksPerSecond: 170
+  speckBox: {x: 34, y: 18, z: 34}
+  speckSize: {x: 0.02, y: 0.075}
+  sinkSpeed: 0.04
+  sun: {fileID: 0}
+--- !u!4 &1521989794
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1521989792}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1522008082
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -31537,3 +31596,4 @@ SceneRoots:
   - {fileID: 497290215}
   - {fileID: 1964164876}
   - {fileID: 131006807}
+  - {fileID: 1521989794}

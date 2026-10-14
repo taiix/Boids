@@ -49,7 +49,7 @@ namespace FishGame
         int _jitterSamples;
         byte[] _compressed, _pcmBytes;
         float[] _pcm;
-        bool _recording, _registeredServer, _registeredClient;
+        bool _recording;
         float _nextSend, _loudUntil;
         ulong _me;
 
@@ -71,16 +71,11 @@ namespace FishGame
             _pcmBytes = new byte[_rate * 2];
             _pcm = new float[_rate];
 
-            if (NetworkServer.active)
-            {
-                NetworkServer.ReplaceHandler<LobbyVoiceMsg>(OnServerVoice);
-                _registeredServer = true;
-            }
-            if (NetworkClient.active)
-            {
-                NetworkClient.ReplaceHandler<LobbyVoiceMsg>(OnClientVoice);
-                _registeredClient = true;
-            }
+            // Registered for the whole network session and never taken away while it runs: a frame
+            // still in flight when the lobby closes (the dive starting) must find a handler, or Mirror
+            // disconnects whoever sent it - the host's own client included. Without a lobby, frames are dropped.
+            if (NetworkServer.active) NetworkServer.ReplaceHandler<LobbyVoiceMsg>(OnServerVoice);
+            if (NetworkClient.active) NetworkClient.ReplaceHandler<LobbyVoiceMsg>(OnClientVoice);
 
             SteamUser.StartVoiceRecording();
             _recording = true;
@@ -90,9 +85,6 @@ namespace FishGame
         {
             VoiceSettings.Changed -= ApplyVolume;
             if (s_instance == this) s_instance = null;
-            if (_registeredServer && NetworkServer.active) NetworkServer.UnregisterHandler<LobbyVoiceMsg>();
-            if (_registeredClient) NetworkClient.UnregisterHandler<LobbyVoiceMsg>();
-            _registeredServer = _registeredClient = false;
 
             // The match's voice takes the mic over when the game scene starts; never stop it under that one.
             if (_recording && ProximityVoice.LocalMic == null && SteamManager.Initialized)
@@ -108,7 +100,7 @@ namespace FishGame
         // ---------------------------------------------------------------- capture + send
         void Update()
         {
-            if (!_recording || !NetworkClient.isConnected) return;
+            if (!_recording || !NetworkClient.isConnected || NetworkClient.isLoadingScene) return;
             if (Time.unscaledTime < _nextSend) return;
             _nextSend = Time.unscaledTime + SendInterval;
 
@@ -130,8 +122,9 @@ namespace FishGame
         }
 
         // ---------------------------------------------------------------- relay (host)
-        void OnServerVoice(NetworkConnectionToClient from, LobbyVoiceMsg msg)
+        static void OnServerVoice(NetworkConnectionToClient from, LobbyVoiceMsg msg)
         {
+            if (s_instance == null) return;   // the lobby has closed: a late frame, nobody to hear it
             if (msg.data.Count == 0 || msg.data.Count > MaxPayloadBytes) return;
             foreach (var conn in NetworkServer.connections.Values)
             {
@@ -141,7 +134,12 @@ namespace FishGame
         }
 
         // ---------------------------------------------------------------- playback (everyone)
-        void OnClientVoice(LobbyVoiceMsg msg)
+        static void OnClientVoice(LobbyVoiceMsg msg)
+        {
+            if (s_instance != null) s_instance.Play(msg);
+        }
+
+        void Play(LobbyVoiceMsg msg)
         {
             if (msg.speaker == _me || msg.data.Count == 0 || _pcm == null) return;
             // ArraySegment is only valid during this call: decode straight out of it.
