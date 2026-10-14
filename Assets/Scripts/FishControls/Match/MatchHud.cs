@@ -11,7 +11,7 @@ namespace FishGame
     ///   * survival clock (top centre), red in the last minute
     ///   * health / hunger (bottom left), "STARVING" once hunger runs out
     ///   * voice (bottom right): talking / quiet / mic off
-    ///   * prompts with key tiles ("Press E to eat"), a hold-progress bar, short flash messages
+    ///   * prompts with key tiles ("Press E to eat"), a task status line, a hold-progress bar, short flash messages
     ///   * a banner when you're eaten and when the round ends
     ///
     /// Created by the local player's body when it spawns, in the game scene, so it goes away with that
@@ -34,6 +34,8 @@ namespace FishGame
         // ---- per-frame requests (call every frame they apply; they vanish on their own) ----
         static string s_prompt;
         static int s_promptFrame = -10;
+        static string s_status;
+        static int s_statusFrame = -10;
         static string s_progressLabel;
         static float s_progress;
         static int s_progressFrame = -10;
@@ -46,6 +48,14 @@ namespace FishGame
         {
             s_prompt = text;
             s_promptFrame = Time.frameCount;
+        }
+
+        /// <summary>Show a task status line (e.g. "1/2 fish pushing") this frame, just under the prompt so the
+        /// two never fight over one spot. Rich text colour tags work.</summary>
+        public static void ShowStatus(string text)
+        {
+            s_status = text;
+            s_statusFrame = Time.frameCount;
         }
 
         /// <summary>Show a progress bar (0-1) under the prompt this frame, e.g. a hold-to-complete task.</summary>
@@ -65,10 +75,10 @@ namespace FishGame
 
         // ---- UI ----
         UIDocument _doc;
-        VisualElement _root, _clockFill, _healthFill, _hungerFill, _voice, _prompt, _promptPill,
+        VisualElement _root, _clockFill, _healthFill, _hungerFill, _voice, _prompt, _promptPill, _status,
                       _progress, _progressFill, _flash, _banner;
         Label _clockLabel, _clockTime, _healthVal, _hungerVal, _hungerLabel, _voiceLabel,
-              _flashText, _bannerTitle, _bannerSub;
+              _flashText, _bannerTitle, _bannerSub, _statusText;
         ReefGlyph _micIcon;
         string _shownPrompt;
         string _bannerKey;
@@ -120,6 +130,8 @@ namespace FishGame
             // prompt + progress
             _prompt = Add(hud, "prompt", "hidden");
             _promptPill = Add(_prompt, "hud-panel", "prompt-pill");
+            _status = Add(_prompt, "hud-panel", "status", "hidden");
+            _statusText = Text(_status, "", "status-text");
             _progress = Add(_prompt, "progress", "hidden");
             _progressFill = Add(_progress, "progress-fill");
 
@@ -203,7 +215,11 @@ namespace FishGame
         {
             bool prompt = !string.IsNullOrEmpty(s_prompt) && Time.frameCount - s_promptFrame <= 1;
             bool progress = Time.frameCount - s_progressFrame <= 1;
-            _prompt.EnableInClassList("hidden", !prompt && !progress);
+            bool status = !string.IsNullOrEmpty(s_status) && Time.frameCount - s_statusFrame <= 1;
+            _prompt.EnableInClassList("hidden", !prompt && !progress && !status);
+
+            _status.EnableInClassList("hidden", !status);
+            if (status && _statusText.text != s_status) _statusText.text = s_status;
 
             string text = prompt ? s_prompt : progress ? s_progressLabel : null;
             if (text != _shownPrompt) { _shownPrompt = text; FillPrompt(text); }

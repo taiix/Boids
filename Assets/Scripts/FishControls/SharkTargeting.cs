@@ -54,7 +54,6 @@ namespace FishGame
         readonly List<GameObject> _candidates = new List<GameObject>();
         readonly HashSet<GameObject> _seen = new HashSet<GameObject>();
         readonly List<Pick> _visible = new List<Pick>();
-<<<<<<< HEAD
         // Player fish revealed by the open exit (tinted with revealColor while they are).
         readonly HashSet<GameObject> _revealed = new HashSet<GameObject>();
         readonly List<GameObject> _revealScratch = new List<GameObject>();
@@ -62,8 +61,7 @@ namespace FishGame
         string _flash;
         float _flashUntil;
         GUIStyle _flashStyle;
-=======
->>>>>>> origin/ui-rework
+
 
         struct Pick { public GameObject go; public float screenDist; }
 
@@ -190,13 +188,9 @@ namespace FishGame
             }
             // Player prey fish (they carry an Edible). Flock fish may carry one too, so _seen keeps
             // each fish single — otherwise Cycle would "advance" onto a duplicate of the same fish.
-<<<<<<< HEAD
-            foreach (var e in FindObjectsByType<Edible>(FindObjectsSortMode.None))
-                if (e != null && !e.IsEaten && e.gameObject != gameObject && !OutOfRound(e.gameObject) && _seen.Add(e.gameObject))
-=======
+
             foreach (var e in FindObjectsByType<Edible>())
                 if (e != null && !e.IsEaten && e.gameObject != gameObject && _seen.Add(e.gameObject))
->>>>>>> origin/ui-rework
                     _candidates.Add(e.gameObject);
         }
 
@@ -270,8 +264,6 @@ namespace FishGame
                     DrawBrackets(new Vector2(sp.x, Screen.height - sp.y), size, glowColor);
                 }
             }
-
-<<<<<<< HEAD
         }
 
         // A small bracket and distance on every revealed fish; those off screen or behind get a marker held
@@ -311,8 +303,6 @@ namespace FishGame
                 DrawDiamond(at, 14f, revealColor);
                 GUI.Label(new Rect(at.x - 50f, at.y + 10f, 100f, 20f), metres, _revealStyle);
             }
-=======
->>>>>>> origin/ui-rework
         }
 
         static void DrawDiamond(Vector2 c, float size, Color col)

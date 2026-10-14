@@ -65,6 +65,8 @@
 .prompt { position: absolute; left: 0; right: 0; top: 66%; align-items: center; }
 .prompt-pill { flex-direction: row; align-items: center; padding: 10px 20px; }
 .prompt-text { font-size: 20px; -unity-font-definition: url("../../Fonts/Barlow-SemiBold.ttf"); }
+.status { margin-top: 8px; padding: 6px 16px; }
+.status-text { font-size: 17px; color: var(--dim); -unity-font-definition: url("../../Fonts/Barlow-SemiBold.ttf"); }
 .progress { width: 340px; height: 8px; margin-top: 10px; border-radius: 4px; background-color: rgba(5, 23, 41, 0.78); }
 .progress-fill { height: 8px; border-radius: 4px; width: 0%; background-color: var(--teal-l); }
 

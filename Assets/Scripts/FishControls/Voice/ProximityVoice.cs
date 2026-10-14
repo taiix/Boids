@@ -201,7 +201,9 @@ namespace FishGame
             if (written > MaxPayloadBytes) { _statTooLarge++; return; }   // see MaxPayloadBytes
             // Mid scene change (back to the lobby) the connection is not ready and the server drops
             // commands with a warning - the frame is lost either way, so don't send it.
-            if (!NetworkClient.ready) return;
+            // On the host the server side goes not-ready a frame before the client side notices.
+            if (!NetworkClient.ready || NetworkClient.isLoadingScene || NetworkServer.isLoadingScene) return;
+            if (isServer && connectionToClient != null && !connectionToClient.isReady) return;
 
             var payload = new byte[written];
             System.Buffer.BlockCopy(_compressed, 0, payload, 0, (int)written);

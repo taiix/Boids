@@ -87,7 +87,9 @@ namespace FishGame
 
         static void Register(GameObject prefab)
         {
-            if (prefab != null && prefab.TryGetComponent(out NetworkIdentity _))
+            // Registration outlives the scene; doing it again next round makes Mirror warn "Replacing existing prefab".
+            if (prefab != null && prefab.TryGetComponent(out NetworkIdentity id)
+                && !(NetworkClient.prefabs.TryGetValue(id.assetId, out var known) && known == prefab))
                 NetworkClient.RegisterPrefab(prefab);
         }
 
