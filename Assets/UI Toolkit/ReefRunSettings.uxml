@@ -6,38 +6,80 @@
                 <ui:Label text="SETTINGS" class="mm-settings-title"/>
                 <ui:Button name="settings-close" text="✕" class="mm-close-btn"/>
             </ui:VisualElement>
-            <ui:Label text="AUDIO" class="mm-section-label"/>
-            <ui:VisualElement class="mm-setting-row">
-                <ui:Label text="Master" class="mm-setting-name"/>
-                <ui:Slider name="master-slider" low-value="0" high-value="1" value="1" class="mm-slider"/>
-                <ui:Label name="master-val" text="100%" class="mm-setting-val"/>
-            </ui:VisualElement>
-            <ui:VisualElement class="mm-setting-row">
-                <ui:Label text="Music" class="mm-setting-name"/>
-                <ui:Slider name="music-slider" low-value="0" high-value="1" value="1" class="mm-slider"/>
-                <ui:Label name="music-val" text="100%" class="mm-setting-val"/>
-            </ui:VisualElement>
-            <ui:VisualElement class="mm-setting-row">
-                <ui:Label text="SFX" class="mm-setting-name"/>
-                <ui:Slider name="sfx-slider" low-value="0" high-value="1" value="1" class="mm-slider"/>
-                <ui:Label name="sfx-val" text="100%" class="mm-setting-val"/>
-            </ui:VisualElement>
-            <ui:Label text="DISPLAY" class="mm-section-label"/>
-            <ui:VisualElement class="mm-setting-row">
-                <ui:Label text="Resolution" class="mm-setting-name"/>
-                <ui:DropdownField name="resolution-dropdown" class="mm-dropdown"/>
-            </ui:VisualElement>
-            <ui:VisualElement class="mm-setting-row">
-                <ui:Label text="Quality" class="mm-setting-name"/>
-                <ui:DropdownField name="quality-dropdown" class="mm-dropdown"/>
-            </ui:VisualElement>
-            <ui:VisualElement class="mm-setting-row">
-                <ui:Label text="Fullscreen" class="mm-setting-name"/>
-                <ui:Toggle name="fullscreen-toggle" class="mm-toggle"/>
-            </ui:VisualElement>
-            <ui:VisualElement class="mm-setting-row">
-                <ui:Label text="VSync" class="mm-setting-name"/>
-                <ui:Toggle name="vsync-toggle" class="mm-toggle"/>
+            <ui:VisualElement class="mm-settings-cols">
+                <!-- ============ left: audio + display ============ -->
+                <ui:VisualElement class="mm-settings-col">
+                    <ui:Label text="AUDIO" class="mm-section-label"/>
+                    <ui:VisualElement class="mm-setting-row">
+                        <ui:Label text="Master" class="mm-setting-name"/>
+                        <ui:Slider name="master-slider" low-value="0" high-value="1" value="1" class="mm-slider"/>
+                        <ui:Label name="master-val" text="100%" class="mm-setting-val"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mm-setting-row">
+                        <ui:Label text="Music" class="mm-setting-name"/>
+                        <ui:Slider name="music-slider" low-value="0" high-value="1" value="1" class="mm-slider"/>
+                        <ui:Label name="music-val" text="100%" class="mm-setting-val"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mm-setting-row">
+                        <ui:Label text="SFX" class="mm-setting-name"/>
+                        <ui:Slider name="sfx-slider" low-value="0" high-value="1" value="1" class="mm-slider"/>
+                        <ui:Label name="sfx-val" text="100%" class="mm-setting-val"/>
+                    </ui:VisualElement>
+                    <ui:Label text="DISPLAY" class="mm-section-label"/>
+                    <ui:VisualElement class="mm-setting-row">
+                        <ui:Label text="Resolution" class="mm-setting-name"/>
+                        <ui:DropdownField name="resolution-dropdown" class="mm-dropdown"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mm-setting-row">
+                        <ui:Label text="Quality" class="mm-setting-name"/>
+                        <ui:DropdownField name="quality-dropdown" class="mm-dropdown"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mm-setting-row">
+                        <ui:Label text="Fullscreen" class="mm-setting-name"/>
+                        <ui:Toggle name="fullscreen-toggle" class="mm-toggle"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mm-setting-row">
+                        <ui:Label text="VSync" class="mm-setting-name"/>
+                        <ui:Toggle name="vsync-toggle" class="mm-toggle"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- ============ right: microphone (voice chat runs through Steam) ============ -->
+                <ui:VisualElement class="mm-settings-col mm-settings-col--right">
+                    <ui:Label text="MICROPHONE" class="mm-section-label"/>
+                    <ui:VisualElement class="mm-setting-row">
+                        <ui:Label text="Voice chat" class="mm-setting-name"/>
+                        <ui:Toggle name="mic-toggle" class="mm-toggle"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mm-setting-row">
+                        <ui:Label text="Mic level" class="mm-setting-name"/>
+                        <ui:VisualElement name="mic-meter" class="mm-meter">
+                            <ui:VisualElement name="mic-meter-fill" class="mm-meter-fill"/>
+                            <ui:VisualElement name="mic-meter-mark" class="mm-meter-mark"/>
+                        </ui:VisualElement>
+                        <ui:Label name="mic-db" text="-60 dB" class="mm-setting-val"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mm-setting-row">
+                        <ui:Label text="Sensitivity" class="mm-setting-name"/>
+                        <ui:Slider name="mic-threshold" low-value="0" high-value="1" value="0.39" class="mm-slider"/>
+                        <ui:Label name="mic-threshold-val" text="-36 dB" class="mm-setting-val"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mm-setting-row">
+                        <ui:Label text="Voice volume" class="mm-setting-name"/>
+                        <ui:Slider name="voice-volume" low-value="0" high-value="1.5" value="1" class="mm-slider"/>
+                        <ui:Label name="voice-volume-val" text="100%" class="mm-setting-val"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="mic-loopback-row" class="mm-setting-row">
+                        <ui:Label text="Hear myself" class="mm-setting-name"/>
+                        <ui:Toggle name="mic-loopback" class="mm-toggle"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="mic-status" class="mm-mic-status">
+                        <ui:VisualElement name="mic-status-dot" class="mm-mic-dot"/>
+                        <ui:Label name="mic-status-text" text="Listening… say something." class="mm-mic-status-text"/>
+                    </ui:VisualElement>
+                    <ui:Label text="Steam picks the microphone and its input volume for voice chat." class="mm-mic-note"/>
+                    <ui:Button name="mic-steam" text="Open Steam voice settings" class="mm-link-btn"/>
+                </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="mm-settings-foot">
                 <ui:Button name="settings-apply" text="Apply" class="mm-btn mm-btn-aqua"/>

@@ -64,20 +64,11 @@ namespace FishGame
         {
             if (!IsLocal) return;
             var s = Nearest();
-            if (s != null && _interact.WasPressedThisFrame())
+            if (s == null) return;
+            MatchHud.ShowPrompt($"Press E to {s.PromptLabel}");   // drawn by the HUD, with a key tile
+            if (_interact.WasPressedThisFrame())
                 s.Interact(this);
         }
 
-        void OnGUI()
-        {
-            if (!IsLocal) return;
-            var s = Nearest();
-            if (s == null) return;
-
-            var style = new GUIStyle(GUI.skin.box) { fontSize = 16, alignment = TextAnchor.MiddleCenter };
-            const float w = 340f, h = 42f;
-            GUI.Box(new Rect((Screen.width - w) * 0.5f, Screen.height - 96f, w, h),
-                    $"Press  [E]  to  {s.PromptLabel}", style);
-        }
     }
 }

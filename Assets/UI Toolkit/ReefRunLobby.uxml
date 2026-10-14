@@ -1,51 +1,150 @@
-<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:rr="ReefRun" editor-extension-mode="False">
     <Style src="project://database/Assets/UI%20Toolkit/ReefRunLobby.uss?fileID=7433441132597879392&amp;guid=ada4da68531a1b147af51e9b359537ff&amp;type=3#ReefRunLobby"/>
     <ui:VisualElement name="stage" class="stage">
-        <ui:VisualElement name="ambient-mount" picking-mode="Ignore" class="ambient-mount"/>
-        <ui:VisualElement name="ui" class="ui">
-            <ui:VisualElement class="header">
-                <ui:VisualElement class="brand">
-                    <ui:Button name="back-btn" text="← Back" class="btn btn-ghost btn-sm" style="margin-left: 18px; height: 56px; width: 85px; padding-right: 7px; margin-right: 27px;"/>
+        <ui:VisualElement name="shade" picking-mode="Ignore" class="shade"/>
+        <ui:VisualElement name="ui" picking-mode="Ignore" class="ui">
+
+            <!-- ============ players / actions / host settings ============ -->
+            <ui:VisualElement class="players-col">
+                <ui:VisualElement class="header">
+                    <ui:Button name="back-btn" class="leave">
+                        <ui:VisualElement class="key">
+                            <rr:ReefGlyph kind="Cross" style="width: 14px; height: 14px;"/>
+                        </ui:VisualElement>
+                        <ui:Label text="LEAVE" class="leave-label f-cb"/>
+                    </ui:Button>
                     <ui:VisualElement>
-                        <ui:Label text="REEF RUN · LOBBY" class="eyebrow"/>
-                        <ui:Label text="Coral Canyon" class="title"/>
+                        <ui:Label name="lobby-eyebrow" text="FRIENDS LOBBY · 1 / 4 DIVERS" class="eyebrow f-cb"/>
+                        <ui:Label text="Pre-dive briefing" class="title f-xb"/>
                     </ui:VisualElement>
                 </ui:VisualElement>
-                <ui:VisualElement class="header-right">
-                    <ui:VisualElement class="pill lobby-pill" style="border-top-left-radius: 15px; border-bottom-left-radius: 15px; border-top-right-radius: 15px; border-bottom-right-radius: 15px;">
-                        <ui:VisualElement name="live-dot" class="live-dot"/>
-                        <ui:Label name="lobby-count" text="1" class="pill-strong"/>
-                        <ui:Label text="/8 in lobby" class="pill-dim"/>
-                    </ui:VisualElement>
-                </ui:VisualElement>
-            </ui:VisualElement>
-            <ui:VisualElement class="body">
-                <ui:VisualElement class="roster-col glass" style="border-top-left-radius: 15px; border-top-right-radius: 15px; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px;">
-                    <ui:VisualElement class="roster-head">
-                        <ui:Label text="PLAYERS IN LOBBY" class="label"/>
-                    </ui:VisualElement>
-                    <ui:ScrollView name="roster-list" class="roster-list"/>
-                </ui:VisualElement>
-                <ui:VisualElement class="side-col">
-                    <ui:VisualElement class="activity-card glass" style="position: absolute; height: 836px; width: 357px;">
-                        <ui:Label text="FRIENDS" class="label"/>
-                        <ui:ScrollView name="friends-list" class="feed"/>
-                    </ui:VisualElement>
-                </ui:VisualElement>
-            </ui:VisualElement>
-            <ui:VisualElement class="footer glass" style="border-top-left-radius: 15px; border-top-right-radius: 15px; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; border-left-color: rgba(99, 200, 210, 0.314); border-right-color: rgba(99, 200, 210, 0.314); border-top-color: rgba(99, 200, 210, 0.314); border-bottom-color: rgba(99, 200, 210, 0.314); background-color: rgba(8, 40, 52, 0);">
-                <ui:VisualElement class="ready-wrap">
-                    <ui:VisualElement class="ready-row">
-                        <ui:Label text="READY" class="label"/>
-                        <ui:Label name="ready-count" text="0/1" class="ready-count"/>
-                    </ui:VisualElement>
-                    <ui:VisualElement class="bar">
-                        <ui:VisualElement name="bar-fill" class="bar-fill"/>
-                    </ui:VisualElement>
-                </ui:VisualElement>
+
+                <ui:VisualElement name="roster" class="grid"/>
+
                 <ui:VisualElement class="actions">
-                    <ui:Button name="ready-btn" text="Ready up" class="btn btn-aqua"/>
-                    <ui:Button name="start-btn" text="Start match" class="btn btn-blue"/>
+                    <ui:Button name="ready-btn" class="btn btn-teal">
+                        <ui:Label name="ready-label" text="READY UP" class="btn-label"/>
+                        <ui:Label text="R" class="key key-navy"/>
+                    </ui:Button>
+                    <ui:Button name="start-btn" class="btn btn-off btn--gap">
+                        <ui:Label name="start-label" text="START DIVE" class="btn-label"/>
+                        <ui:Label name="start-sub" text="0 of 1 ready" class="btn-sub"/>
+                    </ui:Button>
+                </ui:VisualElement>
+
+                <ui:VisualElement class="settings panel">
+                    <ui:VisualElement class="settings-head">
+                        <ui:Label text="DIVE SETTINGS" class="settings-title"/>
+                        <ui:Label name="settings-note" text="Host only" class="settings-note"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="srow">
+                        <ui:Label text="Map" class="srow-label"/>
+                        <ui:Label text="Island Reef" class="srow-value"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="srow">
+                        <ui:Label text="Survival clock" class="srow-label"/>
+                        <ui:VisualElement name="clock-seg" class="seg">
+                            <ui:Button name="clock-300" text="5:00" class="seg-btn"/>
+                            <ui:Button name="clock-600" text="10:00" class="seg-btn seg-btn--gap seg-btn--on"/>
+                            <ui:Button name="clock-900" text="15:00" class="seg-btn seg-btn--gap"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="srow">
+                        <ui:Label text="Shark" class="srow-label"/>
+                        <ui:Label text="Random draw when the dive starts" class="srow-value"/>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- ============ role briefing ============ -->
+            <ui:VisualElement class="brief-col">
+                <ui:VisualElement class="role">
+                    <ui:VisualElement class="role-head role-head--fish">
+                        <ui:VisualElement name="fish-fade" picking-mode="Ignore" class="role-fade"/>
+                        <ui:Label text="FISH" class="role-name"/>
+                        <ui:Label name="fish-count" text="3 of you" class="role-count"/>
+                    </ui:VisualElement>
+                    <ui:Label text="Stay alive until the clock hits &lt;color=#ffb84d&gt;0:00&lt;/color&gt;." class="role-goal"/>
+                    <ui:VisualElement class="rr">
+                        <ui:Label text="E" class="key"/>
+                        <ui:VisualElement class="rr-text">
+                            <ui:Label text="Eat food pellets" class="rr-title"/>
+                            <ui:Label text="Hunger drains all dive. Starve and you lose health." class="rr-desc"/>
+                            <ui:VisualElement class="minibars">
+                                <ui:VisualElement class="minibar" style="background-color: #d94040;"/>
+                                <ui:VisualElement class="minibar" style="background-color: #e6b333; width: 54px;"/>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="rr">
+                        <ui:Label text="F" class="key"/>
+                        <ui:VisualElement class="rr-text">
+                            <ui:Label text="Hide in the school" class="rr-title"/>
+                            <ui:Label text="Near the flock, become one of them for a few seconds." class="rr-desc"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="rr">
+                        <ui:Label text="E" class="key"/>
+                        <ui:VisualElement class="rr-text">
+                            <ui:Label text="Reef puzzles · takes time off the clock" class="rr-title"/>
+                            <ui:Label text="Two fish: one reads the arrows, the other enters them. Talk it out." class="rr-desc"/>
+                            <ui:VisualElement class="arrows">
+                                <ui:VisualElement class="arrow"><ui:VisualElement class="arrow-img" style="rotate: 180deg;"/></ui:VisualElement>
+                                <ui:VisualElement class="arrow"><ui:VisualElement class="arrow-img" style="rotate: -90deg;"/></ui:VisualElement>
+                                <ui:VisualElement class="arrow"><ui:VisualElement class="arrow-img" style="rotate: 90deg;"/></ui:VisualElement>
+                                <ui:VisualElement class="arrow"><ui:VisualElement class="arrow-img" style="rotate: 180deg;"/></ui:VisualElement>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <ui:VisualElement class="role role--grow">
+                    <ui:VisualElement class="role-head role-head--shark">
+                        <ui:VisualElement name="shark-fade" picking-mode="Ignore" class="role-fade"/>
+                        <ui:Label text="SHARK" class="role-name role-name--shark"/>
+                        <ui:Label text="1 of you · drawn at random" class="role-count"/>
+                    </ui:VisualElement>
+                    <ui:Label text="Eat every fish before time runs out." class="role-goal"/>
+                    <ui:VisualElement class="rr">
+                        <ui:Label text="LMB" class="key"/>
+                        <ui:VisualElement class="rr-text">
+                            <ui:Label text="Dash + bite" class="rr-title"/>
+                            <ui:Label text="Short burst. Connect and it's dinner." class="rr-desc"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="rr">
+                        <ui:Label text="Q" class="key"/>
+                        <ui:VisualElement class="rr-text">
+                            <ui:Label text="Lunge" class="rr-title"/>
+                            <ui:Label text="Big fast dash. Catches a fish in range." class="rr-desc"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="rr">
+                        <ui:VisualElement class="rr-icon">
+                            <rr:ReefGlyph kind="Eye" color="#2CC3C4FF" style="width: 22px; height: 22px;"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="rr-text">
+                            <ui:Label text="Clear eyes" class="rr-title"/>
+                            <ui:Label text="You see much further. Fish get tunnel vision." class="rr-desc"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- ============ friends ============ -->
+            <ui:VisualElement class="friends panel">
+                <ui:VisualElement class="friends-head">
+                    <ui:Label text="FRIENDS" class="friends-title"/>
+                    <ui:Label name="friends-count" text="0 online" class="friends-count"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="search-wrap">
+                    <ui:TextField name="friend-search" class="search"/>
+                    <ui:Label name="search-hint" text="Search Steam friends" picking-mode="Ignore" class="search-hint"/>
+                </ui:VisualElement>
+                <ui:ScrollView name="friends-list" class="friends-list"/>
+                <ui:VisualElement class="friends-foot">
+                    <ui:Label text="Friends-only lobby" class="foot-dim"/>
+                    <ui:Label name="overlay-link" text="Open Steam overlay" class="foot-link"/>
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>

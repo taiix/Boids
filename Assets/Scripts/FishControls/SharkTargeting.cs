@@ -46,9 +46,6 @@ namespace FishGame
         readonly List<GameObject> _candidates = new List<GameObject>();
         readonly HashSet<GameObject> _seen = new HashSet<GameObject>();
         readonly List<Pick> _visible = new List<Pick>();
-        string _flash;
-        float _flashUntil;
-        GUIStyle _flashStyle;
 
         struct Pick { public GameObject go; public float screenDist; }
 
@@ -165,7 +162,7 @@ namespace FishGame
             }
             // Player prey fish (they carry an Edible). Flock fish may carry one too, so _seen keeps
             // each fish single — otherwise Cycle would "advance" onto a duplicate of the same fish.
-            foreach (var e in FindObjectsByType<Edible>(FindObjectsSortMode.None))
+            foreach (var e in FindObjectsByType<Edible>())
                 if (e != null && !e.IsEaten && e.gameObject != gameObject && _seen.Add(e.gameObject))
                     _candidates.Add(e.gameObject);
         }
@@ -194,7 +191,7 @@ namespace FishGame
         }
 
         // ---- on-screen feedback ----
-        void Flash(string msg) { _flash = msg; _flashUntil = Time.unscaledTime + 1.2f; }
+        void Flash(string msg) => MatchHud.Flash(msg);   // shown by the HUD
 
         void OnGUI()
         {
@@ -210,12 +207,6 @@ namespace FishGame
                 }
             }
 
-            if (_flash != null && Time.unscaledTime < _flashUntil)
-            {
-                if (_flashStyle == null)
-                    _flashStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 18 };
-                GUI.Label(new Rect(0f, Screen.height * 0.62f, Screen.width, 30f), _flash, _flashStyle);
-            }
         }
 
         static void DrawBrackets(Vector2 c, float size, Color col)

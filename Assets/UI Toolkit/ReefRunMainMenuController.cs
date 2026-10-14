@@ -1,80 +1,133 @@
 using Steamworks;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace ReefRun
 {
     /// <summary>
-    /// Drives the Reef Run main menu (ReefRunMainMenu.uxml).
-    /// HOST loads LobbySceneName. SETTINGS opens the shared settings overlay
-    /// (ReefRunSettings.uxml, see <see cref="ReefRunSettingsPanel"/>) - the same one the in-game
-    /// pause menu opens.
-    /// Override OnJoin / OnHost to add scene-transition logic.
+    /// Drives the Reef Run main menu (ReefRunMainMenu.uxml). The background is the live 3D menu scene
+    /// (see <see cref="MenuSharkCruise"/>), so this only owns the overlay: logo, nav, the "friends on the
+    /// reef" chips (with JOIN for friends sitting in a Reef Run lobby) and the player card.
+    /// SETTINGS opens the shared settings overlay (ReefRunSettings.uxml, see <see cref="ReefRunSettingsPanel"/>)
+    /// - the same one the in-game pause menu opens.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class ReefRunMainMenuController : MonoBehaviour
     {
         // ---- inspector ----
-        public string FriendsText = "5 friends online";
-        public string Version = "v0.4.1 — EARLY ACCESS BUILD";
+        public string Version = "v0.4.1 · EARLY ACCESS";
         public string LobbySceneName = "02 - ReefRunLobby";
+        [Tooltip("How many friends to show as chips in the bottom-left corner.")]
+        public int MaxFriendChips = 3;
+        [Tooltip("Seconds between refreshes of the friends chips.")]
+        public float FriendsRefreshSeconds = 5f;
+
+        static readonly Color Navy = new(0.02f, 0.09f, 0.16f);
 
         UIDocument _doc;
-        Texture2D _bgTex;
+        VisualElement _root, _friends, _playerImage;
+        Label _hint;
+        Texture2D _shadeTop, _shadeBottom;
         ReefRunSettingsPanel _settings;
+        Callback<AvatarImageLoaded_t> _avatarLoaded;
+        Callback<PersonaStateChange_t> _personaChanged;
+        IVisualElementScheduledItem _refresh;
+        VisualElement _veil;
+        readonly Dictionary<CSteamID, VisualElement> _chipAvatars = new();
+
+        const string HostHint = "Open a friends-only lobby for up to 4 divers";
 
         void OnEnable()
         {
             _doc = GetComponent<UIDocument>();
+            // Nothing Steam here: the menu is the first scene and Bootstrap (which owns the real
+            // SteamManager + SteamLobby) only loads a frame later. Touching Steam now would make a
+            // stand-alone SteamManager ahead of it. BuildUI runs after that frame.
             StartCoroutine(BuildNextFrame());
+        }
+
+        void OnDisable()
+        {
+            _avatarLoaded?.Dispose(); _avatarLoaded = null;
+            _personaChanged?.Dispose(); _personaChanged = null;
+            _refresh?.Pause();
         }
 
         IEnumerator BuildNextFrame()
         {
             yield return null;
-            var root = _doc != null ? _doc.rootVisualElement : null;
-            if (root == null) yield break;
-            BuildUI(root);
+            _root = _doc != null ? _doc.rootVisualElement : null;
+            if (_root == null) yield break;
+            BuildUI();
         }
 
-        void BuildUI(VisualElement root)
+        void BuildUI()
         {
-            // background + ambient
-            if (_bgTex == null) _bgTex = BuildBackground();
-            root.Q<VisualElement>("stage").style.backgroundImage = new StyleBackground(_bgTex);
-            var mount = root.Q<VisualElement>("ambient-mount");
-            mount.Clear();
-            mount.Add(new AmbientReef { style = { flexGrow = 1 } });
+            if (SteamManager.Initialized)
+            {
+                _avatarLoaded ??= Callback<AvatarImageLoaded_t>.Create(OnAvatarLoaded);
+                _personaChanged ??= Callback<PersonaStateChange_t>.Create(_ => RefreshFriends());
+            }
 
-            // player card
+            // UI Toolkit has no gradients: bake the two shades that keep the logo and chips readable
+            // over the live scene (dark at the top fading out, and a softer one along the bottom).
+            if (_shadeTop == null) _shadeTop = VerticalShade(0.78f, 0f);
+            if (_shadeBottom == null) _shadeBottom = VerticalShade(0f, 0.6f);
+            _root.Q("shade-top").style.backgroundImage = new StyleBackground(_shadeTop);
+            _root.Q("shade-bottom").style.backgroundImage = new StyleBackground(_shadeBottom);
 
-            SetText(root, "player-name", SteamFriends.GetPersonaName());
-            SetImage(root, "player-image", SteamManager.GetLocalSteamAvatar(SteamUser.GetSteamID()));
-            SetText(root, "player-sub", FriendsText);
-            SetText(root, "version-label", Version);
+            // Fade the live shark view in once the first frames are out.
+            _veil = _root.Q("veil");
+            _veil.schedule.Execute(RevealReef).StartingIn(150);
+
+            _friends = _root.Q("friends");
+            _hint = _root.Q<Label>("nav-hint");
+            _playerImage = _root.Q("player-image");
+            SetText("version-label", Version);
+
+            if (SteamManager.Initialized)
+            {
+                var me = SteamUser.GetSteamID();
+                SetText("player-name", SteamFriends.GetPersonaName());
+                var tex = SteamManager.GetLocalSteamAvatar(me);
+                if (tex != null) _playerImage.style.backgroundImage = new StyleBackground(tex);
+                _chipAvatars[me] = _playerImage;
+            }
 
             // settings overlay (also restores the saved master volume)
-            _settings = new ReefRunSettingsPanel(root);
+            _settings = new ReefRunSettingsPanel(_root);
 
-            // nav buttons
-            Wire(root, "play-btn", OnHost);
-            Wire(root, "join-btn", OnJoin);
-            Wire(root, "settings-btn", OpenSettings);
-            Wire(root, "quit-btn", OnQuit);
+            Wire("play-btn", OnHost, HostHint);
+            Wire("join-btn", OnJoin, "Join a friend's lobby");
+            Wire("settings-btn", OpenSettings, "Audio and display");
+            Wire("quit-btn", OnQuit, "Back to the surface");
+
+            RefreshFriends();
+            _refresh = _root.schedule.Execute(RefreshFriends).Every((long)(FriendsRefreshSeconds * 1000f));
         }
 
         // ===================================================================
         //  NAV ACTIONS
         // ===================================================================
-        protected virtual void OnHost() {
-            if (SteamLobby.instance != null)
-            {
-                SteamLobby.instance.CreateLobby();
-            }
+        protected virtual void OnHost()
+        {
+            if (SteamLobby.instance != null) SteamLobby.instance.CreateLobby();
         }
 
-        protected virtual void OnJoin() => Debug.Log("[ReefRun] JOIN");
+        /// <summary>
+        /// JOIN takes you into the first friend's Reef Run lobby. With nobody to join, it opens the Steam
+        /// friends overlay instead (an invite accepted there lands you in their lobby the same way).
+        /// </summary>
+        protected virtual void OnJoin()
+        {
+            foreach (var f in OnlineFriends())
+                if (f.lobby.IsValid()) { JoinFriend(f.lobby); return; }
+
+            if (_hint != null) _hint.text = "No friends are hosting right now. Ask one to invite you.";
+            if (SteamManager.Initialized) SteamFriends.ActivateGameOverlay("friends");
+        }
 
         protected virtual void OnQuit()
         {
@@ -86,61 +139,132 @@ namespace ReefRun
 
         void OpenSettings() => _settings?.Open();
 
+        void RevealReef() => _veil?.AddToClassList("mm-veil--hidden");
+
+        static void JoinFriend(CSteamID lobby)
+        {
+            if (SteamLobby.instance != null) SteamLobby.instance.JoinLobby(lobby);
+        }
+
+        // ===================================================================
+        //  FRIENDS ON THE REEF
+        // ===================================================================
+        struct Friend { public CSteamID id; public string name; public bool inReefRun; public CSteamID lobby; }
+
+        // Online friends, best first: in a Reef Run lobby (joinable), then playing Reef Run, then the rest.
+        static List<Friend> OnlineFriends()
+        {
+            var list = new List<Friend>();
+            if (!SteamManager.Initialized) return list;
+            var app = SteamUtils.GetAppID();
+            int count = SteamFriends.GetFriendCount(EFriendFlags.k_EFriendFlagImmediate);
+            for (int i = 0; i < count; i++)
+            {
+                var id = SteamFriends.GetFriendByIndex(i, EFriendFlags.k_EFriendFlagImmediate);
+                if (SteamFriends.GetFriendPersonaState(id) == EPersonaState.k_EPersonaStateOffline) continue;
+                var f = new Friend { id = id, name = SteamFriends.GetFriendPersonaName(id) };
+                if (SteamFriends.GetFriendGamePlayed(id, out FriendGameInfo_t game) && game.m_gameID.IsValid()
+                    && game.m_gameID.AppID() == app)
+                {
+                    f.inReefRun = true;
+                    f.lobby = game.m_steamIDLobby;
+                }
+                list.Add(f);
+            }
+            list.Sort((a, b) =>
+            {
+                int ra = a.lobby.IsValid() ? 0 : a.inReefRun ? 1 : 2;
+                int rb = b.lobby.IsValid() ? 0 : b.inReefRun ? 1 : 2;
+                return ra != rb ? ra - rb : string.Compare(a.name, b.name, System.StringComparison.OrdinalIgnoreCase);
+            });
+            return list;
+        }
+
+        void RefreshFriends()
+        {
+            var friends = OnlineFriends();
+            SetText("player-sub", SteamManager.Initialized
+                ? $"● {friends.Count} friend{(friends.Count == 1 ? "" : "s")} online"
+                : "Steam offline");
+
+            _chipAvatars.Clear();
+            if (SteamManager.Initialized) _chipAvatars[SteamUser.GetSteamID()] = _playerImage;
+            if (_friends == null) return;   // the friend chips were removed from the layout
+            _friends.Clear();
+            for (int i = 0; i < friends.Count && i < MaxFriendChips; i++)
+                _friends.Add(BuildChip(friends[i]));
+        }
+
+        VisualElement BuildChip(Friend f)
+        {
+            var chip = new VisualElement();
+            chip.AddToClassList("mm-chip");
+
+            var av = new VisualElement();
+            av.AddToClassList("mm-chip-av");
+            var tex = SteamManager.GetLocalSteamAvatar(f.id);
+            if (tex != null) av.style.backgroundImage = new StyleBackground(tex);
+            _chipAvatars[f.id] = av;
+            chip.Add(av);
+
+            var text = new VisualElement();
+            var name = new Label(f.name); name.AddToClassList("mm-chip-name");
+            var status = new Label(f.lobby.IsValid() ? "In a Reef Run lobby" : f.inReefRun ? "Playing Reef Run" : "Online");
+            status.AddToClassList("mm-chip-status");
+            if (f.inReefRun && !f.lobby.IsValid()) status.AddToClassList("mm-chip-status--game");
+            text.Add(name);
+            text.Add(status);
+            chip.Add(text);
+
+            if (f.lobby.IsValid())
+            {
+                var lobby = f.lobby;
+                var join = new Button(() => JoinFriend(lobby)) { text = "JOIN" };
+                join.AddToClassList("mm-chip-join");
+                chip.Add(join);
+            }
+            return chip;
+        }
+
+        void OnAvatarLoaded(AvatarImageLoaded_t e)
+        {
+            if (!_chipAvatars.TryGetValue(e.m_steamID, out var av) || av == null) return;
+            var tex = SteamManager.GetLocalSteamAvatar(e.m_steamID);
+            if (tex != null) av.style.backgroundImage = new StyleBackground(tex);
+        }
+
         // ===================================================================
         //  HELPERS
         // ===================================================================
-        static void Wire(VisualElement root, string name, System.Action cb)
+        void Wire(string name, System.Action cb, string hint)
         {
-            var btn = root.Q<Button>(name);
-            if (btn != null) btn.clicked += cb;
+            var btn = _root.Q<Button>(name);
+            if (btn == null) return;
+            btn.clicked += cb;
+            btn.RegisterCallback<PointerEnterEvent>(_ => SetHint(hint));
+            btn.RegisterCallback<FocusInEvent>(_ => SetHint(hint));
+            btn.RegisterCallback<PointerLeaveEvent>(_ => SetHint(HostHint));
         }
 
-        static void SetText(VisualElement root, string name, string text)
+        void SetHint(string text) { if (_hint != null) _hint.text = text; }
+
+        void SetText(string name, string text)
         {
-            var lbl = root.Q<Label>(name);
+            var lbl = _root.Q<Label>(name);
             if (lbl != null) lbl.text = text;
         }
 
-        static void SetImage(VisualElement root, string name, Texture2D tex)
+        // Navy alpha ramp: aTop at the top edge -> aBottom at the bottom edge (smoothstepped).
+        static Texture2D VerticalShade(float aTop, float aBottom, int h = 64)
         {
-            var img = root.Q<VisualElement>(name);
-            if (img != null) img.style.backgroundImage = new StyleBackground(tex);
-        }
-
-        // Dark navy background, soft teal glow in upper-right corner.
-        // Texture2D pixel (0,0) = bottom-left; (w-1,h-1) = top-right.
-        static Texture2D BuildBackground(int w = 160, int h = 90)
-        {
-            var dark = Hex("050D12");
-            var navy = Hex("081A22");
-            var glow = Hex("1DA896");
-
-            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false)
-            { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
-            var px = new Color[w * h];
-
-            float gx = w * 0.86f;
-            float gy = h * 0.82f;
-            float gr = h * 1.05f;
-
+            var tex = new Texture2D(1, h, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
             for (int y = 0; y < h; y++)
             {
-                for (int x = 0; x < w; x++)
-                {
-                    Color b = Color.Lerp(navy, dark, (float)x / w * 0.6f + 0.2f);
-                    float d = Mathf.Sqrt((x - gx) * (x - gx) + (y - gy) * (y - gy));
-                    float gi = Mathf.Clamp01(1f - d / gr);
-                    gi = gi * gi * 0.52f;
-                    Color c = b + glow * gi;
-                    c.a = 1f;
-                    px[y * w + x] = c;
-                }
+                float t = 1f - y / (float)(h - 1);   // texture row 0 is the bottom
+                tex.SetPixel(0, y, new Color(Navy.r * 0.6f, Navy.g * 0.6f, Navy.b * 0.6f, Mathf.SmoothStep(aTop, aBottom, t)));
             }
-            tex.SetPixels(px);
             tex.Apply();
             return tex;
         }
-
-        static Color Hex(string h) { ColorUtility.TryParseHtmlString("#" + h, out var c); return c; }
     }
 }

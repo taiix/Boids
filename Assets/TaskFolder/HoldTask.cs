@@ -50,17 +50,10 @@ namespace FishGame
 
         public float Progress01 => IsActive ? Mathf.Clamp01(_progress / holdSeconds) : 0f;
 
-        void OnGUI()
+        // The HUD draws the bar (MatchHud.ShowProgress), in the game's style.
+        void LateUpdate()
         {
-            if (!IsActive) return;
-            const float w = 300f, h = 24f;
-            float x = (Screen.width - w) * 0.5f, y = Screen.height - 140f;
-            var prev = GUI.color;
-            GUI.color = new Color(0, 0, 0, 0.6f); GUI.DrawTexture(new Rect(x, y, w, h), Texture2D.whiteTexture);
-            GUI.color = new Color(0.3f, 0.85f, 1f, 0.9f); GUI.DrawTexture(new Rect(x, y, w * Progress01, h), Texture2D.whiteTexture);
-            GUI.color = prev;
-            var st = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
-            GUI.Label(new Rect(x, y, w, h), $"Hold E… {Mathf.RoundToInt(Progress01 * 100)}%", st);
+            if (IsActive) MatchHud.ShowProgress($"Hold E  {Mathf.RoundToInt(Progress01 * 100)}%", Progress01);
         }
     }
 }

@@ -61,7 +61,7 @@ namespace FishGame
         }
 
         static int CountAlive() =>
-            FindObjectsByType<FoodPellet>(FindObjectsSortMode.None).Length;
+            FindObjectsByType<FoodPellet>().Length;
 
         // Always-on gizmo so the spawn area is visible without selecting the object. Pellets spawn
         // at a random (x, z) inside this rectangle, at areaCenter.y (the water surface), then sink.
