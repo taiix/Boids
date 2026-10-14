@@ -10002,10 +10002,14 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
+<<<<<<< HEAD
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2a3afa26b35b7534f8f71380bb645209, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2143507958}
+=======
+    m_AddedComponents: []
+>>>>>>> origin/ui-rework
   m_SourcePrefab: {fileID: 100100000, guid: 2a3afa26b35b7534f8f71380bb645209, type: 3}
 --- !u!1 &2143507957 stripped
 GameObject:
