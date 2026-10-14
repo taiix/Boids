@@ -246,7 +246,7 @@ namespace FishGame
         }
 
         // ---- on-screen feedback ----
-        void Flash(string msg) { _flash = msg; _flashUntil = Time.unscaledTime + 1.2f; }
+        void Flash(string msg) => MatchHud.Flash(msg);   // shown by the HUD
 
         void OnGUI()
         {
@@ -263,12 +263,6 @@ namespace FishGame
                 }
             }
 
-            if (_flash != null && Time.unscaledTime < _flashUntil)
-            {
-                if (_flashStyle == null)
-                    _flashStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 18 };
-                GUI.Label(new Rect(0f, Screen.height * 0.62f, Screen.width, 30f), _flash, _flashStyle);
-            }
         }
 
         // A small bracket and distance on every revealed fish; those off screen or behind get a marker held

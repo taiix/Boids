@@ -1,0 +1,34 @@
+/* REEF RUN — pause menu (built in code by PauseMenu). Same look as the main menu nav. */
+:root {
+    --navy: #051729;
+    --orange: #ffb84d;
+    --teal-l: #2cc3c4;
+    --text: #eef6f7;
+    --dim: #8fb0bb;
+    --line: rgba(143, 176, 187, 0.18);
+}
+
+.pause { position: absolute; left: 0; top: 0; right: 0; bottom: 0; align-items: center; justify-content: center;
+         background-color: rgba(3, 12, 22, 0.8); color: var(--text); -unity-font-definition: url("../../Fonts/Barlow-Regular.ttf");
+         opacity: 0; transition: opacity 0.18s ease; }
+.pause--show { opacity: 1; }
+.pause Label { padding: 0; margin: 0; }
+
+.pause-eyebrow { font-size: 16px; letter-spacing: 6px; color: var(--orange); -unity-font-definition: url("../../Fonts/BarlowCondensed-Bold.ttf"); }
+.pause-logo { flex-direction: row; margin-top: 2px; margin-bottom: 8px; }
+.pause-logo-word { font-size: 96px; letter-spacing: -1px; -unity-font-definition: url("../../Fonts/BarlowCondensed-ExtraBoldItalic.ttf"); }
+.pause-logo-word--run { color: var(--teal-l); margin-left: 18px; }
+.pause .pause-note { font-size: 16px; color: var(--dim); margin-bottom: 26px; }
+
+.pause-btn { width: 360px; height: 62px; margin: 0 0 12px 0; border-radius: 12px; border-width: 1px; border-color: var(--line);
+             background-color: rgba(5, 23, 41, 0.9); color: rgba(238, 246, 247, 0.9); font-size: 26px; letter-spacing: 3px;
+             -unity-font-definition: url("../../Fonts/BarlowCondensed-ExtraBold.ttf");
+             transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, scale 0.12s ease; }
+.pause-btn:hover, .pause-btn:focus { background-color: var(--orange); border-color: var(--orange); color: var(--navy); scale: 1.03 1.03; }
+.pause-btn:active { scale: 0.98 0.98; }
+.pause-btn--primary { background-color: var(--orange); border-color: var(--orange); color: var(--navy); }
+.pause-btn:disabled { opacity: 0.4; scale: 1 1; }
+.pause-btn:disabled:hover { background-color: rgba(5, 23, 41, 0.9); border-color: var(--line); color: rgba(238, 246, 247, 0.9); }
+.pause .pause-hint { font-size: 13px; color: var(--dim); margin: -6px 0 14px 0; }
+.pause .pause-foot { font-size: 13px; letter-spacing: 2px; color: rgba(143, 176, 187, 0.6); margin-top: 18px;
+              -unity-font-definition: url("../../Fonts/BarlowCondensed-Bold.ttf"); }

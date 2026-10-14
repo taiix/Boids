@@ -244,7 +244,11 @@ MonoBehaviour:
   timeInterpolationGui: 0
   gameSceneName: IslandTest
   sharkPrefab: {fileID: 2433337675563196249, guid: 34432f29ab76ca743bfcfaa472dc4773, type: 3}
+  minPlayersForShark: 2
+  allowRoleSwap: 1
+  respawnAfterEatenSeconds: 3
   editorForcedRole: 0
+  maxWaitForPlayersSeconds: 90
 --- !u!114 &9116207
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -301,54 +305,8 @@ Transform:
   m_Children:
   - {fileID: 9116202}
   - {fileID: 916211068}
-  - {fileID: 779891997}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &779891996
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 779891997}
-  - component: {fileID: 779891998}
-  m_Layer: 0
-  m_Name: Discord
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &779891997
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 779891996}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 587040519}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &779891998
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 779891996}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 85ae4b29816d4684d8b714eff33af167, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  discordId: 0
 --- !u!1 &916211067
 GameObject:
   m_ObjectHideFlags: 0
@@ -395,6 +353,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ReefRun.LaunchOverlay
   GameSceneName: 03 - Island
+  WaitingText: Waiting for everyone to reach the reef...
+  MaxWaitSeconds: 120
+  SeabedDepth: 80
 --- !u!114 &916211070
 MonoBehaviour:
   m_ObjectHideFlags: 0

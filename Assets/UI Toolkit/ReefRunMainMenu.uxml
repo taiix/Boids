@@ -1,32 +1,40 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
     <Style src="project://database/Assets/UI%20Toolkit/ReefRunMainMenu.uss?fileID=7433441132597879392&amp;guid=5ad911a4c18773b4286870dda3da6375&amp;type=3#ReefRunMainMenu"/>
     <ui:Template name="ReefRunSettings" src="project://database/Assets/UI%20Toolkit/ReefRunSettings.uxml?fileID=9197481963319205126&amp;guid=37e4694b96f20f349ac1f914ab281645&amp;type=3#ReefRunSettings"/>
-    <ui:VisualElement name="stage" class="mm-stage">
-        <ui:VisualElement name="ambient-mount" picking-mode="Ignore" class="mm-ambient"/>
-        <ui:VisualElement name="ui" class="mm-ui">
-            <ui:VisualElement class="mm-accent"/>
-            <ui:VisualElement class="mm-logo-row">
-                <ui:Label text="REEF" class="mm-logo-white"/>
-                <ui:Label text="RUN" class="mm-logo-aqua"/>
+    <ui:VisualElement name="stage" picking-mode="Ignore" class="mm-stage">
+        <ui:VisualElement name="veil" picking-mode="Ignore" class="mm-veil"/>
+        <ui:VisualElement name="shade-top" picking-mode="Ignore" class="mm-shade mm-shade--top"/>
+        <ui:VisualElement name="shade-bottom" picking-mode="Ignore" class="mm-shade mm-shade--bottom"/>
+        <ui:VisualElement name="ui" picking-mode="Ignore" class="mm-ui">
+            <ui:VisualElement picking-mode="Ignore" class="mm-center">
+                <ui:Label text="3 FISH · 1 SHARK · 10:00 ON THE CLOCK" class="mm-eyebrow"/>
+                <ui:VisualElement picking-mode="Ignore" class="mm-logo">
+                    <ui:Label text="REEF" class="mm-logo-word"/>
+                    <ui:Label text="RUN" class="mm-logo-word mm-logo-word--run"/>
+                </ui:VisualElement>
+                <ui:VisualElement picking-mode="Ignore" style="flex-direction: row;">
+                    <ui:Label text="One of you will be the shark." class="mm-tagline mm-tagline-strong"/>
+                    <ui:Label text="Everyone else had better stay out of its mouth." class="mm-tagline" style="margin-left: 7px;"/>
+                </ui:VisualElement>
+                <ui:VisualElement name="nav" class="mm-nav">
+                    <ui:Button name="play-btn" text="HOST" class="mm-nav-btn"/>
+                    <ui:Button name="join-btn" text="JOIN" class="mm-nav-btn"/>
+                    <ui:Button name="settings-btn" text="SETTINGS" class="mm-nav-btn"/>
+                    <ui:Button name="quit-btn" text="QUIT" class="mm-nav-btn"/>
+                </ui:VisualElement>
+                <ui:Label name="nav-hint" text="Open a friends-only lobby for up to 4 divers" class="mm-hint"/>
             </ui:VisualElement>
-            <ui:VisualElement name="nav" class="mm-nav">
-                <ui:Button name="play-btn" text="HOST" class="mm-nav-item"/>
-                <ui:Button name="join-btn" text="JOIN" class="mm-nav-item"/>
-                <ui:Button name="settings-btn" text="SETTINGS" class="mm-nav-item"/>
-                <ui:Button name="quit-btn" text="QUIT" class="mm-nav-item"/>
-            </ui:VisualElement>
-            <ui:VisualElement class="mm-spacer"/>
-            <ui:VisualElement class="mm-footer">
-                <ui:Label name="version-label" text="v0.4.1 — EARLY ACCESS BUILD" class="mm-version"/>
-                <ui:VisualElement class="mm-dive-hint"/>
-                <ui:VisualElement name="player-card" class="mm-player-card" style="border-top-left-radius: 15px; border-top-right-radius: 15px; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px;">
-                    <ui:Image name="player-image" style="height: 54px; width: 57px; margin-right: 11px;"/>
-                    <ui:VisualElement>
-                        <ui:Label name="player-name" text="You" class="mm-player-name"/>
-                        <ui:Label name="player-sub" text="5 friends online" class="mm-player-sub"/>
-                    </ui:VisualElement>
+
+
+            <ui:VisualElement name="player-card" class="mm-player-card">
+                <ui:VisualElement name="player-image" class="mm-player-av"/>
+                <ui:VisualElement>
+                    <ui:Label name="player-name" text="You" class="mm-player-name"/>
+                    <ui:Label name="player-sub" text="Steam offline" class="mm-player-sub"/>
                 </ui:VisualElement>
             </ui:VisualElement>
+
+            <ui:Label name="version-label" text="v0.4.1 · EARLY ACCESS" class="mm-version"/>
         </ui:VisualElement>
         <ui:Instance template="ReefRunSettings" name="settings-instance" picking-mode="Ignore" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0;"/>
     </ui:VisualElement>

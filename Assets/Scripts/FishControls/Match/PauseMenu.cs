@@ -4,9 +4,7 @@ using Steamworks;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 using UnityEngine.UIElements;
-using Button = UnityEngine.UI.Button;
 using Cursor = UnityEngine.Cursor;
 
 namespace FishGame
@@ -17,6 +15,8 @@ namespace FishGame
     /// It's multiplayer, so the game keeps running: opening the menu only frees the cursor and takes
     /// your controls away (FishPlayer, the orbit camera and the reef task all check <see cref="IsOpen"/>).
     /// Settings opens the same settings screen as the main menu (ReefRunSettings.uxml on a UIDocument).
+    /// The menu itself is UI Toolkit, built in code in the main menu's style (Resources/Hud/PauseMenu.uss);
+    /// the old uGUI canvas in the prefab stays hidden.
     /// Back to Lobby is the host's call - it takes everyone back, as the lobby is where the host starts
     /// the next round. Anyone can leave to the main menu or quit.
     /// </summary>
@@ -26,15 +26,8 @@ namespace FishGame
         public static bool IsOpen { get; private set; }
 
         [Header("Menu")]
-        [Tooltip("Everything shown while the menu is open (backdrop + panel). Starts hidden.")]
+        [Tooltip("The old uGUI menu. Kept hidden; the menu is now built in UI Toolkit.")]
         [SerializeField] GameObject menuRoot;
-        [SerializeField] Button resumeButton;
-        [SerializeField] Button settingsButton;
-        [SerializeField] Button lobbyButton;
-        [SerializeField] Button mainMenuButton;
-        [SerializeField] Button quitButton;
-        [Tooltip("Shown under Back to Lobby when this player can't use it (not the host / offline).")]
-        [SerializeField] Text lobbyHint;
 
         [Header("Settings")]
         [Tooltip("UIDocument showing ReefRunSettings.uxml. Kept inactive until Settings is pressed.")]
@@ -47,6 +40,10 @@ namespace FishGame
 
         InputAction _toggle;
         ReefRunSettingsPanel _settings;
+        UIDocument _doc;
+        VisualElement _pause;
+        UnityEngine.UIElements.Button _lobbyButton;
+        Label _lobbyHint;
         CursorLockMode _cursorBefore;
         bool _cursorVisibleBefore;
 
@@ -57,22 +54,93 @@ namespace FishGame
             _toggle.AddBinding("<Keyboard>/escape");
             _toggle.AddBinding("<Gamepad>/start");
 
-            if (resumeButton != null) resumeButton.onClick.AddListener(() => SetOpen(false));
-            if (settingsButton != null) settingsButton.onClick.AddListener(OpenSettings);
-            if (lobbyButton != null) lobbyButton.onClick.AddListener(BackToLobby);
-            if (mainMenuButton != null) mainMenuButton.onClick.AddListener(ToMainMenu);
-            if (quitButton != null) quitButton.onClick.AddListener(Quit);
+            if (menuRoot != null) menuRoot.SetActive(false);   // legacy uGUI menu: never shown
 
-            if (menuRoot != null) menuRoot.SetActive(false);
-            if (settingsDocument != null) settingsDocument.gameObject.SetActive(false);
+            // Same 1920x1080 panel as the HUD, so the settings screen lays out like the main menu's.
+            var panel = Resources.Load<PanelSettings>("Hud/HudPanelSettings");
+            if (settingsDocument != null)
+            {
+                if (panel != null) settingsDocument.panelSettings = panel;
+                settingsDocument.sortingOrder = 20;
+                settingsDocument.gameObject.SetActive(false);
+            }
 
-            // The buttons need an EventSystem; add one if this scene doesn't have it.
-            if (FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
-                new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem),
-                               typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));
+            if (panel != null)
+            {
+                var go = new GameObject("PauseMenuUI");
+                go.transform.SetParent(transform, false);
+                _doc = go.AddComponent<UIDocument>();
+                _doc.panelSettings = panel;
+                _doc.sortingOrder = 10;   // above the HUD
+            }
         }
 
         void OnEnable() => _toggle.Enable();
+
+        void Start() => BuildMenu();
+
+        void BuildMenu()
+        {
+            if (_pause != null || _doc == null || _doc.rootVisualElement == null) return;
+            var root = _doc.rootVisualElement;
+            root.pickingMode = PickingMode.Ignore;
+            var sheet = Resources.Load<StyleSheet>("Hud/PauseMenu");
+            if (sheet != null) root.styleSheets.Add(sheet);
+
+            _pause = new VisualElement();
+            _pause.AddToClassList("pause");
+            _pause.style.display = DisplayStyle.None;
+            root.Add(_pause);
+
+            _pause.Add(Lbl("PAUSED", "pause-eyebrow"));
+            var logo = new VisualElement();
+            logo.AddToClassList("pause-logo");
+            logo.Add(Lbl("REEF", "pause-logo-word"));
+            logo.Add(Lbl("RUN", "pause-logo-word", "pause-logo-word--run"));
+            _pause.Add(logo);
+            _pause.Add(Lbl("The dive keeps going while you're in here.", "pause-note"));
+
+            Btn("RESUME", () => SetOpen(false), "pause-btn--primary");
+            Btn("SETTINGS", OpenSettings);
+            _lobbyButton = Btn("BACK TO LOBBY", BackToLobby);
+            _lobbyHint = Lbl("", "pause-hint");
+            _pause.Add(_lobbyHint);
+            Btn("MAIN MENU", ToMainMenu);
+            Btn("QUIT GAME", Quit);
+            _pause.Add(Lbl("ESC TO RESUME", "pause-foot"));
+        }
+
+        UnityEngine.UIElements.Button Btn(string text, System.Action onClick, string extra = null)
+        {
+            var b = new UnityEngine.UIElements.Button(onClick) { text = text };
+            b.AddToClassList("pause-btn");
+            if (extra != null) b.AddToClassList(extra);
+            _pause.Add(b);
+            return b;
+        }
+
+        static Label Lbl(string text, params string[] classes)
+        {
+            var l = new Label(text);
+            foreach (var c in classes) l.AddToClassList(c);
+            return l;
+        }
+
+        void ShowMenu(bool show)
+        {
+            BuildMenu();
+            if (_pause == null) return;
+            if (show)
+            {
+                _pause.style.display = DisplayStyle.Flex;
+                _pause.schedule.Execute(() => _pause.AddToClassList("pause--show")).StartingIn(16);
+            }
+            else
+            {
+                _pause.RemoveFromClassList("pause--show");
+                _pause.style.display = DisplayStyle.None;
+            }
+        }
         void OnDisable() => _toggle.Disable();
 
         bool _quitting;
@@ -124,22 +192,17 @@ namespace FishGame
                 Cursor.visible = _cursorVisibleBefore;
                 if (_settings != null && _settings.IsOpen) _settings.Close();
             }
-            if (menuRoot != null) menuRoot.SetActive(open);
+            ShowMenu(open);
         }
 
         void RefreshLobbyButton()
         {
             bool host = NetworkServer.active;
-            if (lobbyButton != null)
+            _lobbyButton?.SetEnabled(host);
+            if (_lobbyHint != null)
             {
-                lobbyButton.interactable = host;
-                var label = lobbyButton.GetComponentInChildren<Text>();
-                if (label != null) label.color = new Color(1f, 1f, 1f, host ? 1f : 0.35f);
-            }
-            if (lobbyHint != null)
-            {
-                lobbyHint.gameObject.SetActive(!host);
-                lobbyHint.text = NetworkClient.active
+                _lobbyHint.style.display = host ? DisplayStyle.None : DisplayStyle.Flex;
+                _lobbyHint.text = NetworkClient.active
                     ? "Only the host can take everyone back to the lobby"
                     : "Not in an online game";
             }
@@ -155,7 +218,7 @@ namespace FishGame
             if (root == null) return;
             _settings = new ReefRunSettingsPanel(root);
             _settings.Closed += OnSettingsClosed;
-            if (menuRoot != null) menuRoot.SetActive(false);
+            ShowMenu(false);
             _settings.Open();
         }
 
@@ -163,7 +226,7 @@ namespace FishGame
         {
             _settings = null;
             if (settingsDocument != null) settingsDocument.gameObject.SetActive(false);
-            if (menuRoot != null) menuRoot.SetActive(IsOpen);
+            ShowMenu(IsOpen);
         }
 
         // ------------------------------------------------------------------ leaving
