@@ -174,6 +174,15 @@ namespace FishGame
             return Vector3.Dot(position - w.home, w.outward) > w.halfThickness + escapeMargin;
         }
 
+        /// <summary>True when <paramref name="position"/> is inside the arena, at least <paramref name="margin"/>
+        /// metres in from every wall (where the walls stand closed).</summary>
+        public bool Inside(Vector3 position, float margin)
+        {
+            foreach (var w in _walls)
+                if (Vector3.Dot(position - w.home, w.outward) > -(w.halfThickness + margin)) return false;
+            return true;
+        }
+
         /// <summary>The nearest point of the way out (wall <paramref name="wall"/>'s gap) at the height of
         /// <paramref name="from"/> - where to point a player looking for the exit.</summary>
         public Vector3 ExitPointNear(int wall, Vector3 from)
