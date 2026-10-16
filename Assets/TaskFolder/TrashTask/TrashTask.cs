@@ -217,8 +217,8 @@ namespace FishGame
             _builtFor = Mode.None;
         }
 
-        /// <summary>Server / offline: trash worth <paramref name="points"/> went down a sinkhole.</summary>
-        public void ServerCollected(int points)
+        /// <summary>Server / offline: trash worth <paramref name="points"/> went down a sinkhole at <paramref name="where"/>.</summary>
+        public void ServerCollected(int points, Vector3 where)
         {
             _collected += points;
             var match = MatchManager.Instance;
@@ -226,7 +226,11 @@ namespace FishGame
             if (!_complete && _collected >= _goal)
             {
                 _complete = true;
-                if (match != null) match.ReduceRemaining(completionSeconds);
+                if (match != null)
+                {
+                    match.ReduceRemaining(completionSeconds);
+                    match.TaskCompleted(where, "Reef cleaned");
+                }
                 Debug.Log($"[TrashTask] Reef cleared! ({_collected}/{_goal})");
             }
             PushProgress();

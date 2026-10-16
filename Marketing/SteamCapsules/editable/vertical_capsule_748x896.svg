@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="748" height="896" viewBox="0 0 748 896">
+  <!-- REEF RUN capsule layout. Layers: in-engine art plate, navy title scrim, logotype (live text in logo_wide.svg).
+       The PNG export is made by compose_capsules.py, which also adds a soft vignette. -->
+  <defs>
+    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="0.42">
+      <stop offset="0" stop-color="#051729" stop-opacity="0.62"/>
+      <stop offset="1" stop-color="#051729" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <image id="plate" x="0" y="0" width="748" height="896" xlink:href="../plates/vertical_capsule_748x896.png" href="../plates/vertical_capsule_748x896.png"/>
+  <rect id="title-scrim" x="0" y="0" width="748" height="896" fill="url(#scrim)"/>
+  <image id="logo" x="114" y="40" width="521" height="228" xlink:href="logo_wide.svg" href="logo_wide.svg"/>
+</svg>

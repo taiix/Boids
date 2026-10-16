@@ -40,7 +40,10 @@ namespace FishGame
 
             // Shave time off the survival clock (server-authoritative / offline-safe inside MatchManager).
             if (MatchManager.Instance != null)
+            {
                 MatchManager.Instance.ReduceRemaining(timeReward);
+                MatchManager.Instance.TaskCompleted(transform.position, "Task");
+            }
 
             Debug.Log($"[Task] '{name}' completed → survival clock -{timeReward:0}s");
             Completed?.Invoke(this);

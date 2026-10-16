@@ -71,6 +71,9 @@ namespace FishGame
         {
             if (IsEaten) return false;
             IsEaten = true;
+            // The crunch of the jaws closing - every machine, for every catch.
+            var lib = GameAudio.Lib;
+            if (lib != null) GameAudio.PlayAt(GameAudio.Pick(lib.bites), transform.position, 0.9f, 35f);
             _parentBefore = transform.parent;
             _scaleBefore = transform.localScale;
 

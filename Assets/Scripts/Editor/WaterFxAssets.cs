@@ -104,6 +104,9 @@ namespace FishGame.EditorTools
             lib.waterRing = waterRing;
             lib.mist = spray;
             lib.ripple = ripple;
+            // The trawler event reuses the turtle task's net cord and HDRP's water-sample boat.
+            lib.trawlNet = AssetDatabase.LoadAssetAtPath<Material>("Assets/Models/Turtle/Materials/TurtleNet.mat");
+            lib.trawlerBoat = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Samples/High Definition RP/17.0.2/Water Samples/Prefabs/Boat.prefab");
             EditorUtility.SetDirty(lib);
             AssetDatabase.SaveAssets();
             Debug.Log($"[WaterFx] Built water FX assets (curtain bubble {(meshBubble != null)}, splash meshes " +

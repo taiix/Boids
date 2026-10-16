@@ -84,6 +84,7 @@ namespace FishGame
 
         RenderTexture _map;
         int _stampKernel = -1, _clearKernel = -1;
+        readonly int[] _origin = new int[2];
         Vector4 _area;          // xy = seabed's min corner (x,z), z = texels per metre
         bool _ready;
         bool _unavailable;
@@ -161,6 +162,22 @@ namespace FishGame
                     {
                         if (flock == null || flock.allFish == null) continue;
                         float r = SchoolFishRadius(flock);
+                        // The sim's own copy of the positions (fish-id order, like allFish) - far cheaper
+                        // than reading a thousand transforms.
+                        if (flock.TryGetSimPositions(out var simPos, out var ids, out int simCount))
+                        {
+                            var fish = flock.allFish;
+                            for (int k = 0; k < simCount; k++)
+                            {
+                                Vector3 pos = simPos[k];
+                                float dx = pos.x - v.x, dz = pos.z - v.z;
+                                if (dx * dx + dz * dz > range2) continue;
+                                var f = fish[ids[k]];
+                                if (f == null || !f.activeInHierarchy) continue;
+                                Touch(f, pos, Vector3.zero, r, schoolFishDepth, puffSpacing * 3f, now, dt);
+                            }
+                            continue;
+                        }
                         foreach (var f in flock.allFish)
                         {
                             if (f == null || !f.activeInHierarchy) continue;
@@ -246,7 +263,8 @@ namespace FishGame
             compute.SetTexture(_stampKernel, CsTrailId, _map);
             compute.SetInt(CsSizeId, resolution);
             compute.SetVector(CsAreaId, _area);
-            compute.SetInts(CsOriginId, x0, z0);
+            _origin[0] = x0; _origin[1] = z0; // reused: SetInts' params array would allocate every stamp
+            compute.SetInts(CsOriginId, _origin);
             compute.SetVector(CsSegId, new Vector4(a.x, a.z, b.x, b.z));
             compute.SetVector(CsStampId, new Vector4(halfWidth, depth, now, fadeSeconds));
             compute.Dispatch(_stampKernel, Mathf.CeilToInt((x1 - x0 + 1) / 8f), Mathf.CeilToInt((z1 - z0 + 1) / 8f), 1);

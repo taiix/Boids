@@ -1,4 +1,7 @@
 using System.Collections.Generic;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
 
 namespace FishGame
@@ -59,6 +62,10 @@ namespace FishGame
         Vector3 _plantLean, _plantSpeed;
         bool _tiltsWhole;
         Renderer[] _renderers;
+        // How far any part of the plant can ever get from its resting bounds (bounds diagonal + longest stalk,
+        // straightened), so swimmers farther than that plus their reach can be skipped without testing.
+        float _plantReach;
+        readonly List<int> _nearby = new List<int>(); // this frame's swimmers that could touch the plant
 
         // Drawn by some camera this frame (not culled by distance or out of view).
         bool Seen()
@@ -125,6 +132,15 @@ namespace FishGame
             for (int i = 0; i < _bones.Length; i++)
                 if (_segLen[i] <= 0f) _segLen[i] = _parent[i] >= 0 ? _segLen[_parent[i]] : 0.1f;
 
+            var chain = new float[_bones.Length]; // parents come before children
+            float longest = 0f;
+            for (int i = 0; i < _bones.Length; i++)
+            {
+                chain[i] = _segLen[i] + (_parent[i] >= 0 ? chain[_parent[i]] : 0f);
+                longest = Mathf.Max(longest, chain[i]);
+            }
+            _plantReach = _area.size.magnitude + longest + extraReach + 1f;
+
             _pivot = new Vector3(_area.center.x, _area.min.y, _area.center.z); // where it's rooted
             _rootPos = transform.position;
             _rootRot = transform.rotation;
@@ -137,7 +153,7 @@ namespace FishGame
         Vector3 PushAt(Vector3 at, List<Vector4> pushers, List<Vector4> segments)
         {
             Vector3 push = Vector3.zero;
-            for (int p = 0; p < pushers.Count; p++)
+            foreach (int p in _nearby)
             {
                 var s = pushers[p];
                 var g = segments[p];
@@ -158,41 +174,109 @@ namespace FishGame
             return Vector3.ClampMagnitude(push, 1f);
         }
 
-        // How far bone i's stretch of stalk has to lean to get out of every swimmer's way: sideways, away
-        // from the nearest part of the swimmer's body, and further over the lower down it's hit.
-        Vector3 LeanNeeded(int i, List<Vector4> pushers, List<Vector4> segments)
-        {
-            var bone = _bones[i];
-            Vector3 from = bone.position;
-            Vector3 to = from + bone.TransformDirection(_axis[i]) * _segLen[i];
-            Vector3 lean = Vector3.zero;
-            float strongest = 0f;
-            for (int p = 0; p < pushers.Count; p++)
-            {
-                var s = pushers[p];
-                var g = segments[p];
-                Vector3 centre = new Vector3(s.x, s.y, s.z), half = new Vector3(g.x, g.y, g.z);
-                ClosestPoints(from, to, centre - half, centre + half, out var onStalk, out var onBody);
-                float reach = s.w + extraReach;
-                Vector3 away = onStalk - onBody;
-                float dist = away.magnitude;
-                if (dist >= reach) continue;
-                away.y = 0f;
-                if (away.sqrMagnitude < 1e-8f) { away = from - centre; away.y = 0f; } // swimmer right over it
-                if (away.sqrMagnitude < 1e-8f) continue;
+        // Scratch for the lean job, shared by every plant (they run one after another on the main thread).
+        static NativeArray<Vector3> s_from, s_to, s_needOut;
+        static NativeArray<byte> s_valid;
+        static NativeArray<Vector4> s_bodies, s_bodySegs;
+        static int s_users;
 
-                // Anything inside the body gets the full lean, easing off across the extra reach.
-                float f = Mathf.Clamp01((reach - dist) / Mathf.Max(extraReach, 0.05f));
-                f = f * f * (3f - 2f * f);
-                float hitHeight = Mathf.Clamp01((onStalk.y - _groundY) / _height);
-                float angle = f * g.w * Mathf.Lerp(leanWhenHitLow, leanWhenHitHigh, hitHeight);
-                if (angle > strongest)
-                {
-                    strongest = angle;
-                    lean = away.normalized * angle;
-                }
+        void OnEnable() => s_users++;
+
+        void OnDisable()
+        {
+            if (--s_users > 0) return;
+            if (s_from.IsCreated) { s_from.Dispose(); s_to.Dispose(); s_needOut.Dispose(); s_valid.Dispose(); }
+            if (s_bodies.IsCreated) { s_bodies.Dispose(); s_bodySegs.Dispose(); }
+        }
+
+        static void Ensure<T>(ref NativeArray<T> a, int length) where T : struct
+        {
+            if (a.IsCreated && a.Length >= length) return;
+            if (a.IsCreated) a.Dispose();
+            a = new NativeArray<T>(Mathf.Max(length, 64), Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
+        }
+
+        // _need[i]: how far bone i's stretch of stalk has to lean to get out of every nearby swimmer's way.
+        // The bones are read here; the swimmer-by-swimmer test runs in Burst (LeanJob).
+        void ComputeNeeds(List<Vector4> pushers, List<Vector4> segments)
+        {
+            int n = _bones.Length, m = _nearby.Count;
+            Ensure(ref s_from, n); Ensure(ref s_to, n); Ensure(ref s_needOut, n); Ensure(ref s_valid, n);
+            Ensure(ref s_bodies, m); Ensure(ref s_bodySegs, m);
+            for (int k = 0; k < m; k++)
+            {
+                s_bodies[k] = pushers[_nearby[k]];
+                s_bodySegs[k] = segments[_nearby[k]];
             }
-            return lean;
+            for (int i = 0; i < n; i++)
+            {
+                var bone = _bones[i];
+                s_valid[i] = (byte)(bone != null ? 1 : 0);
+                if (bone == null) continue;
+                Vector3 from = bone.position;
+                s_from[i] = from;
+                s_to[i] = from + bone.TransformDirection(_axis[i]) * _segLen[i];
+            }
+            new LeanJob
+            {
+                from = s_from, to = s_to, valid = s_valid, bodies = s_bodies, segments = s_bodySegs, need = s_needOut,
+                boneCount = n, bodyCount = m,
+                extraReach = extraReach, groundY = _groundY, height = _height,
+                leanLow = leanWhenHitLow, leanHigh = leanWhenHitHigh,
+            }.Run();
+            for (int i = 0; i < n; i++) _need[i] = s_needOut[i];
+        }
+
+        // Strict float mode: the same arithmetic, in the same order, as the managed code it replaced.
+        [BurstCompile(FloatMode = FloatMode.Strict)]
+        struct LeanJob : IJob
+        {
+            [ReadOnly] public NativeArray<Vector3> from, to;
+            [ReadOnly] public NativeArray<byte> valid;
+            [ReadOnly] public NativeArray<Vector4> bodies, segments;
+            [WriteOnly] public NativeArray<Vector3> need;
+            public int boneCount, bodyCount;
+            public float extraReach, groundY, height, leanLow, leanHigh;
+
+            public void Execute()
+            {
+                for (int i = 0; i < boneCount; i++)
+                    need[i] = valid[i] != 0 ? Lean(from[i], to[i]) : Vector3.zero;
+            }
+
+            // Sideways, away from the nearest part of the swimmer's body, and further over the lower down
+            // it's hit; the strongest swimmer wins.
+            Vector3 Lean(Vector3 from, Vector3 to)
+            {
+                Vector3 lean = Vector3.zero;
+                float strongest = 0f;
+                for (int p = 0; p < bodyCount; p++)
+                {
+                    var s = bodies[p];
+                    var g = segments[p];
+                    Vector3 centre = new Vector3(s.x, s.y, s.z), half = new Vector3(g.x, g.y, g.z);
+                    ClosestPoints(from, to, centre - half, centre + half, out var onStalk, out var onBody);
+                    float reach = s.w + extraReach;
+                    Vector3 away = onStalk - onBody;
+                    float dist = away.magnitude;
+                    if (dist >= reach) continue;
+                    away.y = 0f;
+                    if (away.sqrMagnitude < 1e-8f) { away = from - centre; away.y = 0f; } // swimmer right over it
+                    if (away.sqrMagnitude < 1e-8f) continue;
+
+                    // Anything inside the body gets the full lean, easing off across the extra reach.
+                    float f = Mathf.Clamp01((reach - dist) / Mathf.Max(extraReach, 0.05f));
+                    f = f * f * (3f - 2f * f);
+                    float hitHeight = Mathf.Clamp01((onStalk.y - groundY) / height);
+                    float angle = f * g.w * Mathf.Lerp(leanLow, leanHigh, hitHeight);
+                    if (angle > strongest)
+                    {
+                        strongest = angle;
+                        lean = away.normalized * angle;
+                    }
+                }
+                return lean;
+            }
         }
 
         // Closest points between segments p1-q1 and p2-q2 (Ericson, Real-Time Collision Detection 5.1.9).
@@ -251,10 +335,14 @@ namespace FishGame
             if (_resting && !Seen()) return;
             var pushers = VegetationPushMap.Pushers;
             var segments = VegetationPushMap.Segments;
+            // Only the swimmers that could reach this plant (the rest can't touch it, so skipping them changes
+            // nothing - but with a school of a thousand fish overhead, testing them all was most of the frame).
+            VegetationPushMap.Nearby(_area, _plantReach, _nearby);
 
             bool near = false;
-            for (int p = 0; p < pushers.Count && !near; p++)
+            foreach (int p in _nearby)
             {
+                if (near) break;
                 var s = pushers[p];
                 var g = segments[p];
                 float reach = s.w + new Vector3(g.x, g.y, g.z).magnitude + extraReach; // whole body, nose to tail
@@ -284,7 +372,9 @@ namespace FishGame
                 if (bone == null) continue;
                 var current = bone.localRotation;
                 _base[i] = current == _written[i] ? _base[i] : current;
-                bone.localRotation = _base[i];
+                // Already there (not animated, not bent last frame): writing it again would only dirty the transform.
+                var b = _base[i];
+                if (current.x != b.x || current.y != b.y || current.z != b.z || current.w != b.w) bone.localRotation = b;
             }
 
             // 2) Where the swimmers hit the stalks, and how far over each hit wants its stretch of stalk.
@@ -294,8 +384,7 @@ namespace FishGame
             for (int i = 0; i < n; i++) _total[i] = Vector3.zero;
             if (near)
             {
-                for (int i = 0; i < n; i++)
-                    _need[i] = _bones[i] != null ? LeanNeeded(i, pushers, segments) : Vector3.zero;
+                ComputeNeeds(pushers, segments);
                 for (int k = 0; k < n; k++)
                 {
                     if (_need[k].sqrMagnitude < 1e-8f) continue;
@@ -334,10 +423,13 @@ namespace FishGame
                 float below = p >= 0 ? _bent[p] : 0f;
                 float angle = Mathf.Min(_lean[i].magnitude, Mathf.Max(0f, maxBend - below));
                 _bent[i] = below + angle;
-                Vector3 axisWS = bone.TransformDirection(_axis[i]);
-                Vector3 hinge = Vector3.Cross(axisWS, _lean[i]);
-                if (angle > 1e-4f && hinge.sqrMagnitude > 1e-10f)
-                    bone.rotation = Quaternion.AngleAxis(angle * Mathf.Rad2Deg, hinge.normalized) * bone.rotation;
+                if (angle > 1e-4f) // (the bone's world direction is only worth looking up for a bone that bends)
+                {
+                    Vector3 axisWS = bone.TransformDirection(_axis[i]);
+                    Vector3 hinge = Vector3.Cross(axisWS, _lean[i]);
+                    if (hinge.sqrMagnitude > 1e-10f)
+                        bone.rotation = Quaternion.AngleAxis(angle * Mathf.Rad2Deg, hinge.normalized) * bone.rotation;
+                }
 
                 _written[i] = bone.localRotation;
             }

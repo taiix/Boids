@@ -10,6 +10,21 @@ public class SteamLobby : MonoBehaviour
     public string LobbySceneName = "ReefRunLobby";
     public CSteamID CurrentLobbyId => _currentLobbyId;
 
+    // Lobby data keys. AppID 480 (Spacewar) is shared by every Steamworks test project, so a public
+    // lobby search returns other games' lobbies too: GameKey/GameTag marks ours and the browser filters on it.
+    public const string GameKey = "game";
+    public const string GameTag = "reefrun";
+    public const string NameKey = "name";
+    public const string PublicKey = "public";
+    public const string MembersKey = "members";
+    public const string StartingKey = "starting";
+
+    /// <summary>A join attempt failed (lobby full, gone, or its dive already started). The argument is a player-facing reason.</summary>
+    public static event System.Action<string> JoinFailed;
+
+    /// <summary>True when the current lobby is listed in the public lobby browser.</summary>
+    public bool IsPublic => _currentLobbyId.IsValid() && SteamMatchmaking.GetLobbyData(_currentLobbyId, PublicKey) == "1";
+
     protected Callback<LobbyCreated_t> lobbyCreated;
     protected Callback<GameLobbyJoinRequested_t> gameLobbyJoinRequested;
     protected Callback<LobbyEnter_t> lobbyEntered;
@@ -50,6 +65,12 @@ public class SteamLobby : MonoBehaviour
 
     private void OnLobbyChatUpdate(LobbyChatUpdate_t update)
     {
+        // The host keeps the member count in the lobby data so the browser can show it for lobbies
+        // it isn't in (member lists are only readable from inside a lobby).
+        var changedLobby = new CSteamID(update.m_ulSteamIDLobby);
+        if (changedLobby == _currentLobbyId && SteamMatchmaking.GetLobbyOwner(changedLobby) == SteamUser.GetSteamID())
+            SteamMatchmaking.SetLobbyData(changedLobby, MembersKey, SteamMatchmaking.GetNumLobbyMembers(changedLobby).ToString());
+
         var controller = FindAnyObjectByType<ReefRunLobbyController>();
         if (controller == null) return;
 
@@ -79,6 +100,20 @@ public class SteamLobby : MonoBehaviour
 
     private void OnLobbyEntered(LobbyEnter_t lobby)
     {
+        var response = (EChatRoomEnterResponse)lobby.m_EChatRoomEnterResponse;
+        if (response != EChatRoomEnterResponse.k_EChatRoomEnterResponseSuccess)
+        {
+            Debug.LogWarning($"[Lobby] Join failed: {response}");
+            JoinFailed?.Invoke(response switch
+            {
+                EChatRoomEnterResponse.k_EChatRoomEnterResponseFull => "That lobby is full.",
+                EChatRoomEnterResponse.k_EChatRoomEnterResponseDoesntExist => "That lobby has closed.",
+                EChatRoomEnterResponse.k_EChatRoomEnterResponseNotAllowed => "That lobby is friends only.",
+                _ => "Couldn't join that lobby.",
+            });
+            return;
+        }
+
         _currentLobbyId = new CSteamID(lobby.m_ulSteamIDLobby);
         if (NetworkServer.active) return; // host — already handled in OnLobbyCreated
 
@@ -107,8 +142,15 @@ public class SteamLobby : MonoBehaviour
 
         // Host pressed Start — play the launch overlay on every client. Mirror
         // will pull clients into the game scene right after (host's StartMatch).
-        if (!NetworkServer.active && SteamMatchmaking.GetLobbyData(lobbyId, "starting") == "1")
+        if (!NetworkServer.active && SteamMatchmaking.GetLobbyData(lobbyId, StartingKey) == "1")
         {
+            // Joined after the dive began (e.g. the browser list was stale): there's no mid-match join.
+            if (!_hasConnected)
+            {
+                LeaveLobby();
+                JoinFailed?.Invoke("That dive already started.");
+                return;
+            }
             LaunchOverlay.Instance?.Play();
             return;
         }
@@ -131,6 +173,11 @@ public class SteamLobby : MonoBehaviour
         _currentLobbyId = new CSteamID(lobby.m_ulSteamIDLobby);
         networkManager.StartHost();
         SteamMatchmaking.SetLobbyData(_currentLobbyId, "HostAddress", SteamUser.GetSteamID().ToString());
+        SteamMatchmaking.SetLobbyData(_currentLobbyId, GameKey, GameTag);
+        SteamMatchmaking.SetLobbyData(_currentLobbyId, NameKey, $"{SteamFriends.GetPersonaName()}'s reef");
+        SteamMatchmaking.SetLobbyData(_currentLobbyId, PublicKey, "0");
+        SteamMatchmaking.SetLobbyData(_currentLobbyId, MembersKey, "1");
+        SteamMatchmaking.SetLobbyData(_currentLobbyId, StartingKey, "0");
         SceneManager.LoadScene(LobbySceneName);
     }
 
@@ -162,6 +209,18 @@ public class SteamLobby : MonoBehaviour
             networkManager.maxConnections = ReefRunLobbyController.MaxSlots;
             SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypeFriendsOnly, ReefRunLobbyController.MaxSlots);
         }
+    }
+
+    /// <summary>
+    /// Host only: list the lobby in the public browser, or take it back to friends only (friends can
+    /// still join from their Steam friends list either way).
+    /// </summary>
+    public void SetPublic(bool isPublic)
+    {
+        if (!SteamManager.Initialized || !_currentLobbyId.IsValid()) return;
+        if (SteamMatchmaking.GetLobbyOwner(_currentLobbyId) != SteamUser.GetSteamID()) return;
+        SteamMatchmaking.SetLobbyType(_currentLobbyId, isPublic ? ELobbyType.k_ELobbyTypePublic : ELobbyType.k_ELobbyTypeFriendsOnly);
+        SteamMatchmaking.SetLobbyData(_currentLobbyId, PublicKey, isPublic ? "1" : "0");
     }
 
     /// <summary>

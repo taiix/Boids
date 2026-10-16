@@ -48,6 +48,16 @@ namespace FishGame
         [Tooltip("Distortion applied to the shark's voice, 0-1.")]
         [Range(0f, 1f)][SerializeField] float sharkDistortion = 0.45f;
 
+        [Header("The shark hears fish")]
+        [Tooltip("A fish talking within earshot of the shark shows it a ripple where the voice came from. " +
+                 "Closer than this the ripple is exactly on the fish, and the fish can be locked onto.")]
+        [SerializeField] float clearHearing = 12f;
+        [Tooltip("How far off (metres) the ripple can be from a fish talking at the very edge of earshot. " +
+                 "In between it grows with distance.")]
+        [SerializeField] float farHearingError = 8f;
+        [Tooltip("Seconds between ripples while a fish keeps talking.")]
+        [SerializeField] float hearingInterval = 0.8f;
+
         [Header("Playback")]
         [Tooltip("Milliseconds of audio to buffer before playback starts. Higher rides out worse " +
                  "network jitter at the cost of latency.")]
@@ -95,6 +105,15 @@ namespace FishGame
         public float MicLevel { get; private set; }
         public float MicLevelTime { get; private set; } = -1f;
         public EVoiceResult MicStatus => _lastMicResult;
+
+        /// <summary>Shark's machine: a fish was heard. Where the ripple goes, how far off it may be (metres),
+        /// and the fish itself when it was close enough to pin down (else null).</summary>
+        public static event System.Action<Vector3, float, GameObject> SharkHeard;
+
+        /// <summary>Local fish: until when (unscaled time) the HUD warns that the shark heard us.</summary>
+        public static float HeardBySharkUntil { get; private set; } = -1f;
+
+        float _nextHeardTime;   // server: when this fish's voice may next make a ripple
 
         void Awake()
         {
@@ -290,6 +309,9 @@ namespace FishGame
         {
             if (data == null || data.Length == 0 || data.Length > MaxPayloadBytes) return;
 
+            // Round over: the dead and the living talk freely again over the results.
+            var match = MatchManager.Instance;
+            bool roundOver = match != null && match.IsOver;
             bool senderDead = IsDead;
             Vector3 senderPos = transform.position;
             float earshotSqr = earshot * earshot;
@@ -304,7 +326,11 @@ namespace FishGame
 
                 bool listenerDead = listener.IsDead;
 
-                if (senderDead)
+                if (roundOver)
+                {
+                    // everyone hears everyone
+                }
+                else if (senderDead)
                 {
                     // Ghosts talk among themselves, anywhere on the map. The living never hear them,
                     // otherwise being eaten would instantly leak who the shark is.
@@ -313,6 +339,7 @@ namespace FishGame
                 else if (!listenerDead)
                 {
                     if ((listener.transform.position - senderPos).sqrMagnitude > earshotSqr) continue;
+                    ServerHeardBy(listener, conn);
                 }
                 // a dead listener spectates and hears the living regardless of distance
 
@@ -320,7 +347,55 @@ namespace FishGame
             }
         }
 
-        bool IsDead => _vitals != null && _vitals.IsDead;
+        // A ghost: out of the round any way at all - eaten, starved, escaped - not only dead by its vitals.
+        // An eaten fish's vitals never die, so going by them alone let it keep talking to the living.
+        // A fish still struggling in the jaws is alive - the others can hear it scream.
+        bool IsDead => _vitals != null && _vitals.IsDead || _player != null && _player.IsOut;
+
+        /// <summary>This player is out of the round, so only the other ghosts hear them (and they hear everyone).</summary>
+        public bool IsGhost => IsDead;
+
+        /// <summary>
+        /// Server: a living listener within earshot just got a frame of this voice. If that listener is
+        /// the shark and we're a fish still in the water, the shark sees a ripple where the voice came
+        /// from - exact up close, off by up to <see cref="farHearingError"/> at the edge of earshot - and
+        /// we're told we were heard. Decided here, like the audio itself, so no client can fake or hide it.
+        /// Public so tests can stand in for a voice packet.
+        /// </summary>
+        [Server]
+        public void ServerHeardBy(ProximityVoice shark, NetworkConnectionToClient sharkConn)
+        {
+            if (shark == null || sharkConn == null || shark == this) return;
+            if (_player == null || _player.IsSharkBody || _player.IsOut || _player.IsBeingEaten) return;
+            if (shark._player == null || !shark._player.IsSharkBody) return;
+            if (Time.time < _nextHeardTime) return;
+            _nextHeardTime = Time.time + hearingInterval;
+
+            Vector3 pos = transform.position;
+            float d = Vector3.Distance(shark.transform.position, pos);
+            float error = farHearingError * Mathf.InverseLerp(clearHearing, earshot, d);
+            Vector3 heardAt = pos + Random.insideUnitSphere * error;
+            // Only a fish heard clearly is named, so a far one's real position never reaches the shark.
+            shark.TargetHeardFish(sharkConn, heardAt, error, d <= clearHearing ? netId : 0u);
+            if (connectionToClient != null) TargetHeardByShark(connectionToClient);
+        }
+
+        [TargetRpc]
+        void TargetHeardFish(NetworkConnectionToClient target, Vector3 heardAt, float error, uint fishNetId)
+        {
+            GameObject fish = null;
+            if (fishNetId != 0 && NetworkClient.spawned.TryGetValue(fishNetId, out var identity) && identity != null)
+                fish = identity.gameObject;
+            SharkHeard?.Invoke(heardAt, error, fish);
+        }
+
+        [TargetRpc]
+        void TargetHeardByShark(NetworkConnectionToClient target)
+        {
+            // A warning as the shark first picks us up, not on every ripple while we keep talking.
+            if (Time.unscaledTime >= HeardBySharkUntil && GameAudio.Lib != null) GameAudio.Play(GameAudio.Lib.uiWarning, 0.5f);
+            HeardBySharkUntil = Time.unscaledTime + hearingInterval + 1.2f;
+        }
 
         /// <summary>
         /// Delivered on the speaker's own object on the listener's machine, so "this" is already the
@@ -381,6 +456,10 @@ namespace FishGame
 
             _buffer.Write(_floatScratch, samples);
             ApplyRoleTreatment();
+            // A ghost's body is hidden somewhere on the reef: its voice comes from nowhere in particular, at
+            // full volume wherever the other ghosts are. Same for everyone once the round is over.
+            var match = MatchManager.Instance;
+            _source.spatialBlend = IsDead || match != null && match.IsOver ? 0f : 1f;
         }
 
         /// <summary>Runs on the audio thread: drain the buffer, or emit silence while re-priming.</summary>

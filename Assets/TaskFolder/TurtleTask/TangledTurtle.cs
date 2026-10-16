@@ -247,7 +247,11 @@ namespace FishGame
                 _biters.Clear();
                 _testBiters.Clear();
                 _biting = 0;
-                if (MatchManager.Instance != null) MatchManager.Instance.ReduceRemaining(timeReward);
+                if (MatchManager.Instance != null)
+                {
+                    MatchManager.Instance.ReduceRemaining(timeReward);
+                    MatchManager.Instance.TaskCompleted(transform.position, "Turtle freed");
+                }
                 // Off it goes - up and away first, then roaming the reef like the others.
                 if (_swimmer != null)
                     _swimmer.BeginSwimming(transform.position + transform.forward * 12f + Vector3.up * 5f, 0.4f);

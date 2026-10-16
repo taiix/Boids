@@ -1,0 +1,73 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 897d9e0ed24ae4445b3718a24ec4915c, type: 3}
+  m_Name: SoundLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.SoundLibrary
+  musicMenu: {fileID: 8300000, guid: 5358758f61a34d84d95df3c589d97475, type: 3}
+  musicRound: {fileID: 8300000, guid: 52f1c49eb8f8fb148b01808426ce2ef6, type: 3}
+  musicEscape: {fileID: 8300000, guid: 25acb97edef3f27459e90b6eb814c69e, type: 3}
+  jingleRoundStart: {fileID: 8300000, guid: 351aa0ea390e677478a5b9431e09d087, type: 3}
+  jingleEscaped: {fileID: 8300000, guid: 30f9676d51a98864980d5361bc8a0066, type: 3}
+  jingleFishWin: {fileID: 8300000, guid: d5339909355f8f84dab8f7f545927ac4, type: 3}
+  jingleSharkWin: {fileID: 8300000, guid: e5001a7ec2241e041890944c713c6b99, type: 3}
+  jingleLost: {fileID: 8300000, guid: 93a0acbc865b1384586c06ed093cdfaa, type: 3}
+  uiClick: {fileID: 8300000, guid: 7327e6b524a27aa4b8f66960b47adfe1, type: 3}
+  uiBack: {fileID: 8300000, guid: 44f7fe45244e9c445beb6cd81154c4c1, type: 3}
+  uiConfirm: {fileID: 8300000, guid: cf4a812ebdeaa504bb15229562209a20, type: 3}
+  uiAnnounce: {fileID: 8300000, guid: bd16a65d76c4d1147be74610f090e07d, type: 3}
+  uiWarning: {fileID: 8300000, guid: 0a7e49f7dafa03249b920919e77dd133, type: 3}
+  bites:
+  - {fileID: 8300000, guid: 32c6f9836dc1f4c4caaad67be9a44a93, type: 3}
+  - {fileID: 8300000, guid: e0ab92994e726b24183db92367795b9e, type: 3}
+  - {fileID: 8300000, guid: c3a978f32bae56b48ab86d843f0f8270, type: 3}
+  swishes:
+  - {fileID: 8300000, guid: 69f21112a3db3e24b876b98c35c6a4e2, type: 3}
+  - {fileID: 8300000, guid: eae9d5a8872b5c647ad83f7a51dd5a42, type: 3}
+  - {fileID: 8300000, guid: 048f1c351a26d3c459c6b8e63d5c3825, type: 3}
+  lunge: {fileID: 8300000, guid: 6504c56dcf22fc5408b49add81e736e2, type: 3}
+  sonar: {fileID: 8300000, guid: 9980cb4d5a65a73439bb83f486343274, type: 3}
+  devour: {fileID: 8300000, guid: 4ef5c56653529504eb381cc35caabbe1, type: 3}
+  scream: {fileID: 8300000, guid: 47800d3e723042148a857b89cd19820d, type: 3}
+  heartbeat: {fileID: 8300000, guid: 5059981e048203d4bbc7016c34c1c0ec, type: 3}
+  graze: {fileID: 8300000, guid: e28103afd3ff1794ca3022b133e1ca52, type: 3}
+  breakFree: {fileID: 8300000, guid: 8ab6e46583ffec44da675d9e37a68deb, type: 3}
+  pellet: {fileID: 8300000, guid: 805a2e169acd11344bfa3437ec4f87b2, type: 3}
+  splashes:
+  - {fileID: 8300000, guid: c13485153fa80d848a8088498be077ad, type: 3}
+  - {fileID: 8300000, guid: b68d3634abdb1d84ca047443a69e77b3, type: 3}
+  - {fileID: 8300000, guid: f8fa5985d4991eb40becfc4deed5506f, type: 3}
+  - {fileID: 8300000, guid: c0a71344c11d20844a156825f427d9db, type: 3}
+  bubbles:
+  - {fileID: 8300000, guid: a22ccb92668c10748b6568c44d215868, type: 3}
+  - {fileID: 8300000, guid: cc78b1f2bbf99b34b9b4acaa974cfcb1, type: 3}
+  - {fileID: 8300000, guid: 06f37246e759a9543a34d43f29dbddf5, type: 3}
+  swim: {fileID: 8300000, guid: a3f0d96cefab1a842bd1c0411ce7c7e6, type: 3}
+  ambientBubbles: {fileID: 8300000, guid: 655c9aca4458cb4478d820c626ea74b5, type: 3}
+  taskDoneShark: {fileID: 8300000, guid: 5ac5e0c93db442343a661e1645438238, type: 3}
+  taskDoneFish: {fileID: 8300000, guid: 3f2dc9f93c7745d47a492a19acf22191, type: 3}
+  exitOpen: {fileID: 8300000, guid: c01c59b972bc098449cc3756e7483978, type: 3}
+  rumble: {fileID: 8300000, guid: a3977b2cff275d04c87ae11e15486446, type: 3}
+  ghost: {fileID: 8300000, guid: e0b77181ae8573448ba18696b350dcce, type: 3}
+  ghostHint: {fileID: 8300000, guid: 7e5d4fa9c34a3794a8a2999b05005fbd, type: 3}
+  currentLoop: {fileID: 8300000, guid: ebd93ad3a593abd478eca480960e838d, type: 3}
+  trawlerEngine: {fileID: 8300000, guid: 6af4121f1659d8841b106e0246de5008, type: 3}
+  netCatch: {fileID: 8300000, guid: c73eebeea97be444fbd33a9fed0a4435, type: 3}
+  nightfallOnset: {fileID: 8300000, guid: de1dd37d69867074799908edf4acff63, type: 3}
+  rainLoop: {fileID: 8300000, guid: f1637b95b89bd89419fd5df6eeee5201, type: 3}
+  thunder: {fileID: 8300000, guid: ec58416d11ac29545811c5238076bfc4, type: 3}
+  coldOnset: {fileID: 8300000, guid: 8806a263aa9df7a4d86ca7568c8bceab, type: 3}
+  sting: {fileID: 8300000, guid: 4c958b78d14299d4da00b31b2f8bf1a5, type: 3}
+  stingHit: {fileID: 8300000, guid: e0a3164b245f6f04e84d8c2a290c42e8, type: 3}
+  quake: {fileID: 8300000, guid: 8fd08d9f9fb03dc4c8f8f1563098b37e, type: 3}
+  rumbleLoop: {fileID: 8300000, guid: f5f2118faf4839647ad879ed7a3da999, type: 3}
+  tideOnset: {fileID: 8300000, guid: 5d4bc65e73ef4784db6a5e8a8e3b8c74, type: 3}
+  tideBurn: {fileID: 8300000, guid: 04ce89620aed1e04c8a4f27a9f23ffa4, type: 3}
