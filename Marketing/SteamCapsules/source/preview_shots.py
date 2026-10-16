@@ -30,7 +30,7 @@ def titled(plate, style="A", hfrac=0.34):
 
 if __name__ == "__main__":
     style = sys.argv[1] if len(sys.argv) > 1 else "A"
-    out = os.path.join(ROOT, "previews", "shot_options"); os.makedirs(out, exist_ok=True)
+    out = os.path.join(ROOT, "previews", "exploration", "shot_options"); os.makedirs(out, exist_ok=True)
     cw, ch = 980, 561
     sheet = Image.new("RGB", (cw * 2 + 60, (ch + 60) * 2 + 20), C.STEAM_BG)
     d = ImageDraw.Draw(sheet)

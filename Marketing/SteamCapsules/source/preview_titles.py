@@ -37,7 +37,7 @@ def board(style):
 
 
 if __name__ == "__main__":
-    out = os.path.join(ROOT, "previews", "title_options")
+    out = os.path.join(ROOT, "previews", "exploration", "title_options")
     os.makedirs(out, exist_ok=True)
     boards = []
     for s in "ABCD":

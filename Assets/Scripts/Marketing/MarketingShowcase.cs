@@ -29,7 +29,17 @@ namespace FishGame
     [DefaultExecutionOrder(-100)]
     public class MarketingShowcase : MonoBehaviour
     {
-        public static MarketingShowcase Instance { get; private set; }
+        static MarketingShowcase s_instance;
+        /// <summary>The director in the loaded scene (re-found if the static reference was lost).</summary>
+        public static MarketingShowcase Instance
+        {
+            get
+            {
+                if (s_instance == null) s_instance = FindAnyObjectByType<MarketingShowcase>();
+                return s_instance;
+            }
+            private set => s_instance = value;
+        }
 
         [Header("Capture")]
         [Min(320)] public int width = 1920;
@@ -246,7 +256,7 @@ namespace FishGame
             if (_gameClock != null) BoidsManager.SharedClock = _gameClock;
             Time.captureFramerate = 0;
             Time.timeScale = 1f;
-            if (Instance == this) Instance = null;
+            if (s_instance == this) s_instance = null;
         }
 
         // ------------------------------------------------------------------ shots

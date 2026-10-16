@@ -9,6 +9,7 @@ fonts (Barlow / Barlow Condensed, SIL OFL) and colours; transparent RGBA output.
     "J"  Coral       - letter faces carved from the game's own coral texture, stone-dark extrusion
     "K"  Plankton    - hollow neon outlines glowing like the game's bioluminescent plankton
     "L"  Sticker     - upright, stacked, chunky white die-cut border and a dropped 3D edge, slightly rotated
+    "HI" Chosen      - I + H: the bite torn out of RUN, and the waterline through both words (the final title)
 """
 import math
 import os
@@ -112,9 +113,8 @@ def _surface(base):
         dx = int(round(amp * math.sin(2 * math.pi * y / period) * (0.4 + 0.6 * min(1, y / (h * 0.15)))))
         rip.paste(below.crop((0, y, w, y + 1)), (dx, y))
     tint = Image.new("RGBA", rip.size, (40, 200, 205, 0))
-    tint.putalpha(rip.getchannel("A").point(lambda v: int(v * 0.30)))
+    tint.putalpha(rip.getchannel("A").point(lambda v: int(v * 0.16)))   # light: the letters must still read small
     rip.alpha_composite(tint)
-    rip.putalpha(rip.getchannel("A").point(lambda v: int(v * 0.88)))
     out.paste(rip, (0, line))
     # The surface itself: a bright wavering line across the letters, only where there is ink.
     d = ImageDraw.Draw(out)
@@ -259,6 +259,9 @@ def title(height, style):
     if style == "I":
         words, box = _extruded_words_with_boxes()
         return _finish(_with_fin(_bitten(words, box)), height)
+    if style == "HI":   # the chosen title: bitten, then cut by the waterline
+        words, box = _extruded_words_with_boxes()
+        return _finish(_with_fin(_surface(_bitten(words, box))), height)
     if style == "J":
         coral = dict(T.PALETTES["game"])
         coral.update(face={"REEF": ((236, 226, 200), (170, 150, 118)), "RUN": ((120, 214, 196), (40, 130, 120))},

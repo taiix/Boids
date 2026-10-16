@@ -28,7 +28,7 @@ def titled(style):
 
 
 if __name__ == "__main__":
-    out = os.path.join(ROOT, "previews", "letter_options"); os.makedirs(out, exist_ok=True)
+    out = os.path.join(ROOT, "previews", "exploration", "letter_options"); os.makedirs(out, exist_ok=True)
     cw, ch = 900, 516
     sheet = Image.new("RGB", (cw * 2 + 60, (ch + 60) * 3 + 20), C.STEAM_BG)
     d = ImageDraw.Draw(sheet)
