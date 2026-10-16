@@ -47,6 +47,10 @@ public class BoidsManager : MonoBehaviour
     [Tooltip("How strongly fish speed up to catch the group / slow down when ahead, so the school " +
              "doesn't split into fast/slow clumps. 0 = fixed speeds (old behaviour).")]
     public float speedMatch = 1.5f;
+    [Tooltip("How quickly a fish's speed eases toward its target (1/seconds). Lower = smoother.")]
+    public float speedResponse = 2f;
+    [Tooltip("Steepest climb/dive angle in degrees. Keeps fish from swimming vertically and flipping over.")]
+    [Range(10f, 89f)] public float maxPitch = 55f;
 
     [Header("Obstacle avoidance")]
     public LayerMask obstacleMask = ~0;
@@ -92,9 +96,9 @@ public class BoidsManager : MonoBehaviour
     [Tooltip("Seed for the starting layout and the roaming goal (mixed with this school's position, so " +
              "several schools in a scene differ). Every player gets the identical school from it.")]
     public uint spawnSeed = 12345;
-    [Tooltip("Seconds between changes of the school's roaming goal. Picked from the shared network clock, " +
-             "so every player's school heads for the same spot.")]
-    public float goalChangeInterval = 0.25f;
+    [Tooltip("Seconds the school's roaming goal takes to glide from one waypoint to the next. Waypoints come " +
+             "from the shared network clock, so every player's school heads for the same spot.")]
+    public float goalInterval = 8f;
     [Tooltip("Seconds a correction from the host takes to blend in (clients only).")]
     public float correctionTime = 0.3f;
     [Tooltip("Corrections larger than this snap instead of blending (metres).")]
@@ -168,6 +172,7 @@ public class BoidsManager : MonoBehaviour
     // just leaves a null there. The sim packs live fish into slots, so map both ways.
     int[] _ids = System.Array.Empty<int>();   // sim slot -> fish id
     int[] _slot = System.Array.Empty<int>();  // fish id -> sim slot (-1 = dead)
+    float[] _speedById = System.Array.Empty<float>(); // speeds saved across a rebuild (0 = new fish)
 
     // Host corrections (clients only), per fish id.
     Vector3[] _corr = System.Array.Empty<Vector3>();     // position error still to blend in
@@ -253,10 +258,27 @@ public class BoidsManager : MonoBehaviour
 
         float cellSize = Mathf.Max(0.01f, neighbourDist);
 
-        // Build the spatial grid (main thread, cheap).
-        _grid.Clear();
-        for (int i = 0; i < _count; i++)
-            _grid.Add(Hash(CellOf(_posA[i], cellSize)), i);
+        // Build the spatial grid (Burst, one worker: same insertion order as ever, so neighbours are
+        // visited in the same order and the sums come out bit-identical).
+        JobHandle gridDep = new BuildGridJob { positions = _posA, grid = _grid, cellSize = cellSize, count = _count }.Schedule();
+
+        // Build this frame's obstacle and seabed casts (Burst, parallel).
+        bool avoid = avoidWeight > 0f, floor = keepAboveFloor && floorWeight > 0f;
+        JobHandle castsBuilt = default;
+        if (avoid || floor)
+        {
+            castsBuilt = new BuildCastsJob
+            {
+                positions = _posA, headings = _hdgA,
+                commands = _commands, floorCommands = _floorCommands,
+                scene = Physics.defaultPhysicsScene,
+                avoid = avoid, floor = floor,
+                qp = new QueryParameters(obstacleMask, false, QueryTriggerInteraction.Ignore, false),
+                fqp = new QueryParameters(floorMask, false, QueryTriggerInteraction.Ignore, false),
+                lookAhead = avoidDistance + maxSpeed * 0.5f,
+                floorCastHeight = floorCastHeight, floorProbe = floorProbe,
+            }.Schedule(_count, 64);
+        }
 
         // Gather player influencer positions so the flock reacts to them.
         int infl = 0;
@@ -268,27 +290,14 @@ public class BoidsManager : MonoBehaviour
         for (int i = 0; i < Predators.Count && pred < MaxPredators; i++)
             if (Predators[i] != null) _predators[pred++] = (float3)Predators[i].position;
 
-        // Batched obstacle sphere-casts (job).
+        // Batched obstacle casts (job).
         JobHandle castDep = default;
-        if (avoidWeight > 0f)
-        {
-            var qp = new QueryParameters(obstacleMask, false, QueryTriggerInteraction.Ignore, false);
-            float lookAhead = avoidDistance + maxSpeed * 0.5f;
-            for (int i = 0; i < _count; i++)
-                _commands[i] = new RaycastCommand(_posA[i], _hdgA[i], qp, lookAhead);
-            castDep = RaycastCommand.ScheduleBatch(_commands, _hits, 32, default);
-        }
+        if (avoid) castDep = RaycastCommand.ScheduleBatch(_commands, _hits, 32, castsBuilt);
 
         // Downward seabed casts (from a fixed height above the terrain): find the ground under
         // each fish so it can steer up off it and follow the contours instead of sinking through.
         JobHandle floorDep = default;
-        if (keepAboveFloor && floorWeight > 0f)
-        {
-            var fqp = new QueryParameters(floorMask, false, QueryTriggerInteraction.Ignore, false);
-            for (int i = 0; i < _count; i++)
-                _floorCommands[i] = new RaycastCommand(new float3(_posA[i].x, floorCastHeight, _posA[i].z), new float3(0f, -1f, 0f), fqp, floorProbe);
-            floorDep = RaycastCommand.ScheduleBatch(_floorCommands, _floorHits, 32, default);
-        }
+        if (floor) floorDep = RaycastCommand.ScheduleBatch(_floorCommands, _floorHits, 32, castsBuilt);
 
         // Steering + integration (Burst, parallel, writes transforms).
         var job = new SteerJob
@@ -297,7 +306,8 @@ public class BoidsManager : MonoBehaviour
             grid = _grid, hits = _hits, influencers = _influencers, influencerCount = infl,
             predators = _predators, predatorCount = pred, fleeRadius = fleeRadius, fleeWeight = fleeWeight, fleeSpeed = fleeSpeed,
             dt = Time.deltaTime, cellSize = cellSize,
-            minSpeed = minSpeed, maxSpeed = maxSpeed, speedMatch = speedMatch,
+            minSpeed = minSpeed, maxSpeed = maxSpeed, speedMatch = speedMatch, speedResponse = speedResponse,
+            maxPitchSin = math.sin(math.radians(maxPitch)),
             neighbourDist = neighbourDist, separationDist = separationDist, rotationSpeed = rotationSpeed,
             alignmentWeight = alignmentWeight, cohesionWeight = cohesionWeight, separationWeight = separationWeight,
             goalWeight = goalWeight, boundaryWeight = boundaryWeight,
@@ -306,9 +316,9 @@ public class BoidsManager : MonoBehaviour
             keepBelow = keepBelowWater, ceiling = _ceiling,
             floorHits = _floorHits, keepAboveFloor = keepAboveFloor, floorCastHeight = floorCastHeight,
             floorMargin = floorMargin, floorClearance = floorClearance, floorWeight = floorWeight,
-            outPositions = _posB, outHeadings = _hdgB, outSpeeds = _speed,
+            outPositions = _posB, outHeadings = _hdgB, speeds = _speed,
         };
-        job.Schedule(_tArray, JobHandle.CombineDependencies(castDep, floorDep)).Complete();
+        job.Schedule(_tArray, JobHandle.CombineDependencies(castDep, floorDep, gridDep)).Complete();
 
         // Swap read/write buffers (this frame's output becomes next frame's input).
         (_posA, _posB) = (_posB, _posA);
@@ -319,9 +329,24 @@ public class BoidsManager : MonoBehaviour
         {
             _snapCount = _count;
             if (_snapPos.Length < _count) { _snapPos = new Vector3[_count]; _snapFwd = new Vector3[_count]; }
-            for (int i = 0; i < _count; i++) { _snapPos[i] = _posA[i]; _snapFwd[i] = _hdgA[i]; }
+            NativeArray<Vector3>.Copy(_posA.Reinterpret<Vector3>(), 0, _snapPos, 0, _count);
+            NativeArray<Vector3>.Copy(_hdgA.Reinterpret<Vector3>(), 0, _snapFwd, 0, _count);
         }
         else _snapCount = 0;
+    }
+
+    /// <summary>Where every live fish is, straight from the sim: the same values as each fish's
+    /// transform.position, without touching a thousand transforms. Slot k is fish id
+    /// <paramref name="fishIds"/>[k] (check <see cref="allFish"/> for null - an eaten fish leaves its slot
+    /// until the next rebuild). False while the school is waiting to be rebuilt (a fish was just added or
+    /// eaten, or the sim hasn't run yet): read the transforms that frame instead.</summary>
+    public bool TryGetSimPositions(out NativeArray<float3> positions, out int[] fishIds, out int count)
+    {
+        bool ok = !_dirty && _posA.IsCreated && allFish != null;
+        positions = ok ? _posA : default;
+        fishIds = _ids;
+        count = ok ? _count : 0;
+        return ok;
     }
 
     void EnsureArrays()
@@ -331,9 +356,15 @@ public class BoidsManager : MonoBehaviour
         for (int i = 0; i < allFish.Length; i++) if (allFish[i] != null) n++;
         if (!_dirty && n == _count && _tArray.isCreated) return;
 
+        // Carry each fish's current speed across the rebuild (a fish being eaten mid-flee shouldn't
+        // reset the whole school to cruise speed).
+        EnsurePerFish();
+        if (_speed.IsCreated)
+            for (int s = 0; s < _count && s < _ids.Length; s++)
+                if (_ids[s] < _speedById.Length) _speedById[_ids[s]] = _speed[s];
+
         DisposeNative();
         _count = n;
-        EnsurePerFish();
 
         _posA = new NativeArray<float3>(n, Allocator.Persistent);
         _posB = new NativeArray<float3>(n, Allocator.Persistent);
@@ -360,6 +391,7 @@ public class BoidsManager : MonoBehaviour
             _tArray.Add(f.transform);
             _posA[k] = (float3)f.transform.position;
             _hdgA[k] = (float3)f.transform.forward;
+            _speed[k] = _speedById[i] > 0f ? _speedById[i] : (minSpeed + maxSpeed) * 0.5f;
             _ids[k] = i;
             _slot[i] = k;
             k++;
@@ -377,6 +409,7 @@ public class BoidsManager : MonoBehaviour
         System.Array.Resize(ref _netPos, len);
         System.Array.Resize(ref _netHdg, len);
         System.Array.Resize(ref _netPending, len);
+        System.Array.Resize(ref _speedById, len);
     }
 
     void DisposeNative()
@@ -566,12 +599,24 @@ public class BoidsManager : MonoBehaviour
 
     // Where the school roams. Derived from the shared clock + seed rather than rolled at random each
     // frame, so every player's school chases the same goal at the same moment without sending it.
+    // The goal glides between waypoints instead of jumping, so the whole school doesn't jerk to a
+    // new heading every time it changes.
     Vector3 GoalAt(double time)
     {
-        long step = (long)System.Math.Floor(time / Mathf.Max(0.01f, goalChangeInterval));
+        double t = time / Mathf.Max(0.5f, goalInterval);
+        long step = (long)System.Math.Floor(t);
+        float blend = (float)(t - step);
+        blend = blend * blend * (3f - 2f * blend); // smoothstep
+        return Vector3.Lerp(Waypoint(step), Waypoint(step + 1), blend);
+    }
+
+    Vector3 Waypoint(long step)
+    {
         uint h = math.hash(new uint3((uint)step, (uint)(step >> 32), FlockSeed));
         var rng = new Unity.Mathematics.Random(h == 0 ? 1u : h);
-        return transform.position + (Vector3)rng.NextFloat3(-(float3)area, (float3)area);
+        // Inside the area (with a margin), so the goal never pulls the school against the boundary.
+        float3 half = (float3)area * 0.4f;
+        return transform.position + (Vector3)rng.NextFloat3(-half, half);
     }
 
     // Clients: fold the host's latest states into the sim, then ease outstanding errors in.
@@ -626,6 +671,42 @@ public class BoidsManager : MonoBehaviour
 
     // =================================================================================
     [BurstCompile]
+    struct BuildGridJob : IJob
+    {
+        [ReadOnly] public NativeArray<float3> positions;
+        public NativeParallelMultiHashMap<int, int> grid;
+        public float cellSize;
+        public int count;
+
+        public void Execute()
+        {
+            grid.Clear();
+            for (int i = 0; i < count; i++)
+                grid.Add(Hash(CellOf(positions[i], cellSize)), i);
+        }
+    }
+
+    [BurstCompile]
+    struct BuildCastsJob : IJobParallelFor
+    {
+        [ReadOnly] public NativeArray<float3> positions;
+        [ReadOnly] public NativeArray<float3> headings;
+        [WriteOnly] public NativeArray<RaycastCommand> commands;
+        [WriteOnly] public NativeArray<RaycastCommand> floorCommands;
+        public PhysicsScene scene;
+        public bool avoid, floor;
+        public QueryParameters qp, fqp;
+        public float lookAhead, floorCastHeight, floorProbe;
+
+        public void Execute(int i)
+        {
+            float3 p = positions[i];
+            if (avoid) commands[i] = new RaycastCommand(scene, p, headings[i], qp, lookAhead);
+            if (floor) floorCommands[i] = new RaycastCommand(scene, new float3(p.x, floorCastHeight, p.z), new float3(0f, -1f, 0f), fqp, floorProbe);
+        }
+    }
+
+    [BurstCompile]
     struct SteerJob : IJobParallelForTransform
     {
         [ReadOnly] public NativeArray<float3> positions;
@@ -641,7 +722,7 @@ public class BoidsManager : MonoBehaviour
 
         public float dt, cellSize, neighbourDist, separationDist, rotationSpeed;
         public float alignmentWeight, cohesionWeight, separationWeight, goalWeight, boundaryWeight, avoidWeight, avoidDistance;
-        public float minSpeed, maxSpeed, speedMatch;
+        public float minSpeed, maxSpeed, speedMatch, speedResponse, maxPitchSin;
         public float3 goalPos, areaCenter, areaHalf;
         public bool keepBelow;
         public float ceiling;
@@ -652,7 +733,7 @@ public class BoidsManager : MonoBehaviour
 
         [WriteOnly] public NativeArray<float3> outPositions;
         [WriteOnly] public NativeArray<float3> outHeadings;
-        [WriteOnly] public NativeArray<float> outSpeeds;
+        public NativeArray<float> speeds;   // read last frame's speed, write this frame's (same index only)
 
         public void Execute(int index, TransformAccess t)
         {
@@ -662,7 +743,7 @@ public class BoidsManager : MonoBehaviour
             float sep2 = separationDist * separationDist;
 
             float3 align = 0, center = 0, separation = 0;
-            int n = 0, sc = 0;
+            int n = 0, na = 0, sc = 0;
 
             int3 cell = (int3)math.floor(pos / cellSize);
             for (int x = -1; x <= 1; x++)
@@ -680,7 +761,7 @@ public class BoidsManager : MonoBehaviour
                                 if (d2 > nd2 || d2 < 1e-6f) continue;
                                 align += headings[j];
                                 center += positions[j];
-                                n++;
+                                n++; na++;
                                 if (d2 < sep2) { float d = math.sqrt(d2); separation -= (off / d) * (1f - d / separationDist); sc++; }
                             } while (grid.TryGetNextValue(out j, ref it));
                         }
@@ -697,16 +778,27 @@ public class BoidsManager : MonoBehaviour
                 }
             }
 
+            // Each rule is scaled by how much it's needed (not normalized to full strength), so the
+            // forces fade out smoothly instead of flipping on/off and making the fish twitch.
             float3 steer = 0;
             float3 toLocalCenter = 0;
+            // Alignment: mean neighbour heading. It's shorter when the neighbours disagree, so a
+            // confused group nudges gently instead of yanking.
+            if (na > 0) steer += (align / na) * alignmentWeight;
             if (n > 0)
             {
-                float3 a = align / n;
-                if (math.lengthsq(a) > 1e-6f) steer += math.normalize(a) * alignmentWeight;
+                // Cohesion grows with distance from the local centre, so it fades to zero as the
+                // fish reaches it rather than reversing at full strength as it passes through.
                 toLocalCenter = center / n - pos;
-                if (math.lengthsq(toLocalCenter) > 1e-6f) steer += math.normalize(toLocalCenter) * cohesionWeight;
+                steer += toLocalCenter * (cohesionWeight / math.max(neighbourDist, 0.01f));
             }
-            if (sc > 0 && math.lengthsq(separation) > 1e-6f) steer += math.normalize(separation) * separationWeight;
+            // Separation keeps its closer-is-stronger falloff, capped so a crowd can't fling a fish.
+            if (sc > 0)
+            {
+                float sl = math.length(separation);
+                if (sl > 1f) separation /= sl;
+                steer += separation * separationWeight;
+            }
 
             float3 toGoal = goalPos - pos;
             if (math.lengthsq(toGoal) > 1e-4f) steer += math.normalize(toGoal) * goalWeight;
@@ -727,12 +819,12 @@ public class BoidsManager : MonoBehaviour
                 }
             }
 
+            // Area boundary: ramps in over the outer 20% of the box (full strength at the edge) so the
+            // school curves back instead of bouncing off an invisible wall.
             float3 d2c = pos - areaCenter;
-            if (math.abs(d2c.x) > areaHalf.x || math.abs(d2c.y) > areaHalf.y || math.abs(d2c.z) > areaHalf.z)
-            {
-                float3 toCenter = areaCenter - pos;
-                if (math.lengthsq(toCenter) > 1e-6f) steer += math.normalize(toCenter) * boundaryWeight;
-            }
+            float edge = math.cmax(math.abs(d2c) / math.max(areaHalf, 0.01f)); // 1 = on the box surface
+            if (edge > 0.8f && math.lengthsq(d2c) > 1e-6f)
+                steer += math.normalize(-d2c) * (boundaryWeight * math.min((edge - 0.8f) / 0.2f, 2f));
 
             if (avoidWeight > 0f)
             {
@@ -777,23 +869,44 @@ public class BoidsManager : MonoBehaviour
                 }
             }
 
+            // Turn toward (current heading + steering), not toward the steering direction alone: a
+            // small net force then means a small turn, instead of a full-rate swing toward whatever
+            // direction the nearly-cancelling forces happen to point this frame.
             float3 newFwd = fwd;
             if (math.lengthsq(steer) > 1e-6f)
             {
-                float tt = math.saturate(rotationSpeed * dt);
-                newFwd = math.normalize(math.lerp(fwd, math.normalize(steer), tt));
+                float3 desired = math.normalizesafe(fwd + steer, fwd);
+                float tt = 1f - math.exp(-rotationSpeed * dt);
+                newFwd = math.normalizesafe(math.lerp(fwd, desired, tt), fwd);
+            }
+
+            // Pitch limit: fish don't swim straight up/down, and a vertical heading makes the
+            // look-rotation's roll flip around.
+            if (math.abs(newFwd.y) > maxPitchSin)
+            {
+                float3 flat = new float3(newFwd.x, 0f, newFwd.z);
+                if (math.lengthsq(flat) < 1e-6f) flat = new float3(fwd.x, 0f, fwd.z);
+                flat = math.normalizesafe(flat, new float3(0f, 0f, 1f));
+                newFwd = flat * math.sqrt(1f - maxPitchSin * maxPitchSin) + new float3(0f, math.sign(newFwd.y) * maxPitchSin, 0f);
             }
 
             // Speed matching: lag behind the group's center -> speed up; ahead of it -> slow down.
             // Keeps the school from sorting into fast/slow clumps.
             float baseSpeed = (minSpeed + maxSpeed) * 0.5f;
-            float effSpeed = baseSpeed;
+            float targetSpeed = baseSpeed;
             if (n > 0)
             {
                 float ahead = math.dot(toLocalCenter, newFwd); // >0 = center is in front (we're behind)
-                effSpeed = math.clamp(baseSpeed + ahead * speedMatch, minSpeed, maxSpeed);
+                targetSpeed = math.clamp(baseSpeed + ahead * speedMatch, minSpeed, maxSpeed);
             }
-            if (fleeing) effSpeed = fleeSpeed; // panic burst (faster than cruise)
+            if (fleeing) targetSpeed = fleeSpeed; // panic burst (faster than cruise)
+
+            // Ease toward the target speed instead of jumping to it (neighbours entering/leaving
+            // range used to change speed in a single frame). Bursting away from a shark is quicker.
+            float prevSpeed = speeds[index];
+            if (prevSpeed <= 0f) prevSpeed = baseSpeed;
+            float response = fleeing ? speedResponse * 4f : speedResponse;
+            float effSpeed = math.lerp(prevSpeed, targetSpeed, 1f - math.exp(-response * dt));
             float3 newPos = pos + newFwd * (effSpeed * dt);
 
             // Hard clamp so a fish can never cross the surface even if steering lags.
@@ -803,7 +916,7 @@ public class BoidsManager : MonoBehaviour
 
             outPositions[index] = newPos;
             outHeadings[index] = newFwd;
-            outSpeeds[index] = effSpeed;
+            speeds[index] = effSpeed;
             t.position = newPos;
             t.rotation = quaternion.LookRotationSafe(newFwd, math.up());
         }

@@ -23,7 +23,7 @@ namespace FishGame
         CreatureVision _vision;
         FishPlayer _target;
         int _index;
-        InputAction _next, _previous;
+        InputAction _next, _previous, _hint;
         readonly List<FishPlayer> _players = new List<FishPlayer>();
 
         public void Begin(FishPlayer self, FishOrbitCamera orbit, CreatureVision vision)
@@ -49,15 +49,19 @@ namespace FishGame
             _previous = new InputAction("SpectatePrevious", InputActionType.Button);
             _previous.AddBinding("<Mouse>/rightButton");
             _previous.AddBinding("<Gamepad>/leftShoulder");
+            _hint = new InputAction("GhostHint", InputActionType.Button);
+            _hint.AddBinding("<Keyboard>/g");
+            _hint.AddBinding("<Gamepad>/buttonNorth");
         }
 
-        void OnEnable() { _next.Enable(); _previous.Enable(); }
-        void OnDisable() { _next.Disable(); _previous.Disable(); }
+        void OnEnable() { _next.Enable(); _previous.Enable(); _hint.Enable(); }
+        void OnDisable() { _next.Disable(); _previous.Disable(); _hint.Disable(); }
 
         void OnDestroy()
         {
             _next.Dispose();
             _previous.Dispose();
+            _hint.Dispose();
             if (Active == this) Active = null;
         }
 
@@ -76,6 +80,13 @@ namespace FishGame
             if (PauseMenu.IsOpen || RoundScreen.ShowingResults) return;
             if (_next.WasPressedThisFrame()) Step(+1);
             else if (_previous.WasPressedThisFrame()) Step(-1);
+
+            // A ghost's one hint: show the shark to the fish still in the water.
+            if (_self != null && _self.CanGhostHint)
+            {
+                MatchHud.ShowPrompt("Press G to show the shark to the fish (once)");
+                if (_hint.WasPressedThisFrame()) _self.RequestGhostHint();
+            }
         }
 
         // Everyone still in the water but us: sharks first, then fish, each by name.

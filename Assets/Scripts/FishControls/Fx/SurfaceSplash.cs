@@ -51,6 +51,8 @@ namespace FishGame
 
             float strength = Mathf.Clamp(Mathf.Abs(velocity.y) / 6f, 0.6f, 1.6f);
             WaterFx.Splash(new Vector3(pos.x, surface, pos.z), velocity, _size * strength);
+            var lib = GameAudio.Lib;
+            if (lib != null) GameAudio.PlayAt(GameAudio.Pick(lib.splashes), new Vector3(pos.x, surface, pos.z), 0.45f * strength, 45f);
         }
     }
 }

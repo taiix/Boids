@@ -216,10 +216,11 @@ public class CustomNetworkManager : NetworkManager
         // If the chosen shark drops before ever spawning, redraw so the round is not left sharkless.
         bool sharkLeftBeforeSpawning = conn.connectionId == _sharkConnectionId && conn.identity == null;
 
-        // They no longer count for either side (and may have been the last fish in the water).
-        if (MatchManager.Instance != null) MatchManager.Instance.ServerPlayerLeft(conn.connectionId);
-        // A shark leaving with a fish in its jaws lets go first - the fish would go down with its body.
+        // A shark leaving with a fish in its jaws lets go first - the fish would go down with its body, and
+        // it has to be back in the water before the round is checked (a shark leaving ends it).
         if (conn.identity != null && conn.identity.TryGetComponent(out FishPlayer leaving)) leaving.ServerReleasePrey();
+        // They no longer count for either side (the last fish in the water, or the shark).
+        if (MatchManager.Instance != null) MatchManager.Instance.ServerPlayerLeft(conn.connectionId);
 
         base.OnServerDisconnect(conn);
 

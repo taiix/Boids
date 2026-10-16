@@ -174,6 +174,30 @@ namespace FishGame
             return Vector3.Dot(position - w.home, w.outward) > w.halfThickness + escapeMargin;
         }
 
+        /// <summary>Wall <paramref name="i"/>'s layout where it stands closed: its middle, the flat direction out of
+        /// the arena and along the wall, half its thickness, and the open stretch between the side walls (along
+        /// <paramref name="along"/>, from <paramref name="home"/>).</summary>
+        public bool Describe(int i, out Vector3 home, out Vector3 outward, out Vector3 along, out float halfThickness,
+                             out float gapMin, out float gapMax)
+        {
+            home = outward = along = Vector3.zero;
+            halfThickness = gapMin = gapMax = 0f;
+            if (i < 0 || i >= _walls.Count) return false;
+            var w = _walls[i];
+            home = w.home; outward = w.outward; along = w.along;
+            halfThickness = w.halfThickness; gapMin = w.gapMin; gapMax = w.gapMax;
+            return true;
+        }
+
+        /// <summary>The wall facing wall <paramref name="i"/> across the arena, or -1.</summary>
+        public int Opposite(int i)
+        {
+            if (i < 0 || i >= _walls.Count) return -1;
+            for (int j = 0; j < _walls.Count; j++)
+                if (j != i && Vector3.Dot(_walls[j].outward, _walls[i].outward) < -0.7f) return j;
+            return -1;
+        }
+
         /// <summary>True when <paramref name="position"/> is inside the arena, at least <paramref name="margin"/>
         /// metres in from every wall (where the walls stand closed).</summary>
         public bool Inside(Vector3 position, float margin)

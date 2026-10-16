@@ -50,6 +50,13 @@
                         </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:VisualElement class="srow">
+                        <ui:Label text="Who can join" class="srow-label"/>
+                        <ui:VisualElement name="visibility-seg" class="seg">
+                            <ui:Button name="vis-friends" text="FRIENDS ONLY" class="seg-btn seg-btn--on"/>
+                            <ui:Button name="vis-public" text="PUBLIC" class="seg-btn seg-btn--gap"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="srow">
                         <ui:Label text="Shark" class="srow-label"/>
                         <ui:Label text="Random draw when the dive starts" class="srow-value"/>
                     </ui:VisualElement>
@@ -143,7 +150,7 @@
                 </ui:VisualElement>
                 <ui:ScrollView name="friends-list" class="friends-list"/>
                 <ui:VisualElement class="friends-foot">
-                    <ui:Label text="Friends-only lobby" class="foot-dim"/>
+                    <ui:Label name="lobby-type-note" text="Friends-only lobby" class="foot-dim"/>
                     <ui:Label name="overlay-link" text="Open Steam overlay" class="foot-link"/>
                 </ui:VisualElement>
             </ui:VisualElement>

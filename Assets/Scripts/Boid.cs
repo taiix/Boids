@@ -48,15 +48,15 @@ public class Boid : MonoBehaviour
             }
         }
 
+        // Same falloffs as BoidsManager.SteerJob (forces scale with need, not normalized).
         Vector3 steer = Vector3.zero;
         if (neighbours > 0)
         {
-            align /= neighbours;
-            if (align.sqrMagnitude > 1e-6f) steer += align.normalized * manager.alignmentWeight;
+            steer += (align / neighbours) * manager.alignmentWeight;
             Vector3 toCenter = (center / neighbours) - pos;
-            if (toCenter.sqrMagnitude > 1e-6f) steer += toCenter.normalized * manager.cohesionWeight;
+            steer += toCenter * (manager.cohesionWeight / Mathf.Max(manager.neighbourDist, 0.01f));
         }
-        if (sepCount > 0 && separation.sqrMagnitude > 1e-6f) steer += separation.normalized * manager.separationWeight;
+        if (sepCount > 0) steer += Vector3.ClampMagnitude(separation, 1f) * manager.separationWeight;
 
         Vector3 toGoal = manager.goalPos - pos;
         if (toGoal.sqrMagnitude > 1e-4f) steer += toGoal.normalized * manager.goalWeight;
@@ -78,19 +78,23 @@ public class Boid : MonoBehaviour
             }
         }
 
-        Bounds bounds = new Bounds(manager.transform.position, manager.area);
-        if (!bounds.Contains(pos))
-        {
-            Vector3 toC = manager.transform.position - pos;
-            if (toC.sqrMagnitude > 1e-6f) steer += toC.normalized * manager.boundaryWeight;
-        }
+        Vector3 d2c = pos - manager.transform.position;
+        Vector3 half = manager.area * 0.5f;
+        float edge = Mathf.Max(Mathf.Abs(d2c.x) / Mathf.Max(half.x, 0.01f),
+                     Mathf.Max(Mathf.Abs(d2c.y) / Mathf.Max(half.y, 0.01f), Mathf.Abs(d2c.z) / Mathf.Max(half.z, 0.01f)));
+        if (edge > 0.8f && d2c.sqrMagnitude > 1e-6f)
+            steer += -d2c.normalized * (manager.boundaryWeight * Mathf.Min((edge - 0.8f) / 0.2f, 2f));
 
         steer += AvoidObstacles();
 
         if (steer.sqrMagnitude > 1e-6f)
         {
-            Quaternion target = Quaternion.LookRotation(steer.normalized, Vector3.up);
-            _t.rotation = Quaternion.Slerp(_t.rotation, target, manager.rotationSpeed * dt);
+            Vector3 desired = _t.forward + steer;
+            if (desired.sqrMagnitude > 1e-6f)
+            {
+                Quaternion target = Quaternion.LookRotation(desired.normalized, Vector3.up);
+                _t.rotation = Quaternion.Slerp(_t.rotation, target, 1f - Mathf.Exp(-manager.rotationSpeed * dt));
+            }
         }
 
         float moveSpeed = fleeing ? manager.fleeSpeed : speed;

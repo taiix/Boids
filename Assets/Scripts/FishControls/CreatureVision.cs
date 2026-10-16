@@ -66,6 +66,19 @@ namespace FishGame
         Camera _camera;
         HDAdditionalCameraData _cameraData;
         Volume _roleVolume;
+        VolumeProfile _activeProfile;
+        float _baseAbsorption;   // the role's water clarity before VisibilityScale
+
+        /// <summary>World events (night, sand, toxic water) scale how far everyone sees - the water's clarity
+        /// here, and the haze through <see cref="RoleFogDistance"/> - keeping the fish/shark ratio. 1 = normal.</summary>
+        public static float VisibilityScale = 1f;
+
+        /// <summary>The local player's vision (the one driving the water), or null.</summary>
+        public static CreatureVision Local { get; private set; }
+
+        /// <summary>How far the haze of the current role's grade lets you see (its Fog mean free path), or 0.</summary>
+        public float RoleFogDistance =>
+            _activeProfile != null && _activeProfile.TryGet<Fog>(out var fog) && fog.meanFreePath.overrideState ? fog.meanFreePath.value : 0f;
 
         // Whatever the water was authored with, so we can restore it and so "no role yet" looks normal.
         float _defaultAbsorption;
@@ -139,6 +152,7 @@ namespace FishGame
                 EnsureRoleVolume();
                 _roleVolume.gameObject.layer = layer;
                 _roleVolume.sharedProfile = profile;
+                _activeProfile = profile;
                 _roleVolume.priority = rolePriority;
                 _roleVolume.gameObject.SetActive(true);
 
@@ -178,7 +192,9 @@ namespace FishGame
         void SetAbsorptionTarget(float metres)
         {
             _drivesWater = true;
-            _startAbsorption = water != null ? water.absorptionDistance : metres;
+            Local = this;
+            // From where it is now, before any world event's scaling.
+            _startAbsorption = _baseAbsorption > 0f ? _baseAbsorption : water != null ? water.absorptionDistance : metres;
             _targetAbsorption = metres;
             _startWeight = _roleVolume != null ? _roleVolume.weight : 0f;
             _blendTimer = 0f;
@@ -187,7 +203,13 @@ namespace FishGame
 
         void Update()
         {
-            if (!_blending) return;
+            // World events scale the clarity every frame (it changes while they run).
+            if (!_blending)
+            {
+                if (_drivesWater && water != null && _baseAbsorption > 0f)
+                    water.absorptionDistance = _baseAbsorption * VisibilityScale;
+                return;
+            }
 
             // Fade the role grade in and ease the water to its new clarity together, so a role
             // assignment reads as the world changing around you rather than a cut.
@@ -202,7 +224,10 @@ namespace FishGame
             }
 
             if (water != null)
-                water.absorptionDistance = Mathf.Lerp(_startAbsorption, _targetAbsorption, eased);
+            {
+                _baseAbsorption = Mathf.Lerp(_startAbsorption, _targetAbsorption, eased);
+                water.absorptionDistance = _baseAbsorption * VisibilityScale;
+            }
 
             if (t >= 1f) _blending = false;
         }
@@ -213,6 +238,7 @@ namespace FishGame
             // bleed into whatever loads next.
             if (water != null && _capturedDefault && _drivesWater)
                 water.absorptionDistance = _defaultAbsorption;
+            if (Local == this) Local = null;
         }
     }
 }

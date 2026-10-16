@@ -87,9 +87,17 @@ public class FishPlayer : NetworkBehaviour
     [Tooltip("Seconds the shark can't bite again after a fish breaks free, so it gets a head start.")]
     [SerializeField] float sharkStunSeconds = 1.5f;
 
+    [Tooltip("How long the shark shakes a fish caught while still wounded from a graze before swallowing it. " +
+             "It can't tear free.")]
+    [SerializeField] float woundedSwallowSeconds = 1.5f;
+
     // The shark holding us (server: who to swallow into / release from), and the break-free meter, 0..1.
     [SyncVar] private uint _heldBy;
     [SyncVar] private float _struggle;
+    // Caught while wounded from a graze: no tearing free this time.
+    [SyncVar] private bool _noEscape;
+    private double _woundedUntil;       // server, shared clock: until when a graze leaves us too weak to tear free
+    private float _nextGrazeTime;       // server, on the shark: one graze per bite at most
     private double _swallowAt;          // shared clock; set by the host, everyone gets it with the catch
     private bool _inJaws;               // every machine: caught and still struggling (not yet swallowed)
     private float _lastStrugglePress;   // server: presses are capped at ~20 a second
@@ -104,7 +112,9 @@ public class FishPlayer : NetworkBehaviour
     public float StruggleMeter => _struggle;
     /// <summary>Seconds left before the shark swallows.</summary>
     public float StruggleSecondsLeft => _inJaws ? Mathf.Max(0f, (float)(_swallowAt - NetworkTime.time)) : 0f;
-    public float StruggleSeconds => struggleSeconds;
+    public float StruggleSeconds => _noEscape ? woundedSwallowSeconds : struggleSeconds;
+    /// <summary>False when we were caught still wounded from a graze: mashing does nothing.</summary>
+    public bool CanBreakFree => !_noEscape;
     /// <summary>Local: when we last mashed (for the UI's kick).</summary>
     public float LastStrugglePress { get; private set; } = -10f;
 
@@ -339,7 +349,9 @@ public class FishPlayer : NetworkBehaviour
         {
             shark.CaughtFlockFish += OnCaughtFlockFish;
             shark.CaughtPrey += OnCaughtPrey;
+            shark.GrazedPrey += OnGrazedPrey;
             shark.Attacked += CmdShowAttack;
+            shark.Sonared += CmdSonar;
         }
     }
 
@@ -420,7 +432,7 @@ public class FishPlayer : NetworkBehaviour
                 _struggleAction.AddBinding("<Gamepad>/buttonSouth");
                 _struggleAction.Enable();
             }
-            if (_struggleAction.WasPressedThisFrame() && !PauseMenu.IsOpen)
+            if (_struggleAction.WasPressedThisFrame() && !PauseMenu.IsOpen && CanBreakFree)
             {
                 LastStrugglePress = Time.unscaledTime;
                 CmdStruggle();
@@ -444,6 +456,8 @@ public class FishPlayer : NetworkBehaviour
         // E eats — unless we're next to a task, where E joins it instead (the task handles that press).
         if (_controlsLive && _eatAction != null && _eatAction.WasPressedThisFrame() && !taskOwnsE)
         {
+            if (PelletInReach(_offlineLocal ? 0f : remoteEatSlack) != null && GameAudio.Lib != null)
+                GameAudio.Play(GameAudio.Lib.pellet, 0.6f, 0.1f); // instant, on our own screen
             if (_offlineLocal) ServerEatNearestPellet(); // offline: eat directly (no Command/server)
             else CmdEat();
         }
@@ -557,6 +571,22 @@ public class FishPlayer : NetworkBehaviour
         if (TryGetComponent(out SharkAbilities shark)) shark.PlayAttackFx(lunge);
     }
 
+    // Our shark sent a sonar pulse (it already saw what it caught): everyone else sees the pulse, and fish it
+    // swept over are warned.
+    [Command]
+    private void CmdSonar() => RpcSonar();
+
+    [ClientRpc(includeOwner = false)]
+    private void RpcSonar()
+    {
+        if (!TryGetComponent(out SharkAbilities shark)) return;
+        shark.PlaySonarFx();
+        var me = NetworkClient.localPlayer != null ? NetworkClient.localPlayer.GetComponent<FishPlayer>() : null;
+        if (me == null || me.IsSharkBody || me.IsOut) return;
+        if ((me.transform.position - transform.position).sqrMagnitude <= shark.SonarRadius * shark.SonarRadius)
+            MatchHud.Flash("SONAR! The shark sees fish that move - keep still", 2.5f);
+    }
+
     [Command]
     private void CmdEatFlockFish(byte flock, ushort fishId) =>
         FlockNetSync.ServerEatRequest(flock, fishId, netIdentity);
@@ -585,6 +615,147 @@ public class FishPlayer : NetworkBehaviour
         victim.ServerCatch(this);
     }
 
+    // ---- Trawl net (WorldEvents): caught, we're hurt and carried along for a moment, then it drops us behind it ----
+
+    /// <summary>Authority: the trawl net swept into us. Hurts (fish and shark alike) and tangles us for
+    /// <paramref name="seconds"/>, carried at <paramref name="carry"/>; then we're dropped behind the net.</summary>
+    public void ServerNetCaught(float damage, float seconds, Vector3 carry)
+    {
+        if (TryGetComponent(out FishVitals vitals)) vitals.Damage(damage);
+        if (IsOffline) Entangled(seconds, carry);
+        else if (connectionToClient != null) TargetEntangled(connectionToClient, seconds, carry);
+    }
+
+    [TargetRpc]
+    private void TargetEntangled(NetworkConnectionToClient target, float seconds, Vector3 carry) => Entangled(seconds, carry);
+
+    // The machine driving this body.
+    private void Entangled(float seconds, Vector3 carry)
+    {
+        if (!TryGetComponent(out FishMotor motor)) return;
+        motor.Entangle(seconds, carry);
+        if (GameAudio.Lib != null) GameAudio.Play(GameAudio.Lib.netCatch, 0.9f, 0.05f);
+        MatchHud.Flash(IsSharkBody ? "CAUGHT IN THE NET!" : "CAUGHT IN THE NET! You're hurt", 2.5f);
+        StartCoroutine(DropBehindNet(seconds, carry));
+    }
+
+    private System.Collections.IEnumerator DropBehindNet(float seconds, Vector3 carry)
+    {
+        yield return new WaitForSeconds(seconds);
+        if (IsOut || _eaten || carry.sqrMagnitude < 1e-4f) yield break;
+        // The net sweeps on; we slip out under its back.
+        Vector3 p = transform.position - carry.normalized * 3.5f + Vector3.down * 0.5f;
+        p = AboveSeabed(p);
+        transform.position = p;
+        if (TryGetComponent(out Rigidbody rb)) rb.position = p;
+    }
+
+    /// <summary>Authority: a jellyfish stung us (fish and shark alike): hurt, and slowed for a moment.</summary>
+    public void ServerStung(float damage, float slowSeconds, float slowFactor)
+    {
+        if (TryGetComponent(out FishVitals vitals)) vitals.Damage(damage, 6f);
+        if (IsOffline) Stung(slowSeconds, slowFactor);
+        else if (connectionToClient != null) TargetStung(connectionToClient, slowSeconds, slowFactor);
+    }
+
+    [TargetRpc]
+    private void TargetStung(NetworkConnectionToClient target, float seconds, float factor) => Stung(seconds, factor);
+
+    private void Stung(float seconds, float factor)
+    {
+        if (TryGetComponent(out FishMotor motor)) motor.SlowFor(seconds, factor);
+        if (GameAudio.Lib != null)
+        {
+            GameAudio.Play(GameAudio.Lib.sting, 0.8f, 0.05f);
+            GameAudio.Play(GameAudio.Lib.stingHit, 0.6f, 0.05f);
+        }
+        MatchHud.Flash("STUNG BY A JELLYFISH!", 1.8f);
+    }
+
+    // ---- Ghost hint: an eaten or dead fish can, once a round, show the shark to the fish still in the water ----
+
+    [Header("Ghost hint")]
+    [Tooltip("How long the living fish see the shark (through rocks and fog) when a ghost reveals it.")]
+    [SerializeField] float ghostHintSeconds = 3f;
+    [SyncVar] private bool _ghostHintUsed;
+
+    /// <summary>Every machine: a ghost revealed this shark to the fish - for how long, and who did it.</summary>
+    public static event System.Action<FishPlayer, float, string> GhostRevealed;
+
+    /// <summary>Local player: eaten or dead, the round still on, and the one hint not used yet.</summary>
+    public bool CanGhostHint
+    {
+        get
+        {
+            var match = MatchManager.Instance;
+            return !_ghostHintUsed && (Outcome == PlayerOutcome.Eaten || Outcome == PlayerOutcome.Died) &&
+                   match != null && match.RoundRunning && !IsOffline;
+        }
+    }
+
+    /// <summary>Local ghost: use the hint.</summary>
+    public void RequestGhostHint()
+    {
+        if (CanGhostHint) CmdGhostHint();
+    }
+
+    [Command]
+    private void CmdGhostHint()
+    {
+        if (!CanGhostHint) return;
+        _ghostHintUsed = true;
+        foreach (var fp in s_All)
+            if (fp != null && fp.netId != 0 && fp.IsSharkBody && !fp.IsOut)
+                fp.RpcGhostRevealed(ghostHintSeconds, PlayerName);
+    }
+
+    [ClientRpc]
+    private void RpcGhostRevealed(float seconds, string by) => GhostRevealed?.Invoke(this, seconds, by);
+
+    // Our shark's bite caught nothing but passed close to a player fish: the host grazes it.
+    private void OnGrazedPrey(Edible prey)
+    {
+        var victim = prey != null ? prey.GetComponentInParent<FishPlayer>() : null;
+        if (victim != null && victim != this) CmdGrazePlayer(victim.netId);
+    }
+
+    [Command]
+    private void CmdGrazePlayer(uint victimNetId)
+    {
+        if (_eaten || Time.time < _nextGrazeTime || !NetworkServer.spawned.TryGetValue(victimNetId, out var identity) ||
+            !identity.TryGetComponent(out FishPlayer victim)) return;
+        if (victim == this || victim._eaten || victim.IsOut || victim.TryGetComponent(out SharkAbilities _)) return;
+        if (!TryGetComponent(out SharkAbilities jaws)) return;
+        if ((victim.transform.position - transform.position).sqrMagnitude > MaxBiteDistance * MaxBiteDistance) return;
+        var match = MatchManager.Instance;
+        if (match != null && match.IsOver) return;
+        if (PreyOf(netId) != null) return;
+        _nextGrazeTime = Time.time + 0.4f; // at most once per bite (the quick bite's cooldown is 0.6 s)
+
+        victim.ServerGraze(jaws.GrazeDamage, jaws.GrazeWoundSeconds);
+    }
+
+    /// <summary>Server: the shark's teeth raked us. Hurt and bleeding (never killed outright), and too weak to
+    /// tear free if it catches us before the wound closes.</summary>
+    [Server]
+    private void ServerGraze(float damage, float woundSeconds)
+    {
+        if (TryGetComponent(out FishVitals vitals))
+            vitals.Damage(Mathf.Max(0.01f, Mathf.Min(damage, vitals.Health - breakFreeMinHealth)), woundSeconds);
+        _woundedUntil = NetworkTime.time + woundSeconds;
+        RpcGrazed(BloodInWater.SeedFor((int)netId, Random.Range(1, int.MaxValue)));
+    }
+
+    // Everyone: a puff of blood where the teeth caught us. We get told we're wounded.
+    [ClientRpc]
+    private void RpcGrazed(int bloodSeed)
+    {
+        BloodInWater.Spill(transform.position, null, bloodSeed);
+        var lib = GameAudio.Lib;
+        if (lib != null) GameAudio.PlayAt(lib.graze, transform.position, 0.9f, 30f);
+        if (isLocalPlayer) MatchHud.Flash("GRAZED! You're bleeding - one more bite and you can't break free", 3f);
+    }
+
     // ---- Caught: the shark shakes us while we mash to break free; then we're swallowed or we tear loose ----
 
     /// <summary>The fish this shark is holding, if any (server).</summary>
@@ -602,7 +773,9 @@ public class FishPlayer : NetworkBehaviour
         _heldBy = shark.netId;
         _struggle = 0f;
         _lastStrugglePress = 0f;
-        _swallowAt = NetworkTime.time + struggleSeconds;
+        // Still wounded from a graze: too weak to tear free, and swallowed quickly.
+        _noEscape = NetworkTime.time < _woundedUntil;
+        _swallowAt = NetworkTime.time + (_noEscape ? woundedSwallowSeconds : struggleSeconds);
         // The host picks the blood's seed and hands it to everyone, so every player sees the same cloud.
         RpcCaught(shark.netIdentity, BloodInWater.SeedFor((int)netId, (int)shark.netId), _swallowAt);
     }
@@ -625,6 +798,8 @@ public class FishPlayer : NetworkBehaviour
         if (!TryGetComponent(out Edible edible)) edible = gameObject.AddComponent<Edible>();
         edible.Devour(shark != null ? shark.gameObject : null, jaws != null ? jaws.MouthAnchor : null, despawn: false, bloodSeed);
         if (jaws != null) jaws.SetHolding(true);
+        var lib = GameAudio.Lib;
+        if (lib != null) GameAudio.PlayAt(lib.scream, transform.position, 0.8f, 30f, 0.1f);
 
         if (isLocalPlayer && shark != null)
         {
@@ -637,7 +812,7 @@ public class FishPlayer : NetworkBehaviour
     [Command]
     private void CmdStruggle()
     {
-        if (_heldBy == 0 || Time.unscaledTime - _lastStrugglePress < MinStruggleGap) return;
+        if (_heldBy == 0 || _noEscape || Time.unscaledTime - _lastStrugglePress < MinStruggleGap) return;
         _lastStrugglePress = Time.unscaledTime;
         _struggle = Mathf.Min(1f, _struggle + struggleGainPerPress);
         if (_struggle >= 1f) ServerBreakFree(hurt: true);
@@ -672,6 +847,7 @@ public class FishPlayer : NetworkBehaviour
     {
         _heldBy = 0;
         _struggle = 0f;
+        _noEscape = false;
         RpcSwallowed(shark.netIdentity);
         if (shark.TryGetComponent(out SharkAbilities jaws)) jaws.FeedFor(playerFish: true);
         // Out of the round: they watch from here on (no respawn), and it may have been the last fish.
@@ -688,6 +864,8 @@ public class FishPlayer : NetworkBehaviour
             jaws.SetHolding(false);
             jaws.PlayDevour(); // the violent gulp
         }
+        var lib = GameAudio.Lib;
+        if (lib != null) GameAudio.PlayAt(lib.devour, transform.position, 1f, 35f);
         // Once it's swallowed the body goes, so it doesn't ride in the shark's jaws for the rest of the round.
         StartCoroutine(VanishAfter(SwallowSeconds, leaveJaws: true));
     }
@@ -699,6 +877,7 @@ public class FishPlayer : NetworkBehaviour
         var shark = Holder();
         _heldBy = 0;
         _struggle = 0f;
+        _noEscape = false;
 
         if (hurt && TryGetComponent(out FishVitals vitals))
         {
@@ -737,6 +916,11 @@ public class FishPlayer : NetworkBehaviour
         {
             jaws.SetHolding(false);
             jaws.Stun(sharkStunSeconds);
+        }
+        if (wasInJaws && GameAudio.Lib != null)
+        {
+            GameAudio.PlayAt(GameAudio.Lib.breakFree, transform.position, 0.9f, 30f);
+            GameAudio.PlayAt(GameAudio.Pick(GameAudio.Lib.bubbles), transform.position, 0.8f, 25f);
         }
         if (!TryGetComponent(out Edible edible) || !edible.IsEaten) return; // already out
         edible.Release();
@@ -907,7 +1091,9 @@ public class FishPlayer : NetworkBehaviour
         {
             shark.CaughtFlockFish -= OnCaughtFlockFish;
             shark.CaughtPrey -= OnCaughtPrey;
+            shark.GrazedPrey -= OnGrazedPrey;
             shark.Attacked -= CmdShowAttack;
+            shark.Sonared -= CmdSonar;
         }
 
         // The camera was detached from this fish, so it won't be destroyed with us. Clean it up.

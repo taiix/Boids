@@ -52,6 +52,16 @@ namespace FishGame
 
         const int MaxPushers = 1024;
 
+        // This frame's swimmers bucketed on a flat grid over the map (a counting sort: cell c holds
+        // s_gridItems[s_cellStart[c] .. s_cellStart[c + 1]), in ascending swimmer order), so a plant only
+        // checks the swimmers around it instead of all of them. Swimmers off the grid sit in its edge cells.
+        const int GridCells = 16;
+        static readonly int[] s_cellStart = new int[GridCells * GridCells + 1];
+        static readonly int[] s_cellFill = new int[GridCells * GridCells];
+        static readonly int[] s_gridItems = new int[MaxPushers];
+        static bool s_gridValid;
+        static float s_gridMinX, s_gridMinZ, s_gridCell, s_maxReach;
+
         static readonly int AreaId = Shader.PropertyToID("_VegPushArea");
         static readonly int ParamsId = Shader.PropertyToID("_VegPushParams");
         static readonly int MapId = Shader.PropertyToID("_VegPushMap");
@@ -94,6 +104,7 @@ namespace FishGame
             Shader.SetGlobalVector(AreaId, Vector4.zero); // plants stop bending
             Pushers.Clear();
             Segments.Clear();
+            s_gridValid = false;
             if (_a != null) { _a.Release(); _a = null; }
             if (_b != null) { _b.Release(); _b = null; }
             _pusherBuffer?.Release(); _pusherBuffer = null;
@@ -124,6 +135,7 @@ namespace FishGame
             var area = new Vector4(Mathf.Round(c.x / texel) * texel, Mathf.Round(c.z / texel) * texel, areaSize, resolution);
 
             CollectPushers(area);
+            BuildGrid(area);
 
             int n = Mathf.Min(Pushers.Count, MaxPushers);
             for (int i = 0; i < n; i++) { _pusherArray[i] = Pushers[i]; _segmentArray[i] = Segments[i]; }
@@ -184,6 +196,20 @@ namespace FishGame
                 if (flock == null || flock.allFish == null) continue;
                 float r = SchoolFishRadius(flock);
                 var fish = flock.allFish;
+                // The sim's own copy of the positions (in fish-id order, like allFish) - far cheaper than
+                // reading a thousand transforms.
+                if (flock.TryGetSimPositions(out var simPos, out var ids, out int simCount))
+                {
+                    for (int k = 0; k < simCount && Pushers.Count < MaxPushers; k++)
+                    {
+                        Vector3 pos = simPos[k];
+                        if (Mathf.Abs(pos.x - area.x) > half + r || Mathf.Abs(pos.z - area.y) > half + r) continue;
+                        var f = fish[ids[k]];
+                        if (f == null || !f.activeInHierarchy) continue;
+                        Add(pos, r, Vector3.zero, schoolFishStrength);
+                    }
+                    continue;
+                }
                 for (int i = 0; i < fish.Length && Pushers.Count < MaxPushers; i++)
                 {
                     var f = fish[i];
@@ -193,6 +219,65 @@ namespace FishGame
                     Add(pos, r, Vector3.zero, schoolFishStrength);
                 }
             }
+        }
+
+        void BuildGrid(Vector4 area)
+        {
+            int n = Pushers.Count;
+            s_gridCell = areaSize / GridCells;
+            s_gridMinX = area.x - areaSize * 0.5f;
+            s_gridMinZ = area.y - areaSize * 0.5f;
+            s_maxReach = 0f;
+            System.Array.Clear(s_cellFill, 0, s_cellFill.Length);
+            for (int i = 0; i < n; i++)
+            {
+                var s = Pushers[i];
+                var g = Segments[i];
+                s_maxReach = Mathf.Max(s_maxReach, s.w + new Vector3(g.x, g.y, g.z).magnitude);
+                s_cellFill[CellOf(s.x, s.z)]++;
+            }
+            s_cellStart[0] = 0;
+            for (int c = 0; c < s_cellFill.Length; c++)
+            {
+                s_cellStart[c + 1] = s_cellStart[c] + s_cellFill[c];
+                s_cellFill[c] = s_cellStart[c];
+            }
+            for (int i = 0; i < n; i++)
+            {
+                var s = Pushers[i];
+                s_gridItems[s_cellFill[CellOf(s.x, s.z)]++] = i;
+            }
+            s_gridValid = true;
+        }
+
+        static int CellX(float x) => Mathf.Clamp(Mathf.FloorToInt((x - s_gridMinX) / s_gridCell), 0, GridCells - 1);
+        static int CellZ(float z) => Mathf.Clamp(Mathf.FloorToInt((z - s_gridMinZ) / s_gridCell), 0, GridCells - 1);
+        static int CellOf(float x, float z) => CellZ(z) * GridCells + CellX(x);
+
+        /// <summary>
+        /// Fills <paramref name="result"/> with the index (into <see cref="Pushers"/>, ascending) of every swimmer
+        /// whose body could come within <paramref name="margin"/> of <paramref name="area"/> (seen from above) -
+        /// a superset of the ones that can touch it, without testing all of them.
+        /// </summary>
+        public static void Nearby(Bounds area, float margin, List<int> result)
+        {
+            result.Clear();
+            int n = Pushers.Count;
+            if (!s_gridValid)
+            {
+                for (int i = 0; i < n; i++) result.Add(i);
+                return;
+            }
+            float r = margin + s_maxReach;
+            int x0 = CellX(area.min.x - r), x1 = CellX(area.max.x + r);
+            int z0 = CellZ(area.min.z - r), z1 = CellZ(area.max.z + r);
+            for (int z = z0; z <= z1; z++)
+                for (int x = x0; x <= x1; x++)
+                {
+                    int c = z * GridCells + x;
+                    for (int k = s_cellStart[c]; k < s_cellStart[c + 1]; k++) result.Add(s_gridItems[k]);
+                }
+            if (z1 > z0 || x1 > x0) result.Sort(); // same order as walking the whole list
         }
 
         static void Add(Vector3 centre, float radius, Vector3 halfSegment, float strength)
