@@ -359,3 +359,17 @@
     font-size: 13px;
 }
 .mm-link-btn:hover { background-color: rgba(44, 195, 196, 0.12); }
+
+/* ============================================================
+   LOBBY BROWSER (JOIN) - built by ReefRunLobbyBrowser, reuses the chip avatar/name/JOIN styles
+   ============================================================ */
+.mm-lb-status { font-size: 14px; color: var(--dim); margin-bottom: 12px; white-space: normal; }
+.mm-lb-row { flex-direction: row; align-items: center; height: 62px; padding: 0 12px 0 10px; margin-bottom: 8px; border-radius: 10px;
+             background-color: rgba(2, 10, 18, 0.55); border-width: 1px; border-color: var(--border); }
+.mm-lb-row:hover { border-color: var(--border-aqua); }
+.mm-lb-tag { font-size: 11px; letter-spacing: 1.5px; padding: 1px 6px; margin-left: 8px; border-radius: 4px;
+             background-color: var(--teal); color: #ffffff; -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
+.mm-lb-count { font-size: 20px; letter-spacing: 1px; color: var(--text); margin: 0 6px 0 12px;
+               -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
+.mm-lb-foot { font-size: 12px; color: var(--dim); margin-top: 12px; padding-top: 12px;
+              border-top-width: 1px; border-top-color: var(--border); }

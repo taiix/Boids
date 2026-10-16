@@ -12,7 +12,7 @@ namespace FishGame
     ///   * health / hunger (bottom left), "STARVING" once hunger runs out
     ///   * voice (bottom right): talking / quiet / mic off
     ///   * prompts with key tiles ("Press E to eat"), a task status line, a hold-progress bar, short flash messages
-    ///   * a banner when you're eaten and when the round ends
+    /// (Your outcome and the round's result are RoundScreen's.)
     ///
     /// Created by the local player's body when it spawns, in the game scene, so it goes away with that
     /// scene. Style and panel settings load from Resources/Hud, so nothing needs placing in a scene.
@@ -27,6 +27,8 @@ namespace FishGame
         {
             RoundScreen.Show();
             FishAllies.Show();
+            WorldEvents.Show();
+            ReefConditions.Show();
             if (s_instance != null) return;
             s_instance = new GameObject("MatchHud").AddComponent<MatchHud>();
         }
@@ -41,6 +43,8 @@ namespace FishGame
         static int s_progressFrame = -10;
         static string s_flash;
         static float s_flashUntil;
+        static string s_event;
+        static int s_eventFrame = -10;
 
         /// <summary>Show an interaction prompt (e.g. "Press E to eat") this frame. "press X" / "[X]"
         /// is drawn as a key tile.</summary>
@@ -66,6 +70,13 @@ namespace FishGame
             s_progressFrame = Time.frameCount;
         }
 
+        /// <summary>Show what the reef is doing (a world event) under the clock, this frame.</summary>
+        public static void ShowEvent(string text)
+        {
+            s_event = text;
+            s_eventFrame = Time.frameCount;
+        }
+
         /// <summary>A short message in the middle of the screen (fades after a moment).</summary>
         public static void Flash(string text, float seconds = 1.2f)
         {
@@ -76,12 +87,12 @@ namespace FishGame
         // ---- UI ----
         UIDocument _doc;
         VisualElement _root, _clockFill, _healthFill, _hungerFill, _voice, _prompt, _promptPill, _status,
-                      _progress, _progressFill, _flash, _banner;
+                      _progress, _progressFill, _flash, _abilities, _lungeFill, _sonarFill, _lungeRow, _sonarRow, _event;
         Label _clockLabel, _clockTime, _healthVal, _hungerVal, _hungerLabel, _voiceLabel,
-              _flashText, _bannerTitle, _bannerSub, _statusText;
+              _flashText, _statusText, _eventText;
         ReefGlyph _micIcon;
         string _shownPrompt;
-        string _bannerKey;
+        int _shownSeconds = int.MinValue, _shownHealth = int.MinValue, _shownHunger = int.MinValue;
         bool _built;
 
         static readonly Regex KeyPattern = new(@"(?i)(?:press\s+)?\[\s*(\w+)\s*\]|press\s+(\w+)");
@@ -116,6 +127,10 @@ namespace FishGame
             _clockTime = Text(clock, "10:00", "clock-time", "xb");
             _clockFill = Add(Add(clock, "clock-bar"), "clock-fill");
 
+            // world event, under the clock
+            _event = Add(hud, "hud-panel", "event", "hidden");
+            _eventText = Text(_event, "", "event-text", "cb");
+
             // vitals
             var vitals = Add(hud, "hud-panel", "vitals");
             (_healthFill, _healthVal, _) = VitalRow(vitals, "HEALTH", "vfill--health");
@@ -135,14 +150,25 @@ namespace FishGame
             _progress = Add(_prompt, "progress", "hidden");
             _progressFill = Add(_progress, "progress-fill");
 
-            // flash + banner
+            // shark abilities (bottom right, above the voice panel)
+            _abilities = Add(hud, "hud-panel", "abilities", "hidden");
+            (_lungeRow, _lungeFill) = AbilityRow(_abilities, "Q", "LUNGE");
+            (_sonarRow, _sonarFill) = AbilityRow(_abilities, "R", "SONAR");
+
+            // flash
             _flash = Add(hud, "flash");
             _flashText = Text(_flash, "", "flash-text", "hud-panel", "xb");
-            _banner = Add(hud, "banner", "hidden");
-            _bannerTitle = Text(_banner, "", "banner-title", "xb");
-            _bannerSub = Text(_banner, "", "banner-sub", "sb");
 
             _built = true;
+        }
+
+        (VisualElement row, VisualElement fill) AbilityRow(VisualElement parent, string key, string name)
+        {
+            var row = Add(parent, "arow");
+            Text(row, key, "key", "akey");
+            Text(row, name, "alabel", "cb");
+            var fill = Add(Add(row, "abar"), "afill");
+            return (row, fill);
         }
 
         (VisualElement fill, Label val, Label label) VitalRow(VisualElement parent, string name, string fillClass)
@@ -162,12 +188,12 @@ namespace FishGame
             _root.style.display = PauseMenu.IsOpen ? DisplayStyle.None : DisplayStyle.Flex;
 
             UpdateClock();
-            var vitals = FindLocalVitals();
-            UpdateVitals(vitals);
+            UpdateEvent();
+            UpdateVitals(FindLocalVitals());
             UpdateVoice();
+            UpdateAbilities();
             UpdatePrompt();
             UpdateFlash();
-            UpdateBanner(vitals);
         }
 
         // ---------------------------------------------------------------- pieces
@@ -177,7 +203,7 @@ namespace FishGame
             if (m == null) { _clockLabel.text = "NO MATCH"; return; }
             float left = m.RemainingSeconds;
             int s = Mathf.CeilToInt(left);
-            _clockTime.text = $"{s / 60:00}:{s % 60:00}";
+            if (s != _shownSeconds) { _shownSeconds = s; _clockTime.text = $"{s / 60:00}:{s % 60:00}"; } // no new string every frame
             _clockLabel.text = m.Phase == MatchPhase.Warmup ? "DIVE STARTING" : m.IsPlaying ? "SURVIVE" : "ROUND OVER";
             bool low = m.IsPlaying && left <= 60f;
             _clockTime.EnableInClassList("clock-time--low", low);
@@ -185,13 +211,21 @@ namespace FishGame
             _clockFill.style.width = Length.Percent(m.RoundDuration > 0f ? 100f * left / m.RoundDuration : 0f);
         }
 
+        void UpdateEvent()
+        {
+            bool show = !string.IsNullOrEmpty(s_event) && Time.frameCount - s_eventFrame <= 1;
+            _event.EnableInClassList("hidden", !show);
+            if (show && _eventText.text != s_event) _eventText.text = s_event;
+        }
+
         void UpdateVitals(FishVitals v)
         {
             float h = v != null ? v.HealthNorm : 0f, g = v != null ? v.HungerNorm : 0f;
             _healthFill.style.width = Length.Percent(h * 100f);
             _hungerFill.style.width = Length.Percent(g * 100f);
-            _healthVal.text = $"{Mathf.RoundToInt(h * 100f)}%";
-            _hungerVal.text = $"{Mathf.RoundToInt(g * 100f)}%";
+            int hp = Mathf.RoundToInt(h * 100f), gp = Mathf.RoundToInt(g * 100f);
+            if (hp != _shownHealth) { _shownHealth = hp; _healthVal.text = $"{hp}%"; }
+            if (gp != _shownHunger) { _shownHunger = gp; _hungerVal.text = $"{gp}%"; }
             bool starving = v != null && !v.IsDead && g <= 0f;
             _hungerLabel.text = starving ? "STARVING" : "HUNGER";
             // blink while starving
@@ -203,12 +237,48 @@ namespace FishGame
             var mic = ProximityVoice.LocalMic;
             bool off = !VoiceSettings.MicOn;
             bool talking = !off && mic != null && mic.IsSpeaking;
-            _voiceLabel.text = mic == null ? "NO MIC" : off ? "MIC OFF" : talking ? "TALKING" : "QUIET";
-            _voice.EnableInClassList("voice--talking", talking);
-            _voice.EnableInClassList("voice--off", off || mic == null);
+            // The shark is close enough to have heard us: the panel turns red and blinks while it lasts.
+            bool heard = Time.unscaledTime < ProximityVoice.HeardBySharkUntil;
+            // Out of the round: only the other ghosts hear us now.
+            bool ghost = mic != null && mic.IsGhost;
+            _voiceLabel.text = heard ? "SHARK HEARD YOU" : mic == null ? "NO MIC" : off ? "MIC OFF"
+                             : ghost ? (talking ? "TALKING TO GHOSTS" : "GHOST CHANNEL") : talking ? "TALKING" : "QUIET";
+            _voice.EnableInClassList("voice--talking", talking && !heard);
+            _voice.EnableInClassList("voice--off", (off || mic == null) && !heard);
+            _voice.EnableInClassList("voice--heard", heard);
+            _voice.EnableInClassList("voice--heard-blink", heard && Mathf.Repeat(Time.unscaledTime, 0.5f) < 0.25f);
             var kind = off || mic == null ? ReefGlyph.Kind.MicOff : ReefGlyph.Kind.Mic;
             if (_micIcon.kind != kind) _micIcon.kind = kind;
-            _micIcon.color = talking ? new Color(0.17f, 0.76f, 0.77f) : off || mic == null ? new Color(0.9f, 0.7f, 0.2f) : new Color(0.56f, 0.69f, 0.73f);
+            _micIcon.color = heard ? new Color(1f, 0.42f, 0.42f) : talking ? new Color(0.17f, 0.76f, 0.77f) : off || mic == null ? new Color(0.9f, 0.7f, 0.2f) : new Color(0.56f, 0.69f, 0.73f);
+        }
+
+        // The shark's cooldowns: each bar fills back up, and the row lights when it's ready.
+        void UpdateAbilities()
+        {
+            var shark = FindLocalShark();
+            bool show = shark != null && !(shark.TryGetComponent(out FishPlayer fp) && fp.IsOut);
+            _abilities.EnableInClassList("hidden", !show);
+            if (!show) return;
+            _lungeFill.style.width = Length.Percent(shark.LungeCharge * 100f);
+            _sonarFill.style.width = Length.Percent(shark.SonarCharge * 100f);
+            _lungeRow.EnableInClassList("arow--ready", shark.LungeReady);
+            _sonarRow.EnableInClassList("arow--ready", shark.SonarReady);
+        }
+
+        static SharkAbilities FindLocalShark()
+        {
+            if (NetworkClient.active)
+                return NetworkClient.localPlayer != null ? NetworkClient.localPlayer.GetComponent<SharkAbilities>() : null;
+            var s = AnyActive(SharkAbilities.Loaded);
+            return s != null && s.enabled ? s : null;
+        }
+
+        // FindAnyObjectByType without searching the whole scene every frame: any instance on an active object.
+        static T AnyActive<T>(System.Collections.Generic.List<T> loaded) where T : Component
+        {
+            foreach (var c in loaded)
+                if (c != null && c.gameObject.activeInHierarchy) return c;
+            return null;
         }
 
         void UpdatePrompt()
@@ -254,35 +324,12 @@ namespace FishGame
             _flash.EnableInClassList("flash--show", show);
         }
 
-        void UpdateBanner(FishVitals v)
-        {
-            var m = MatchManager.Instance;
-            string key = null, title = null, sub = null, cls = null;
-            if (m != null && m.Phase == MatchPhase.FishWin)
-            { key = "fishwin"; title = "THE FISH SURVIVED"; sub = "The clock ran out before the shark could finish."; cls = "banner--fish"; }
-            else if (m != null && m.Phase == MatchPhase.SharkWin)
-            { key = "sharkwin"; title = "THE SHARK WINS"; sub = "Every fish was eaten."; cls = "banner--shark"; }
-            else if (v != null && v.IsDead)
-            { key = "dead"; title = "YOU WERE EATEN"; sub = "Watch the rest of the dive. Only the other ghosts can hear you now."; cls = "banner--shark"; }
-
-            if (key == _bannerKey) return;
-            _bannerKey = key;
-            _banner.RemoveFromClassList("banner--fish");
-            _banner.RemoveFromClassList("banner--shark");
-            if (key == null) { _banner.RemoveFromClassList("banner--show"); _banner.AddToClassList("hidden"); return; }
-            _bannerTitle.text = title;
-            _bannerSub.text = sub;
-            _banner.AddToClassList(cls);
-            _banner.RemoveFromClassList("hidden");
-            _banner.schedule.Execute(() => _banner.AddToClassList("banner--show")).StartingIn(16);
-        }
-
         static FishVitals FindLocalVitals()
         {
             if (NetworkClient.active && NetworkClient.localPlayer != null)
                 return NetworkClient.localPlayer.GetComponent<FishVitals>();
             // Offline sandbox: just show the (single) body that has vitals.
-            return FindAnyObjectByType<FishVitals>();
+            return AnyActive(FishVitals.Loaded);
         }
 
         // ---------------------------------------------------------------- helpers

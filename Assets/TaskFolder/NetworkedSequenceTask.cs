@@ -519,7 +519,11 @@ namespace FishGame
             _consumed = true;
             _players.Clear();
             SyncSeats(); // everyone's released
-            if (MatchManager.Instance != null) MatchManager.Instance.ReduceRemaining(timeReward);
+            if (MatchManager.Instance != null)
+            {
+                MatchManager.Instance.ReduceRemaining(timeReward);
+                MatchManager.Instance.TaskCompleted(transform.position, "Reef repair");
+            }
             RpcFeedback("Task completed — reef repaired!", true, true); // every player sees it
         }
 

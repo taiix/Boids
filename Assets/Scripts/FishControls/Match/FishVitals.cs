@@ -46,6 +46,8 @@ namespace FishGame
 
         // Escaped / eaten: out of the round, so no more hunger, starving or bleeding.
         bool OutOfRound => _player != null && _player.IsOut;
+        // In the shark's jaws: its fate is the swallow or the break-free, so it can't starve meanwhile.
+        bool Held => _player != null && _player.IsBeingEaten;
 
         public float Health => _health;
         public float Hunger => _hunger;
@@ -58,12 +60,19 @@ namespace FishGame
         bool Authority => Offline || isServer;
         static double Now => !NetworkServer.active && !NetworkClient.active ? Time.timeAsDouble : NetworkTime.time;
 
+        /// <summary>Every loaded instance, enabled or not (what FindAnyObjectByType would search, without
+        /// searching the scene).</summary>
+        internal static readonly System.Collections.Generic.List<FishVitals> Loaded = new System.Collections.Generic.List<FishVitals>();
+
         void Awake()
         {
             _health = maxHealth;
             _hunger = maxHunger;
             _player = GetComponent<FishPlayer>();
+            Loaded.Add(this);
         }
+
+        void OnDestroy() => Loaded.Remove(this);
 
         void OnEnable() => MatchManager.Register(this);
         void OnDisable() => MatchManager.Unregister(this);
@@ -73,7 +82,7 @@ namespace FishGame
             // Every machine draws the blood trail of every bleeding fish (purely visual).
             if (IsBleeding) BloodInWater.KeepBleeding(transform);
 
-            if (!Authority || _isDead || OutOfRound) return;
+            if (!Authority || _isDead || OutOfRound || Held) return;
 
             // Only drain while a round is actually underway. With no MatchManager at all (bare
             // sandbox) we still drain so the stats can be observed.
@@ -105,6 +114,14 @@ namespace FishGame
             if (!Authority || _isDead || amount <= 0f) return;
             _health = Mathf.Max(0f, _health - amount);
             StartBleeding(bleedSeconds >= 0f ? bleedSeconds : bleedSecondsOnDamage);
+            if (_health <= 0f) Die();
+        }
+
+        /// <summary>Health lost to the surroundings (toxic water) - no wound, so no bleeding. Authority-only.</summary>
+        public void Drain(float amount)
+        {
+            if (!Authority || _isDead || OutOfRound || amount <= 0f) return;
+            _health = Mathf.Max(0f, _health - amount);
             if (_health <= 0f) Die();
         }
 

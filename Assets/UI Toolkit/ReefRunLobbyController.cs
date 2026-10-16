@@ -28,6 +28,8 @@ namespace ReefRun
     ///
     /// The host's survival-clock choice is written to the Steam lobby data (<see cref="ClockKey"/>) so
     /// everyone sees it, and handed to <see cref="MatchManager.RoundSecondsOverride"/> for the round.
+    /// The host's FRIENDS ONLY / PUBLIC choice goes through <see cref="SteamLobby.SetPublic"/>; a public
+    /// lobby shows up in the main menu's lobby browser.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class ReefRunLobbyController : MonoBehaviour
@@ -52,11 +54,12 @@ namespace ReefRun
         VisualElement _root, _roster;
         ScrollView _friends;
         TextField _search;
-        Label _eyebrow, _fishCount, _friendsCount, _readyLabel, _startLabel, _startSub, _settingsNote, _searchHint;
-        Button _readyBtn, _startBtn, _backBtn;
+        Label _eyebrow, _fishCount, _friendsCount, _readyLabel, _startLabel, _startSub, _settingsNote, _searchHint, _typeNote;
+        Button _readyBtn, _startBtn, _backBtn, _visFriendsBtn, _visPublicBtn;
         readonly Button[] _clockBtns = new Button[ClockOptions.Length];
         bool _searchFocused;
         int _clockSeconds = 600;
+        bool _public;
 
         UIDocument _doc;
         Texture2D _cardFade, _roleFade;
@@ -136,6 +139,11 @@ namespace ReefRun
             _readyBtn = _root.Q<Button>("ready-btn");
             _startBtn = _root.Q<Button>("start-btn");
             _backBtn = _root.Q<Button>("back-btn");
+            _typeNote = _root.Q<Label>("lobby-type-note");
+            _visFriendsBtn = _root.Q<Button>("vis-friends");
+            _visPublicBtn = _root.Q<Button>("vis-public");
+            if (_visFriendsBtn != null) _visFriendsBtn.clicked += () => SetPublic(false);
+            if (_visPublicBtn != null) _visPublicBtn.clicked += () => SetPublic(true);
 
             _root.Q("fish-fade").style.backgroundImage = new StyleBackground(_roleFade);
             _root.Q("shark-fade").style.backgroundImage = new StyleBackground(_roleFade);
@@ -216,10 +224,13 @@ namespace ReefRun
         /// <summary>Lobby-level Steam data changed (e.g. the host picked a different clock).</summary>
         public void RefreshLobbyData()
         {
-            if (SteamManager.Initialized && LobbyId.IsValid() &&
-                int.TryParse(SteamMatchmaking.GetLobbyData(LobbyId, ClockKey), out int s) && s > 0)
-                _clockSeconds = s;
-            if (_root != null) UpdateClockButtons();
+            if (SteamManager.Initialized && LobbyId.IsValid())
+            {
+                if (int.TryParse(SteamMatchmaking.GetLobbyData(LobbyId, ClockKey), out int s) && s > 0)
+                    _clockSeconds = s;
+                _public = SteamLobby.instance != null && SteamLobby.instance.IsPublic;
+            }
+            if (_root != null) { UpdateClockButtons(); UpdateVisibility(); }
         }
 
         // ===================================================================
@@ -238,7 +249,6 @@ namespace ReefRun
             int ready = _players.FindAll(p => p.ready).Count;
             bool host = NetworkServer.active;
 
-            _eyebrow.text = $"FRIENDS LOBBY · {n} / {MaxSlots} DIVERS";
             _fishCount.text = n >= 2 ? $"{n - 1} of you" : "Everyone, until a second diver joins";
 
             bool meReady = Me?.ready ?? false;
@@ -255,6 +265,7 @@ namespace ReefRun
 
             _settingsNote.text = host ? "You're the host" : "Host only";
             UpdateClockButtons();
+            UpdateVisibility();
         }
 
         VisualElement BuildCard(Player p, int slot)
@@ -280,7 +291,8 @@ namespace ReefRun
             var tags = Box("tags");
             if (p.isYou) tags.Add(Lbl("YOU", "tag", "tag--you"));
             if (p.isHost) tags.Add(Lbl("HOST", "tag", "tag--host"));
-            if (!p.isYou && !p.isHost) tags.Add(Lbl("FRIEND", "tag"));
+            if (!p.isYou && !p.isHost)
+                tags.Add(Lbl(IsFriend(p.steamId) ? "FRIEND" : "DIVER", "tag"));   // public lobbies bring strangers
             who.Add(tags);
             info.Add(who);
 
@@ -332,6 +344,19 @@ namespace ReefRun
             }
             if (host) MatchManager.RoundSecondsOverride = _clockSeconds;
         }
+
+        void UpdateVisibility()
+        {
+            bool host = NetworkServer.active;
+            if (_visFriendsBtn != null) { _visFriendsBtn.EnableInClassList("seg-btn--on", !_public); _visFriendsBtn.SetEnabled(host); }
+            if (_visPublicBtn != null) { _visPublicBtn.EnableInClassList("seg-btn--on", _public); _visPublicBtn.SetEnabled(host); }
+            if (_typeNote != null) _typeNote.text = _public ? "Public lobby · listed under JOIN" : "Friends-only lobby";
+            if (_eyebrow != null)
+                _eyebrow.text = $"{(_public ? "PUBLIC" : "FRIENDS")} LOBBY · {_players.Count} / {MaxSlots} DIVERS";
+        }
+
+        static bool IsFriend(CSteamID id) =>
+            SteamManager.Initialized && SteamFriends.HasFriend(id, EFriendFlags.k_EFriendFlagImmediate);
 
         void UpdateSearchHint() =>
             _searchHint.style.display = _searchFocused || !string.IsNullOrEmpty(_search.value) ? DisplayStyle.None : DisplayStyle.Flex;
@@ -494,6 +519,14 @@ namespace ReefRun
             UpdateClockButtons();
         }
 
+        void SetPublic(bool isPublic)
+        {
+            if (!NetworkServer.active || SteamLobby.instance == null) return;   // host only
+            _public = isPublic;
+            SteamLobby.instance.SetPublic(isPublic);
+            UpdateVisibility();
+        }
+
         void OpenInviteOverlay()
         {
             if (SteamManager.Initialized && LobbyId.IsValid())
@@ -515,7 +548,7 @@ namespace ReefRun
             MatchManager.RoundSecondsOverride = _clockSeconds;
 
             // Tell every client to play the launch overlay (lobby-level data).
-            SteamMatchmaking.SetLobbyData(LobbyId, "starting", "1");
+            SteamMatchmaking.SetLobbyData(LobbyId, SteamLobby.StartingKey, "1");
             LaunchOverlay.Instance?.Play();
 
             // After the animation, pull everyone into the game scene over Mirror. The overlay persists

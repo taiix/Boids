@@ -192,6 +192,7 @@ namespace FishGame
             if (me != null && me != _introFor && m.Phase == MatchPhase.Playing && me.RoundLive && !me.IsOut)
             {
                 _introFor = me;
+                if (GameAudio.Lib != null) GameAudio.Jingle(GameAudio.Lib.jingleRoundStart);
                 if (me.IsSharkBody)
                     Banner("YOU ARE THE SHARK", "HUNT DOWN ALL OTHER PLAYERS",
                            "Catch the fish before the clock runs out and they escape", "shark", 6f);
@@ -211,6 +212,11 @@ namespace FishGame
                         ? "Swim through the gap to escape!"
                         : "The fish are making a run for it";
                 Banner("TIME'S UP", title, sub, "alert", 7f);
+                if (GameAudio.Lib != null)
+                {
+                    GameAudio.Play(GameAudio.Lib.exitOpen, 0.9f);
+                    GameAudio.Play(GameAudio.Lib.rumble, 0.8f);
+                }
             }
 
             // We're out of the round.
@@ -218,12 +224,17 @@ namespace FishGame
             if (me != null && me.Outcome != _lastOutcome)
             {
                 _lastOutcome = me.Outcome;
+                PlayOutcome(me);
                 const string watch = "You can watch the others until the round ends";
                 switch (me.Outcome)
                 {
                     case PlayerOutcome.Escaped: Banner("YOU MADE IT", "YOU ESCAPED!", watch, "fish", 5f); break;
                     case PlayerOutcome.Eaten: Banner("CAUGHT", "YOU WERE EATEN", watch, "shark", 5f); break;
-                    case PlayerOutcome.Died: Banner("OUT OF STRENGTH", "YOU DIED", watch, "shark", 5f); break;
+                    case PlayerOutcome.Died:
+                        if (me.IsSharkBody) Banner("OUT OF STRENGTH", "YOU STARVED", "The fish still in the water survive", "alert", 5f);
+                        else Banner("OUT OF STRENGTH", "YOU DIED", watch, "shark", 5f);
+                        break;
+                    case PlayerOutcome.Survived: Banner("THE SHARK IS GONE", "YOU SURVIVED!", "Nothing left to hunt you", "fish", 5f); break;
                 }
             }
         }
@@ -240,6 +251,7 @@ namespace FishGame
 
             _struggle.style.display = held ? DisplayStyle.Flex : DisplayStyle.None;
             if (!held) return;
+            if (GameAudio.Lib != null) GameAudio.Loop("heartbeat", GameAudio.Lib.heartbeat, 0.75f);
 
             // The meter comes from the host a few times a second; ease toward it so it doesn't step.
             _struggleShown = Mathf.MoveTowards(_struggleShown, me.StruggleMeter, Time.unscaledDeltaTime * 2.5f);
@@ -249,7 +261,28 @@ namespace FishGame
             _struggle.EnableInClassList("pressed", Time.unscaledTime - me.LastStrugglePress < 0.07f);
 
             int health = me.TryGetComponent(out FishVitals v) ? Mathf.RoundToInt(v.HealthNorm * 100f) : 100;
-            _struggleSub.text = $"Health {health}%  -  mash faster than {me.StruggleHoldRate:0.#} a second";
+            _struggleSub.text = me.CanBreakFree
+                ? $"Health {health}%  -  mash faster than {me.StruggleHoldRate:0.#} a second"
+                : $"Health {health}%  -  still wounded from the last bite, too weak to tear free";
+        }
+
+        // Your own fate gets a sting: a bright one for making it, a sad one (and a ghostly breath) for not.
+        static void PlayOutcome(FishPlayer me)
+        {
+            var lib = GameAudio.Lib;
+            if (lib == null) return;
+            switch (me.Outcome)
+            {
+                case PlayerOutcome.Escaped:
+                case PlayerOutcome.Survived:
+                    GameAudio.Jingle(lib.jingleEscaped);
+                    break;
+                case PlayerOutcome.Eaten:
+                case PlayerOutcome.Died:
+                    GameAudio.Jingle(lib.jingleLost);
+                    GameAudio.Play(lib.ghost, 0.6f);
+                    break;
+            }
         }
 
         void Banner(string eyebrow, string title, string sub, string tone, float hold)
@@ -378,6 +411,13 @@ namespace FishGame
                 _results.style.display = over ? DisplayStyle.Flex : DisplayStyle.None;
                 _results.EnableInClassList("shown", false);
                 if (over) _results.schedule.Execute(() => _results.AddToClassList("shown")).StartingIn(30);
+                if (over && GameAudio.Lib != null)
+                {
+                    // Won or lost, from this player's side: fish win together, the shark wins alone.
+                    bool fishWin = m.Phase == MatchPhase.FishWin;
+                    bool won = me != null && (me.IsSharkBody ? !fishWin : fishWin);
+                    GameAudio.Jingle(!won ? GameAudio.Lib.jingleLost : fishWin ? GameAudio.Lib.jingleFishWin : GameAudio.Lib.jingleSharkWin);
+                }
                 _nextResultsRefresh = 0f;
             }
             if (!over) return;
@@ -399,26 +439,43 @@ namespace FishGame
             _resTitle.EnableInClassList("shark", !fishWin);
 
             var escaped = new List<string>();
+            var survived = new List<string>();
             var eaten = new List<string>();
             var died = new List<string>();
             var sharks = new List<string>();
             var left = new List<string>();
             string myName = me != null ? me.PlayerName : null;
             int fish = 0;
+            bool sharkStarved = false, sharkLeft = false;
             foreach (var p in m.Roster)
             {
                 string name = p.name == myName ? $"{p.name}  <color=#88b4bd>(you)</color>" : p.name;
+                if (p.role == FishRole.Shark)
+                {
+                    if (p.outcome == PlayerOutcome.Died) sharkStarved = true;
+                    if (p.outcome == PlayerOutcome.Left) { sharkLeft = true; left.Add(p.name); }
+                    else sharks.Add(name);
+                    continue;
+                }
                 if (p.outcome == PlayerOutcome.Left) { left.Add(p.name); continue; }
-                if (p.role == FishRole.Shark) { sharks.Add(name); continue; }
                 fish++;
                 if (p.outcome == PlayerOutcome.Escaped) escaped.Add(name);
+                else if (p.outcome == PlayerOutcome.Survived) survived.Add(name);
                 else if (p.outcome == PlayerOutcome.Eaten) eaten.Add(name);
                 else died.Add(name);
             }
 
-            if (fishWin) _resSub.text = $"{escaped.Count} of {fish} fish escaped";
-            else if (escaped.Count == 0) _resSub.text = fish == 1 ? "The fish didn't escape" : "No fish escaped";
-            else _resSub.text = $"Only {escaped.Count} of {fish} fish escaped - more than half had to";
+            // The round ended early because no shark was left: say why, then how the fish did.
+            int madeIt = escaped.Count + survived.Count;
+            string why = sharkStarved ? "The shark starved" : sharkLeft && sharks.Count == 0 ? "The shark left the game" : null;
+            string tally = fishWin ? $"{madeIt} of {fish} fish made it"
+                         : madeIt == 0 ? (fish == 1 ? "The fish didn't make it" : "No fish made it")
+                         : $"Only {madeIt} of {fish} fish made it - more than half had to";
+            if (why == null && survived.Count == 0)
+                tally = fishWin ? $"{escaped.Count} of {fish} fish escaped"
+                      : escaped.Count == 0 ? (fish == 1 ? "The fish didn't escape" : "No fish escaped")
+                      : $"Only {escaped.Count} of {fish} fish escaped - more than half had to";
+            _resSub.text = why != null ? $"{why} - {tally.Substring(0, 1).ToLowerInvariant()}{tally.Substring(1)}" : tally;
 
             // Did *you* win? Fish win together, the shark wins alone.
             bool known = me != null;
@@ -429,7 +486,8 @@ namespace FishGame
             _resYou.EnableInClassList("lost", !won);
 
             _columns.Clear();
-            Column("ESCAPED", "escaped", escaped, "Nobody escaped");
+            if (escaped.Count > 0 || survived.Count == 0) Column("ESCAPED", "escaped", escaped, "Nobody escaped");
+            if (survived.Count > 0) Column("SURVIVED", "escaped", survived, null);
             Column("EATEN BY THE SHARK", "eaten", eaten, "Nobody was eaten");
             if (died.Count > 0) Column("DIDN'T SURVIVE", "died", died, null);
 

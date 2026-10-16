@@ -20,6 +20,7 @@
                     <ui:Button name="play-btn" text="HOST" class="mm-nav-btn"/>
                     <ui:Button name="join-btn" text="JOIN" class="mm-nav-btn"/>
                     <ui:Button name="settings-btn" text="SETTINGS" class="mm-nav-btn"/>
+                    <ui:Button name="credits-btn" text="CREDITS" class="mm-nav-btn"/>
                     <ui:Button name="quit-btn" text="QUIT" class="mm-nav-btn"/>
                 </ui:VisualElement>
                 <ui:Label name="nav-hint" text="Open a friends-only lobby for up to 4 divers" class="mm-hint"/>

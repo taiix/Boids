@@ -14,6 +14,20 @@ namespace FishGame
         Escape = 4,   // the clock ran out: a wall has lifted and the fish make a run for it
     }
 
+    /// <summary>Something that happens to the whole reef mid-round (<see cref="WorldEvents"/>).</summary>
+    public enum WorldEventKind : byte
+    {
+        None = 0,
+        Current = 1, // a strong current pushes everyone one way
+        Trawler = 2, // a trawler drags a net across the arena
+        Nightfall = 3, // the reef goes dark; anything moving leaves a glowing plankton trail
+        Storm = 4,     // lightning flashes light the reef; the water churns near the surface
+        ColdLayer = 5, // a band of cold water slows everyone inside it
+        Jellyfish = 6, // a swarm drifts through; touching one stings
+        SandSlide = 7, // a quake raises sand clouds along the seabed
+        RedTide = 8,   // a toxic patch drifts across; inside it you lose health and can't see far
+    }
+
     /// <summary>
     /// Server-authoritative round: the fish survive a countdown (tasks shave time off it), then one of the
     /// walls around the seabed lifts (<see cref="ArenaWalls"/>) and they have to swim out through the gap.
@@ -61,6 +75,13 @@ namespace FishGame
         // Which wall lifted (ArenaWalls index, -1 = none yet) and when, on the shared clock.
         [SyncVar] sbyte _exitWall = -1;
         [SyncVar] double _exitOpenedAt;
+        // The world event (WorldEvents decides; everyone plays it from these): what, when, which way, and one
+        // number more (the trawler's starting wall).
+        [SyncVar] WorldEventKind _event;
+        [SyncVar] double _eventStart;
+        [SyncVar] double _eventEnd;
+        [SyncVar] Vector3 _eventDir;
+        [SyncVar] int _eventParam;
 
         // One line per player for the results screen. Server-side, each player's line is found by
         // their connection, so a new body (F8 swap) updates the same line.
@@ -83,6 +104,27 @@ namespace FishGame
         public int ExitWall => _exitWall;
         /// <summary>When the exit started opening, on <see cref="Now"/>'s clock.</summary>
         public double ExitOpenedAt => _exitOpenedAt;
+        /// <summary>When the survival clock started, on <see cref="Now"/>'s clock.</summary>
+        public double RoundStartTime => _roundStartTime;
+        public WorldEventKind Event => _event;
+        public double EventStart => _eventStart;
+        public double EventEnd => _eventEnd;
+        public Vector3 EventDirection => _eventDir;
+        public int EventParam => _eventParam;
+
+        /// <summary>Authority: start a world event (it's announced at once and plays from <paramref name="start"/>
+        /// to <paramref name="end"/>).</summary>
+        public void ServerStartEvent(WorldEventKind kind, double start, double end, Vector3 direction, int param)
+        {
+            if (!Authority) return;
+            _event = kind;
+            _eventStart = start;
+            _eventEnd = end;
+            _eventDir = direction;
+            _eventParam = param;
+            if (logTransitions) Debug.Log($"[Match] World event: {kind} in {start - Now:0.#}s for {end - start:0}s");
+        }
+
         /// <summary>Every player in this round and how it went for them.</summary>
         public IReadOnlyList<RoundPlayer> Roster => _roster;
 
@@ -163,6 +205,22 @@ namespace FishGame
             if (_roundEndTime < min) _roundEndTime = min;
             if (logTransitions) Debug.Log($"[Match] Task shaved {seconds:0.#}s -> {RemainingSeconds:0}s left");
         }
+
+        /// <summary>Every machine: the fish finished a task at this spot (what it was, for a label). The shark
+        /// is shown where, so finishing a task is a risk as well as time off the clock.</summary>
+        public static event System.Action<Vector3, string> TaskDone;
+
+        /// <summary>A task was completed at <paramref name="where"/>. Authority-only; tells every machine.</summary>
+        public void TaskCompleted(Vector3 where, string what)
+        {
+            if (!Authority || !RoundRunning) return;
+            if (logTransitions) Debug.Log($"[Match] Task done: {what}");
+            if (Offline) TaskDone?.Invoke(where, what);
+            else RpcTaskCompleted(where, what);
+        }
+
+        [ClientRpc]
+        void RpcTaskCompleted(Vector3 where, string what) => TaskDone?.Invoke(where, what);
 
         // ------------------------------------------------------------------ the escape
 
@@ -267,47 +325,82 @@ namespace FishGame
             _roster[i] = line;
         }
 
-        /// <summary>Called by a fish when it dies (starving, cuts). Authority-only.</summary>
+        /// <summary>Called by a fish or the shark when it dies (starving, cuts). Authority-only.</summary>
         public void NotifyFishDied(FishVitals who)
         {
             if (!Authority || !RoundRunning || who == null) return;
+            bool shark = who.TryGetComponent(out SharkAbilities _);
 
             if (Offline)
             {
-                // No players to keep track of in the sandbox: the shark wins once no fish has vitals left.
+                // No players to keep track of in the sandbox: the fish win if the shark starves, the shark
+                // once no fish has vitals left.
+                if (shark) { EndRound(MatchPhase.FishWin); return; }
                 foreach (var f in Fish)
                     if (f != null && !f.IsDead && !f.TryGetComponent(out SharkAbilities _)) return;
                 EndRound(MatchPhase.SharkWin);
                 return;
             }
 
-            if (who.TryGetComponent(out FishPlayer fp) && !fp.IsSharkBody)
-                ServerSetOutcome(fp, PlayerOutcome.Died);
+            if (!who.TryGetComponent(out FishPlayer fp)) return;
+            // A starving shark lets go of its catch first, so the fish isn't left stuck in a dead shark's jaws.
+            if (shark) fp.ServerReleasePrey();
+            ServerSetOutcome(fp, PlayerOutcome.Died);
         }
 
         /// <summary>
-        /// The round is over once no fish is left in the water. More than half of them escaping is a win
-        /// for the fish; anything less, the shark's. Players who left don't count either way.
+        /// The round is over once no fish is left in the water, or no shark is left to hunt them (it starved or
+        /// quit - every fish still in the water then survived). Escaping or surviving counts the same: more
+        /// than half of the fish making it is a win for them; anything less, the shark's. Players who left
+        /// don't count either way.
         /// </summary>
         void CheckRoundOver()
         {
             if (!RoundRunning) return;
-            int fish = 0, inWater = 0, escaped = 0;
+            int fish = 0, inWater = 0, escaped = 0, sharks = 0, sharksIn = 0;
             bool anyFish = false;
             foreach (var p in _roster)
             {
-                if (p.role != FishRole.Fish) continue;
+                if (p.role == FishRole.Shark)
+                {
+                    sharks++;
+                    if (p.outcome == PlayerOutcome.Alive) sharksIn++;
+                    continue;
+                }
                 anyFish = true;
                 if (p.outcome == PlayerOutcome.Left) continue;
                 fish++;
                 if (p.outcome == PlayerOutcome.Alive) inWater++;
-                else if (p.outcome == PlayerOutcome.Escaped) escaped++;
+                else if (p.outcome == PlayerOutcome.Escaped || p.outcome == PlayerOutcome.Survived) escaped++;
             }
-            // No fish at all (a lone shark testing) - nothing to decide.
+
+            // The shark is gone (and there was one - not a lone fish testing): whoever is still swimming made it.
+            bool sharkGone = sharks > 0 && sharksIn == 0;
+            if (sharkGone && inWater > 0)
+            {
+                ServerMarkSurvivors();
+                escaped += inWater;
+                inWater = 0;
+            }
+            // No fish at all (a lone shark testing), or some are still in the water - nothing to decide.
             if (!anyFish || inWater > 0) return;
 
             EndRound(escaped * 2 > fish ? MatchPhase.FishWin : MatchPhase.SharkWin);
-            if (logTransitions) Debug.Log($"[Match] {escaped} of {fish} fish escaped.");
+            if (logTransitions)
+                Debug.Log(sharkGone ? $"[Match] No shark left - {escaped} of {fish} fish made it."
+                                    : $"[Match] {escaped} of {fish} fish escaped.");
+        }
+
+        // No shark left: every fish still in the water survived the round. Set directly rather than through
+        // ServerSetOutcome, which would check the round again from inside CheckRoundOver.
+        void ServerMarkSurvivors()
+        {
+            foreach (var fp in FishPlayer.All)
+            {
+                if (fp == null || fp.IsSharkBody || fp.IsOut) continue;
+                fp.Outcome = PlayerOutcome.Survived;
+                if (fp.connectionToClient != null) SetOutcome(fp.connectionToClient.connectionId, PlayerOutcome.Survived);
+            }
         }
 
         void EndRound(MatchPhase result)

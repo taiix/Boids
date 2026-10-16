@@ -127,3 +127,5 @@ MonoBehaviour:
   waterRing: {fileID: 2100000, guid: 752ebee13679b8742ba9b08261c50b56, type: 2}
   mist: {fileID: 2100000, guid: cdddbb4a00bd81b47a36726e50ac365f, type: 2}
   ripple: {fileID: 2100000, guid: e610b47247be6484c9640936c01488a0, type: 2}
+  trawlNet: {fileID: 2100000, guid: 9017c0e31c4554e4f9bb6dfcdc983038, type: 2}
+  trawlerBoat: {fileID: 4005500259658817378, guid: 82b989f52c7d1c544a7345f783d9638c, type: 3}

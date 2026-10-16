@@ -100,7 +100,7 @@ namespace FishGame
         /// <summary>Server / offline: a piece of trash just fell in.</summary>
         public void ServerSwallow(PushableTrash trash)
         {
-            if (Task != null && trash != null) Task.ServerCollected(trash.Points);
+            if (Task != null && trash != null) Task.ServerCollected(trash.Points, transform.position);
         }
 
         /// <summary>Server / offline: the task's progress, for every player to see.</summary>

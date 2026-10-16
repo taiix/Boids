@@ -10,6 +10,7 @@ namespace ReefRun
     /// Drives the Reef Run main menu (ReefRunMainMenu.uxml). The background is the live 3D menu scene
     /// (see <see cref="MenuSharkCruise"/>), so this only owns the overlay: logo, nav, the "friends on the
     /// reef" chips (with JOIN for friends sitting in a Reef Run lobby) and the player card.
+    /// JOIN opens the lobby browser (<see cref="ReefRunLobbyBrowser"/>): public lobbies plus friends' ones.
     /// SETTINGS opens the shared settings overlay (ReefRunSettings.uxml, see <see cref="ReefRunSettingsPanel"/>)
     /// - the same one the in-game pause menu opens.
     /// </summary>
@@ -31,13 +32,15 @@ namespace ReefRun
         Label _hint;
         Texture2D _shadeTop, _shadeBottom;
         ReefRunSettingsPanel _settings;
+        ReefRunCreditsPanel _credits;
+        ReefRunLobbyBrowser _browser;
         Callback<AvatarImageLoaded_t> _avatarLoaded;
         Callback<PersonaStateChange_t> _personaChanged;
         IVisualElementScheduledItem _refresh;
         VisualElement _veil;
         readonly Dictionary<CSteamID, VisualElement> _chipAvatars = new();
 
-        const string HostHint = "Open a friends-only lobby for up to 4 divers";
+        const string HostHint = "Open a lobby for up to 4 divers";
 
         void OnEnable()
         {
@@ -53,6 +56,8 @@ namespace ReefRun
             _avatarLoaded?.Dispose(); _avatarLoaded = null;
             _personaChanged?.Dispose(); _personaChanged = null;
             _refresh?.Pause();
+            _browser?.Dispose(); _browser = null;
+            SteamLobby.JoinFailed -= OnJoinFailed;
         }
 
         IEnumerator BuildNextFrame()
@@ -100,8 +105,12 @@ namespace ReefRun
             _settings = new ReefRunSettingsPanel(_root);
 
             Wire("play-btn", OnHost, HostHint);
-            Wire("join-btn", OnJoin, "Join a friend's lobby");
+            _browser = new ReefRunLobbyBrowser(_root);
+            SteamLobby.JoinFailed += OnJoinFailed;
+            Wire("join-btn", OnJoin, "Browse public lobbies and your friends' lobbies");
             Wire("settings-btn", OpenSettings, "Audio and display");
+            _credits = new ReefRunCreditsPanel(_root);
+            Wire("credits-btn", () => _credits.Open(), "Who made the music and sounds");
             Wire("quit-btn", OnQuit, "Back to the surface");
 
             RefreshFriends();
@@ -116,17 +125,13 @@ namespace ReefRun
             if (SteamLobby.instance != null) SteamLobby.instance.CreateLobby();
         }
 
-        /// <summary>
-        /// JOIN takes you into the first friend's Reef Run lobby. With nobody to join, it opens the Steam
-        /// friends overlay instead (an invite accepted there lands you in their lobby the same way).
-        /// </summary>
-        protected virtual void OnJoin()
-        {
-            foreach (var f in OnlineFriends())
-                if (f.lobby.IsValid()) { JoinFriend(f.lobby); return; }
+        /// <summary>JOIN opens the lobby browser: every public lobby plus any lobby a friend is in.</summary>
+        protected virtual void OnJoin() => _browser?.Open();
 
-            if (_hint != null) _hint.text = "No friends are hosting right now. Ask one to invite you.";
-            if (SteamManager.Initialized) SteamFriends.ActivateGameOverlay("friends");
+        // A friend-chip JOIN that bounced (the browser shows its own failures).
+        void OnJoinFailed(string reason)
+        {
+            if (_browser == null || !_browser.IsOpen) SetHint(reason);
         }
 
         protected virtual void OnQuit()

@@ -38,6 +38,10 @@ namespace FishGame
         public Material mist;
         [Tooltip("Ring spreading across the surface from a splash (4x4 flipbook, fading as it grows).")]
         public Material ripple;
+        [Tooltip("Rope of the trawler's net (WorldEvents).")]
+        public Material trawlNet;
+        [Tooltip("The trawler on the surface, dragging its net across the arena (WorldEvents).")]
+        public GameObject trawlerBoat;
 
         static WaterFxLibrary s_library;
         static bool s_looked;

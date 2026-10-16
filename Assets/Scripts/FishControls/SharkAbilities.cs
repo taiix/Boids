@@ -12,6 +12,12 @@ namespace FishGame
     ///   * LUNGE   (Q / Left Trigger): a big, fast, long-distance dash on a longer cooldown.
     ///     If the shark catches up to a fish and it enters eat range, the lunge is cut short
     ///     and the shark bites/eats instead of overshooting.
+    ///   * SONAR   (R / Y): a pulse on a long cooldown. Every player fish within <see cref="sonarRadius"/> that is
+    ///     moving shows up for a moment (<see cref="SharkTargeting.SonarSweep"/>); a fish that keeps still doesn't.
+    ///   * NEAR MISSES: a fish just out of the mouth but ahead of the head (<see cref="snapReach"/>,
+    ///     <see cref="snapAngle"/>) is snapped up anyway - the devour pulls it into the jaws. A player fish
+    ///     that came within <see cref="grazeReach"/> during a bite that caught nothing is grazed instead:
+    ///     hurt and bleeding (<see cref="GrazedPrey"/>), and too weak to tear free if it's caught again soon.
     ///
     /// NETCODE: this stays Mirror-agnostic (like FishController). When it detects a catch it
     /// does the instant local feedback (stop + bite anim) and raises <see cref="CaughtPrey"/>.
@@ -40,6 +46,15 @@ namespace FishGame
         [Range(0f, 1f)][SerializeField] float lungeSteerControl = 0.15f;
         [SerializeField] float lungeCooldown = 4f;
 
+        [Header("Sonar (R / Y)")]
+        [Tooltip("How far the pulse reaches (metres).")]
+        [SerializeField] float sonarRadius = 40f;
+        [Tooltip("A player fish moving faster than this (m/s) when the pulse goes out is revealed.")]
+        [SerializeField] float sonarMovingSpeed = 1.2f;
+        [Tooltip("How long a fish the pulse caught stays revealed and lockable (seconds).")]
+        [SerializeField] float sonarRevealSeconds = 2.5f;
+        [SerializeField] float sonarCooldown = 25f;
+
         [Header("Eating")]
         [Tooltip("Distance from the shark's pivot forward to its 'mouth'.")]
         [SerializeField] float mouthOffset = 1.0f;
@@ -47,6 +62,25 @@ namespace FishGame
         [SerializeField] float eatRadius = 0.9f;
         [Tooltip("Which layers can contain prey. Leave as Everything and filter by the Edible component.")]
         [SerializeField] LayerMask preyMask = ~0;
+
+        [Header("Near misses")]
+        [Tooltip("A fish this close to the mouth (metres) and ahead of the head is snapped up even though " +
+                 "it isn't in the mouth.")]
+        [SerializeField] float snapReach = 1.8f;
+        [Tooltip("How far off the shark's heading (degrees) a fish may be and still be snapped up.")]
+        [Range(0f, 90f)][SerializeField] float snapAngle = 40f;
+        [Tooltip("A player fish this close to the mouth at some point during a bite that caught nothing is " +
+                 "grazed: hurt and bleeding.")]
+        [SerializeField] float grazeReach = 2.6f;
+        [Tooltip("Health a graze takes off a player fish.")]
+        [SerializeField] float grazeDamage = 15f;
+        [Tooltip("Seconds a grazed fish bleeds and stays wounded. Caught again while wounded, it can't tear free.")]
+        [SerializeField] float grazeWoundSeconds = 12f;
+
+        /// <summary>Health a graze takes (the host reads these off the shark when it applies one).</summary>
+        public float GrazeDamage => grazeDamage;
+        /// <summary>How long a grazed fish bleeds and stays too weak to tear free.</summary>
+        public float GrazeWoundSeconds => grazeWoundSeconds;
 
         [Header("Food (the shark only feeds on fish)")]
         [Tooltip("Hunger restored by eating an ambient school fish.")]
@@ -99,8 +133,17 @@ namespace FishGame
         /// the swing and the dash's bubbles to everyone else (<see cref="PlayAttackFx"/>).</summary>
         public event Action<bool> Attacked;
 
+        /// <summary>Raised on the owner when it sends a sonar pulse, so the Mirror layer can show it to everyone.</summary>
+        public event Action Sonared;
+
+        /// <summary>Raised on the owner when a bite that caught nothing passed close to a player fish (a graze).
+        /// The Mirror layer has the host hurt it; with no subscriber it's hurt here (single-player / test).</summary>
+        public event Action<Edible> GrazedPrey;
+
         InputAction _attackAction;
         InputAction _lungeAction;
+        InputAction _sonarAction;
+        float _sonarCd;
 
         float _attackCd;
         float _lungeCd;
@@ -110,16 +153,30 @@ namespace FishGame
         int _holdingId;
         bool _holding;          // a player fish is in our jaws, struggling
         float _noBitesUntil;    // a fish just broke free: a moment before we can bite again
-        readonly Collider[] _hits = new Collider[8];
+        Edible _grazed;         // the player fish that came closest during this bite, inside grazeReach
+        float _grazedDist;
+        readonly Collider[] _hits = new Collider[16];
 
         public bool AttackReady => _attackCd <= 0f;
         public bool LungeReady => _lungeCd <= 0f;
+        public bool SonarReady => _sonarCd <= 0f;
+        /// <summary>0 = just used, 1 = ready (for the HUD).</summary>
+        public float LungeCharge => lungeCooldown > 0f ? 1f - Mathf.Clamp01(_lungeCd / lungeCooldown) : 1f;
+        public float SonarCharge => sonarCooldown > 0f ? 1f - Mathf.Clamp01(_sonarCd / sonarCooldown) : 1f;
+        public float SonarRadius => sonarRadius;
 
         /// <summary>A caught player fish is in our jaws (being shaken until it's swallowed or breaks free).</summary>
         public bool IsHolding => _holding;
 
+        /// <summary>Every loaded instance, enabled or not (what FindAnyObjectByType would search, without
+        /// searching the scene).</summary>
+        internal static readonly System.Collections.Generic.List<SharkAbilities> Loaded = new System.Collections.Generic.List<SharkAbilities>();
+
+        void OnDestroy() => Loaded.Remove(this);
+
         void Awake()
         {
+            Loaded.Add(this);
             if (motor == null) motor = GetComponent<FishMotor>();
             if (animator == null) animator = GetComponentInChildren<Animator>();
             if (targeting == null) TryGetComponent(out targeting);
@@ -134,18 +191,24 @@ namespace FishGame
             _lungeAction = new InputAction("Lunge", InputActionType.Button);
             _lungeAction.AddBinding("<Keyboard>/q");
             _lungeAction.AddBinding("<Gamepad>/leftTrigger");
+
+            _sonarAction = new InputAction("Sonar", InputActionType.Button);
+            _sonarAction.AddBinding("<Keyboard>/r");
+            _sonarAction.AddBinding("<Gamepad>/buttonNorth");
         }
 
         void OnEnable()
         {
             _attackAction.Enable();
             _lungeAction.Enable();
+            _sonarAction.Enable();
         }
 
         void OnDisable()
         {
             _attackAction.Disable();
             _lungeAction.Disable();
+            _sonarAction.Disable();
         }
 
         void Update()
@@ -153,14 +216,24 @@ namespace FishGame
             float dt = Time.deltaTime;
             if (_attackCd > 0f) _attackCd -= dt;
             if (_lungeCd > 0f) _lungeCd -= dt;
-            if (_eatWindow > 0f) _eatWindow -= dt;
+            if (_sonarCd > 0f) _sonarCd -= dt;
+            if (_eatWindow > 0f)
+            {
+                _eatWindow -= dt;
+                if (_eatWindow <= 0f) EndBite(); // the bite closed on nothing: maybe it grazed someone
+            }
 
             // Jaws full (or the last catch just tore free): no new bites for now.
             if (_holding || Time.time < _noBitesUntil)
             {
                 _eatWindow = 0f;
+                _grazed = null;
                 return;
             }
+
+            // The pulse doesn't move the shark, so it goes out even mid-dash.
+            if (SonarReady && _sonarAction.WasPressedThisFrame() && !PauseMenu.IsOpen)
+                DoSonar();
 
             // Don't let a new ability interrupt an in-progress dash.
             if (!motor.IsDashing)
@@ -182,6 +255,7 @@ namespace FishGame
             Attacked?.Invoke(false);
             _attackCd = attackCooldown;
             _eatWindow = attackDashDuration + 0.05f;
+            _grazed = null;
         }
 
         void DoLunge()
@@ -191,6 +265,25 @@ namespace FishGame
             Attacked?.Invoke(true);
             _lungeCd = lungeCooldown;
             _eatWindow = lungeDuration; // contact anywhere along the lunge = a catch
+            _grazed = null;
+        }
+
+        void DoSonar()
+        {
+            _sonarCd = sonarCooldown;
+            PlaySonarFx();
+            if (targeting != null) targeting.SonarSweep(transform.position, sonarRadius, sonarMovingSpeed, sonarRevealSeconds);
+            Sonared?.Invoke();
+        }
+
+        /// <summary>Every machine: the pulse going out - the water buckling around the shark and a burst of bubbles.</summary>
+        public void PlaySonarFx()
+        {
+            WaterFx.Shockwave(transform.position, 14f, 0.9f);
+            WaterFx.BubbleBurst(transform.position, 24, 1.2f, 3f, new Vector2(0.04f, 0.1f));
+            // The ping carries: anyone within the pulse hears it go out.
+            var lib = GameAudio.Lib;
+            if (lib != null) GameAudio.PlayAt(lib.sonar, transform.position, 1f, sonarRadius * 1.6f, 0f);
         }
 
         /// <summary>Every machine: what an attack looks like - the bite swing (not on a lunge) and the fizz of
@@ -199,6 +292,8 @@ namespace FishGame
         {
             if (!lunge) TriggerBite();
             if (TryGetComponent(out SwimTrail trail)) trail.Dash(lunge ? lungeDuration : attackDashDuration);
+            var lib = GameAudio.Lib;
+            if (lib != null) GameAudio.PlayAt(lunge ? lib.lunge : GameAudio.Pick(lib.swishes), transform.position, 0.9f, 30f);
         }
 
         void TryEat()
@@ -212,9 +307,12 @@ namespace FishGame
             if (targeting != null && targeting.LockedTarget != null)
             {
                 var locked = targeting.LockedTarget;
+                Vector3 lp = locked.transform.position;
                 float focusR = eatRadius * focusEatMultiplier;
-                if ((locked.transform.position - mouth).sqrMagnitude <= focusR * focusR)
+                if ((lp - mouth).sqrMagnitude <= focusR * focusR || InSnapReach(lp, mouth))
                     EatSpecific(locked);
+                else if (locked.TryGetComponent(out Edible lockedEdible))
+                    NoteGraze(lockedEdible, Vector3.Distance(lp, mouth));
                 return;
             }
 
@@ -234,8 +332,75 @@ namespace FishGame
             if (eatFlockFish)
             {
                 var npc = BoidsManager.EatNearestFish(mouth, eatRadius, out var flock, out int id);
-                if (npc != null) EatFlockFish(npc, flock, id);
+                if (npc != null) { EatFlockFish(npc, flock, id); return; }
             }
+
+            // 3) Near misses. A fish just ahead of the head is snapped up (the devour pulls it into the
+            //    jaws); a player fish merely close by is remembered, and grazed if the bite catches nothing.
+            Edible snap = null;
+            float snapBest = float.MaxValue;
+            count = Physics.OverlapSphereNonAlloc(mouth, Mathf.Max(snapReach, grazeReach), _hits, preyMask, QueryTriggerInteraction.Collide);
+            for (int i = 0; i < count; i++)
+            {
+                var edible = _hits[i].GetComponentInParent<Edible>();
+                if (edible == null || edible.IsEaten || edible.gameObject == gameObject) continue;
+                Vector3 p = edible.transform.position;
+                float d = Vector3.Distance(p, mouth);
+                if (d < snapBest && InSnapReach(p, mouth)) { snap = edible; snapBest = d; }
+                NoteGraze(edible, d);
+            }
+            if (snap != null) { Consume(snap.gameObject, snap); return; }
+
+            if (eatFlockFish)
+            {
+                var npc = NearestFlockFishInSnapReach(mouth);
+                if (npc != null && BoidsManager.DetachFish(npc, out var flock, out int id)) EatFlockFish(npc, flock, id);
+            }
+        }
+
+        /// <summary>Close enough to the mouth, and ahead of the head rather than off to its side.</summary>
+        bool InSnapReach(Vector3 p, Vector3 mouth) =>
+            (p - mouth).sqrMagnitude <= snapReach * snapReach &&
+            Vector3.Angle(transform.forward, p - transform.position) <= snapAngle;
+
+        GameObject NearestFlockFishInSnapReach(Vector3 mouth)
+        {
+            GameObject best = null;
+            float bestSqr = snapReach * snapReach;
+            for (int m = 0; m < BoidsManager.All.Count; m++)
+            {
+                var mgr = BoidsManager.All[m];
+                if (mgr == null || mgr.allFish == null) continue;
+                foreach (var f in mgr.allFish)
+                {
+                    if (f == null) continue;
+                    Vector3 p = f.transform.position;
+                    float d = (p - mouth).sqrMagnitude;
+                    if (d < bestSqr && InSnapReach(p, mouth)) { bestSqr = d; best = f; }
+                }
+            }
+            return best;
+        }
+
+        /// <summary>A player fish came within graze reach during this bite: keep the closest.</summary>
+        void NoteGraze(Edible edible, float dist)
+        {
+            if (dist > grazeReach || edible == null || edible.IsEaten) return;
+            if (edible.GetComponentInParent<FishPlayer>() == null) return; // school fish are just food
+            if (_grazed != null && dist >= _grazedDist) return;
+            _grazed = edible;
+            _grazedDist = dist;
+        }
+
+        // The bite ran out without a catch. A player fish that came close is grazed.
+        void EndBite()
+        {
+            var grazed = _grazed;
+            _grazed = null;
+            if (grazed == null || grazed.IsEaten || _holding) return;
+            MatchHud.Flash("Grazed!");
+            if (GrazedPrey != null) GrazedPrey.Invoke(grazed);  // networked: the host hurts it
+            else if (grazed.TryGetComponent(out FishVitals vitals)) vitals.Damage(grazeDamage, grazeWoundSeconds);
         }
 
         /// <summary>Eat one particular fish (the focused bite). Player prey carry an Edible; ambient
@@ -342,7 +507,12 @@ namespace FishGame
         void OnDrawGizmosSelected()
         {
             Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(transform.position + transform.forward * mouthOffset, eatRadius);
+            Vector3 mouth = mouthAnchor != null ? mouthAnchor.position : transform.position + transform.forward * mouthOffset;
+            Gizmos.DrawWireSphere(mouth, eatRadius);
+            Gizmos.color = new Color(1f, 0.6f, 0f);
+            Gizmos.DrawWireSphere(mouth, snapReach);
+            Gizmos.color = new Color(1f, 1f, 0f, 0.5f);
+            Gizmos.DrawWireSphere(mouth, grazeReach);
         }
     }
 }

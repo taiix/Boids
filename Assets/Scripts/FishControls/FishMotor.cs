@@ -174,6 +174,37 @@ namespace FishGame
         /// <summary>True while a dash/lunge is in progress.</summary>
         public bool IsDashing => _dashTimer > 0f;
 
+        /// <summary>A strong current (<see cref="WorldEvents"/>): added to every body's own velocity underwater.</summary>
+        public static Vector3 Flow;
+        /// <summary>Water moving differently from place to place (the storm churning near the surface), added on
+        /// top of <see cref="Flow"/>. Null when nothing is happening.</summary>
+        public static System.Func<Vector3, Vector3> FlowAt;
+        /// <summary>How fast anyone can swim at a spot (the cold layer), 1 = normal. Null when nothing is happening.</summary>
+        public static System.Func<Vector3, float> SpeedScaleAt;
+
+        float _slowedFor, _slowFactor = 1f;
+
+        /// <summary>Stung or numbed: top speed and acceleration times <paramref name="factor"/> for <paramref name="seconds"/>.</summary>
+        public void SlowFor(float seconds, float factor)
+        {
+            _slowedFor = Mathf.Max(_slowedFor, seconds);
+            _slowFactor = Mathf.Clamp01(factor);
+        }
+
+        float _entangledFor;
+        Vector3 _entangledCarry;
+
+        /// <summary>Caught in a trawl net: no control for <paramref name="seconds"/>, carried along at
+        /// <paramref name="carry"/> (the net's velocity).</summary>
+        public void Entangle(float seconds, Vector3 carry)
+        {
+            _entangledFor = Mathf.Max(_entangledFor, seconds);
+            _entangledCarry = carry;
+            _dashTimer = 0f;
+        }
+
+        public bool IsEntangled => _entangledFor > 0f;
+
         /// <summary>Cruise top speed (m/s) at full throttle.</summary>
         public float MaxSpeed => maxSpeed;
 
@@ -255,6 +286,15 @@ namespace FishGame
                 return;
             }
 
+            // Tangled in a net: it carries us, and nothing we do matters until it lets go.
+            if (_entangledFor > 0f)
+            {
+                _entangledFor -= dt;
+                _velocity = _entangledCarry;
+                _rb.linearVelocity = _velocity;
+                return;
+            }
+
             bool dashing = _dashTimer > 0f;
             if (dashing) _dashTimer -= dt;
             bool boosting = !dashing && _input.Boost && _input.Throttle > 0.01f;
@@ -288,6 +328,11 @@ namespace FishGame
             float cruiseMax = _speedLimit > 0f ? _speedLimit : maxSpeed;
             float maxSpd = dashing ? _dashSpeed : (boosting ? boostSpeed : cruiseMax);
             float accel = dashing ? dashAcceleration : (boosting ? boostAcceleration : acceleration);
+            // Cold water, a sting: everything we do is slower.
+            float slow = SpeedScaleAt != null ? Mathf.Clamp01(SpeedScaleAt(_rb.position)) : 1f;
+            if (_slowedFor > 0f) { _slowedFor -= dt; slow *= _slowFactor; }
+            maxSpd *= slow;
+            accel *= slow;
             float throttle = dashing ? 1f : _input.Throttle; // dash forces full forward
 
             Vector3 forward = newRot * Vector3.forward;
@@ -312,7 +357,8 @@ namespace FishGame
                 _velocity *= reduced / speed;
             }
 
-            _rb.linearVelocity = _velocity;
+            Vector3 flow = Flow + (FlowAt != null ? FlowAt(_rb.position) : Vector3.zero);
+            _rb.linearVelocity = _velocity + flow; // the water carries us on top of our own swimming
         }
 
         // Ballistic flight while out of the water: gravity + light air drag, nose follows the arc.
