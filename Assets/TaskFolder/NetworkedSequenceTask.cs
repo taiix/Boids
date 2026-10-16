@@ -15,7 +15,8 @@ namespace FishGame
     /// task completes (shaves time off the survival clock and removes its props, e.g. the sea urchins).
     ///
     /// Place this on a scene object with a NetworkIdentity + a trigger collider; the server owns it.
-    /// The client UI is a screen-space arrow panel each client already has in the scene.
+    /// The client UI is a screen-space arrow panel each client already has in the scene - one panel for every
+    /// reef puzzle in the scene, so only the puzzle using it (the one you're at or playing) may clear it.
     /// </summary>
     [RequireComponent(typeof(NetworkIdentity))]
     public class NetworkedSequenceTask : NetworkBehaviour
@@ -85,9 +86,30 @@ namespace FishGame
         static readonly Dictionary<Direction, int> Rot = new Dictionary<Direction, int>
         { { Direction.Down, 0 }, { Direction.Right, 90 }, { Direction.Up, 180 }, { Direction.Left, 270 } };
 
-        /// <summary>True while the local fish is next to this (or any) task and can press E to join —
+        /// <summary>True while the local fish is next to any reef puzzle and can press E to join —
         /// FishPlayer checks it so E joins the task instead of eating.</summary>
-        public static bool LocalNearAnyTask;
+        public static bool LocalNearAnyTask => s_nearFrame >= Time.frameCount - 1;
+        static int s_nearFrame = -10;
+
+        // The puzzle using the shared status line and arrow panel right now (null: none).
+        static NetworkedSequenceTask s_ui;
+
+        /// <summary>Solved (its urchins are gone) - nothing left to do here.</summary>
+        public bool Done => _consumed;
+
+        /// <summary>The middle of its urchins, where a marker on it goes.</summary>
+        public Vector3 MarkerPoint
+        {
+            get
+            {
+                Vector3 sum = Vector3.zero;
+                int n = 0;
+                if (propsToRemove != null)
+                    foreach (var prop in propsToRemove)
+                        if (prop != null && prop.activeInHierarchy) { sum += prop.transform.position; n++; }
+                return n > 0 ? sum / n : transform.position;
+            }
+        }
 
         bool _localInRange;
         float _localDistance = float.MaxValue;
@@ -166,7 +188,7 @@ namespace FishGame
             bool wasInRange = _localInRange;
             _localDistance = lf != null && !lf.IsShark && !Gone(lf) ? DistanceTo(lf.transform.position) : float.MaxValue;
             _localInRange = _localDistance <= joinRadius;
-            LocalNearAnyTask = (_localInRange || joined) && _phase == Phase.Idle && !_consumed;
+            if ((_localInRange || joined) && _phase == Phase.Idle && !_consumed) s_nearFrame = Time.frameCount;
             if (_localInRange && !wasInRange) Debug.Log($"[Task] {name}: in range ({_localDistance:0.0} m) - E to join");
 
             // E joins; while waiting for a partner, E again leaves (and we can swim away).
@@ -316,7 +338,7 @@ namespace FishGame
         {
             // An end-of-task message ("Reef repaired!", "A partner left") keeps the status line for a while.
             bool holding = Time.time < _messageUntil;
-            if (!holding && statusLabel != null) statusLabel.color = _statusColor;
+            if (!holding && statusLabel != null && (s_ui == null || s_ui == this)) statusLabel.color = _statusColor;
 
             var lf = LocalFish;
             if (lf == null || lf.IsShark || Gone(lf)) { HidePanel(); if (!holding) SetStatus(null); return; }
@@ -392,8 +414,16 @@ namespace FishGame
         }
 
         // ---- small UI helpers (operate on this client's copy of the shared panel) ----
-        void ShowPanel() { if (arrowPanel != null) arrowPanel.SetActive(true); }
-        void HidePanel() { if (arrowPanel != null) arrowPanel.SetActive(false); }
+        void ShowPanel()
+        {
+            s_ui = this;
+            if (arrowPanel != null) arrowPanel.SetActive(true);
+        }
+        void HidePanel()
+        {
+            if (s_ui != null && s_ui != this) return;   // another puzzle is using it
+            if (arrowPanel != null) arrowPanel.SetActive(false);
+        }
         void ClearArrows()
         {
             if (arrowPanel == null) return;
@@ -409,8 +439,11 @@ namespace FishGame
         }
         void SetStatus(string s)
         {
+            bool show = !string.IsNullOrEmpty(s);
+            if (!show && s_ui != null && s_ui != this) return;   // another puzzle is using it
+            s_ui = show ? this : null;
             if (statusLabel != null && s != null) statusLabel.text = s;
-            if (statusRoot != null) statusRoot.SetActive(!string.IsNullOrEmpty(s));
+            if (statusRoot != null) statusRoot.SetActive(show);
         }
 
         // ======================================================================= server

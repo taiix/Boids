@@ -7,7 +7,7 @@
    ============================================================ */
 
 .rs-root{
-    --text:#eaf6f4; --dim:#88b4bd; --aqua:#3fe0c5; --shark:#ff5d6c; --amber:#ffc857;
+    --text:#eaf6f4; --dim:#88b4bd; --aqua:#3fe0c5; --shark:#ff5d6c; --amber:#ffc857; --tag:#c3a6ff;
     --glass:rgba(8,40,52,0.62); --border:rgba(99,200,210,0.22);
     position:absolute; left:0; top:0; right:0; bottom:0;
 }
@@ -58,6 +58,19 @@
 .rs-ally.edge .rs-ally-pip{ width:13px; height:13px; }
 .rs-ally.caught .rs-ally-name{ color:var(--shark); }
 .rs-ally.caught .rs-ally-pip{ border-color:var(--shark); background-color:rgba(255,93,108,0.35); }
+
+/* ---------- tasks this fish tagged ---------- */
+.rs-tag-layer{ position:absolute; left:0; top:0; right:0; bottom:0; }
+.rs-tag{ position:absolute; align-items:center; translate:-50% -50%; }
+.rs-tag-diamond{
+    width:16px; height:16px; rotate:45deg;
+    border-width:2px; border-color:var(--tag); background-color:rgba(195,166,255,0.3);
+}
+.rs-tag-label{
+    margin-top:8px; font-size:13px; letter-spacing:2px; color:var(--tag); -unity-font-style:bold;
+    text-shadow:0 1px 4px rgba(0,0,0,0.95);
+}
+.rs-tag.edge .rs-tag-diamond{ width:19px; height:19px; }
 
 /* ---------- spectating ---------- */
 .rs-spectate{ position:absolute; left:0; right:0; bottom:6%; align-items:center; }

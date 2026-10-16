@@ -85,16 +85,26 @@ namespace FishGame
         /// <summary>Top of the seabed straight below/above <paramref name="p"/>, if there is seabed there.</summary>
         public static bool SeabedHeight(Vector3 p, out float y)
         {
+            bool found = SeabedAt(p, out Vector3 point, out _);
+            y = point.y;
+            return found;
+        }
+
+        /// <summary>The seabed straight below/above <paramref name="p"/>: where, and which way it faces.</summary>
+        public static bool SeabedAt(Vector3 p, out Vector3 point, out Vector3 normal)
+        {
             // From well above both the point and the water, so even a body that sank far under the seabed
             // finds its top (the surface only faces up: a ray from beneath passes straight through).
             float top = Mathf.Max(p.y + 60f, SurfaceY + 20f);
             if (Physics.Raycast(new Vector3(p.x, top, p.z), Vector3.down, out RaycastHit hit, top - p.y + 200f,
                                 SeabedLayers, QueryTriggerInteraction.Ignore))
             {
-                y = hit.point.y;
+                point = hit.point;
+                normal = hit.normal;
                 return true;
             }
-            y = 0f;
+            point = new Vector3(p.x, 0f, p.z);
+            normal = Vector3.up;
             return false;
         }
 

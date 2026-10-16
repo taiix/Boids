@@ -44,6 +44,8 @@ namespace FishGame
         Label _struggleSub;
         VisualElement _allyLayer;
         readonly List<(VisualElement root, Label name, Label distance)> _allyTags = new List<(VisualElement, Label, Label)>();
+        VisualElement _tagLayer;
+        readonly List<(VisualElement root, Label label)> _taskTags = new List<(VisualElement, Label)>();
         float _struggleShown;
         bool _wasHeld;
         Label _bannerEyebrow, _bannerTitle, _bannerSub, _markerLabel, _spectateName, _spectateHint;
@@ -89,6 +91,9 @@ namespace FishGame
 
             _allyLayer = Box(_root, "rs-ally-layer");
             _allyLayer.pickingMode = PickingMode.Ignore;
+
+            _tagLayer = Box(_root, "rs-tag-layer");
+            _tagLayer.pickingMode = PickingMode.Ignore;
 
             _marker = Box(_root, "rs-marker");
             Box(_marker, "rs-diamond");
@@ -182,6 +187,8 @@ namespace FishGame
             UpdateBanner();
             UpdateMarker(m, me);
             UpdateAllies(me);
+            TaskTags.Tick(me, ViewCamera(me));
+            UpdateTaskTags(me);
             UpdateSpectating(me);
             UpdateResults(m, me);
         }
@@ -352,6 +359,37 @@ namespace FishGame
                 tag.EnableInClassList("caught", fish.IsBeingEaten);
                 name.text = fish.IsBeingEaten ? $"{fish.PlayerName}  CAUGHT!" : fish.PlayerName;
                 distance.text = $"{Vector3.Distance(eye, fish.transform.position):0} m";
+            }
+        }
+
+        // The tasks this fish has tagged (TaskTags - its screen only): a marker on each with how far off it is,
+        // held at the edge of the screen when it's out of view, fading out over its last few seconds.
+        void UpdateTaskTags(FishPlayer me)
+        {
+            var cam = ViewCamera(me);
+            bool show = cam != null && me != null && !me.IsSharkBody && !me.IsOut && !ShowingResults;
+            var tags = TaskTags.Active;
+            int n = show ? tags.Count : 0;
+
+            while (_taskTags.Count < n)
+            {
+                var marker = Box(_tagLayer, "rs-tag");
+                Box(marker, "rs-tag-diamond");
+                var label = Text(marker, "rs-tag-label");
+                SetPickingIgnore(marker);
+                _taskTags.Add((marker, label));
+            }
+
+            Vector3 eye = cam != null ? cam.transform.position : Vector3.zero;
+            for (int i = 0; i < _taskTags.Count; i++)
+            {
+                var (marker, label) = _taskTags[i];
+                if (i >= n || !TaskTags.Where(tags[i].task, out Vector3 at)) { marker.style.display = DisplayStyle.None; continue; }
+                marker.style.display = DisplayStyle.Flex;
+                bool inView = Place(marker, cam, at + Vector3.up * 1.5f, 0.08f);
+                marker.EnableInClassList("edge", !inView);
+                label.text = $"{tags[i].label.ToUpperInvariant()}  {Vector3.Distance(eye, at):0} m";
+                marker.style.opacity = Mathf.Clamp01((tags[i].until - Time.time) / 5f);
             }
         }
 
