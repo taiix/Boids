@@ -60,7 +60,7 @@ def board(cells, name, out):
 
 
 if __name__ == "__main__":
-    out = os.path.join(ROOT, "previews", "round3"); os.makedirs(out, exist_ok=True)
+    out = os.path.join(ROOT, "previews", "exploration", "round3"); os.makedirs(out, exist_ok=True)
     letters = [("G  Cinematic", "G"), ("H  Surface split", "H"), ("I  Bitten", "I"),
                ("J  Coral stone", "J"), ("K  Plankton glow (on Deep)", "K"), ("L  Sticker", "L")]
     cells = []
