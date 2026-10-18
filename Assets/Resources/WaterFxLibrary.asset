@@ -129,3 +129,4 @@ MonoBehaviour:
   ripple: {fileID: 2100000, guid: e610b47247be6484c9640936c01488a0, type: 2}
   trawlNet: {fileID: 2100000, guid: 9017c0e31c4554e4f9bb6dfcdc983038, type: 2}
   trawlerBoat: {fileID: 4005500259658817378, guid: 82b989f52c7d1c544a7345f783d9638c, type: 3}
+  orcaPrefab: {fileID: 7812275101716990921, guid: 1d2d1cd937251fa4d9c8c362ce02e492, type: 3}

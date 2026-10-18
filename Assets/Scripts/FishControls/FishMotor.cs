@@ -185,6 +185,10 @@ namespace FishGame
         float _slowedFor, _slowFactor = 1f;
 
         /// <summary>Stung or numbed: top speed and acceleration times <paramref name="factor"/> for <paramref name="seconds"/>.</summary>
+        /// <summary>A lasting slow on this body (a hurt shark, SharkCondition): multiplies its speeds; 1 = none.
+        /// Separate from <see cref="SlowFor"/>, so the two stack.</summary>
+        public float SpeedScale { get; set; } = 1f;
+
         public void SlowFor(float seconds, float factor)
         {
             _slowedFor = Mathf.Max(_slowedFor, seconds);
@@ -331,6 +335,7 @@ namespace FishGame
             // Cold water, a sting: everything we do is slower.
             float slow = SpeedScaleAt != null ? Mathf.Clamp01(SpeedScaleAt(_rb.position)) : 1f;
             if (_slowedFor > 0f) { _slowedFor -= dt; slow *= _slowFactor; }
+            slow *= Mathf.Clamp01(SpeedScale);
             maxSpd *= slow;
             accel *= slow;
             float throttle = dashing ? 1f : _input.Throttle; // dash forces full forward

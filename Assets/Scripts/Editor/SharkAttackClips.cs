@@ -12,6 +12,10 @@ namespace FishGame.EditorTools
     ///     Played for every fish eaten (trigger "Devour"), and as the final swallow of a player.
     ///   * <b>Shark_ThrashLoop</b> - loops while the shark holds a struggling player fish (bool "Holding"):
     ///     jaws clamped with chomps, head and body thrashing, rolling.
+    ///   * <b>Shark_Hit</b> - one shot (~0.7 s): the flinch when an orca hits it (trigger "Hit"): jolted
+    ///     sideways, rolled over, head jerked up with a gasp, a spasm down the tail, then back to swimming.
+    ///   * <b>Shark_StunnedLoop</b> - loops while it's out cold at zero health (bool "Stunned"): rolled onto its
+    ///     side, nose dipping, mouth hanging open, the swim cycle all but gone, a weak twitch now and then.
     ///
     /// The clips are keyframed on the shark's own bones, on top of its fast-swim cycle so the body keeps
     /// swimming underneath. (Generated here rather than in Blender: the rig is a 3ds Max export with
@@ -45,13 +49,20 @@ namespace FishGame.EditorTools
                 }
 
                 var rig = new Rig(model, eat);
+                rig.FindNeutral(swim);
                 if (!AssetDatabase.IsValidFolder("Assets/Animations")) AssetDatabase.CreateFolder("Assets", "Animations");
                 if (!AssetDatabase.IsValidFolder(OutFolder)) AssetDatabase.CreateFolder("Assets/Animations", "Shark");
 
                 var devour = Bake(rig, swim, "Shark_DevourViolent", 1.5f, loop: false, DevourPose);
                 var thrash = Bake(rig, swim, "Shark_ThrashLoop", swim.length, loop: true, ThrashPose);
-                Wire(devour, thrash);
-                Debug.Log($"[SharkClips] Built {devour.name} ({devour.length:0.00}s) and {thrash.name} ({thrash.length:0.00}s, loop).");
+                var hit = Bake(rig, swim, "Shark_Hit", 0.7f, loop: false, HitPose);
+                // Out cold: about 3 s a loop, the swim cycle slowed to one beat a loop and nearly stilled.
+                int beats = Mathf.Max(1, Mathf.RoundToInt(3f / swim.length));
+                var stunned = BakeFrames(rig, swim, "Shark_StunnedLoop", swim.length * beats, true,
+                                         t => StunnedPose(t, swim.length * beats), swimRate: 1f / beats, swimWeight: 0.2f);
+                Wire(devour, thrash, hit, stunned);
+                Debug.Log($"[SharkClips] Built {devour.name} ({devour.length:0.00}s), {thrash.name} ({thrash.length:0.00}s, loop), " +
+                          $"{hit.name} ({hit.length:0.00}s) and {stunned.name} ({stunned.length:0.00}s, loop).");
             }
             finally
             {
@@ -119,6 +130,45 @@ namespace FishGame.EditorTools
             return p;
         }
 
+        // Hit by an orca: shoved sideways and rolled, head jerked up with a gasp, a spasm down the tail, recovering.
+        static Pose HitPose(float t)
+        {
+            float spasm = Ramp(t, 0f, 0.04f) * (1f - Ramp(t, 0.05f, 0.6f));
+            var p = new Pose
+            {
+                jaw = Keys(t, (0f, 0.05f), (0.07f, 0.85f), (0.3f, 0.35f), (0.6f, 0.05f), (0.7f, 0.05f)),
+                headYaw = Keys(t, (0f, 0f), (0.08f, -22f), (0.25f, 10f), (0.45f, -4f), (0.7f, 0f)),
+                headPitch = Keys(t, (0f, 0f), (0.08f, -12f), (0.3f, 4f), (0.7f, 0f)),
+                bodyYaw = Keys(t, (0f, 0f), (0.08f, 14f), (0.3f, -6f), (0.7f, 0f)),
+                bodyRoll = Keys(t, (0f, 0f), (0.1f, 30f), (0.3f, -10f), (0.5f, 4f), (0.7f, 0f)),
+                spineYawAmp = 38f * spasm,
+                spinePhase = 2f * Mathf.PI * 6f * t,
+            };
+            p.jolt = new Vector3(0.35f * Pulse(t, 0f, 0.3f), 0.08f * Pulse(t, 0f, 0.25f), -0.15f * Pulse(t, 0f, 0.3f));
+            return p;
+        }
+
+        // Out cold: rolled onto its side, nose dipping, mouth hanging open, drifting a little, and twice a loop a
+        // weak twitch. Every rhythm fits a whole number of times into the loop.
+        static Pose StunnedPose(float t, float loop)
+        {
+            float u = t / loop, w = 2f * Mathf.PI * u;
+            float twitch = Mathf.Max(Pulse(u, 0.22f, 0.06f), 0.7f * Pulse(u, 0.62f, 0.05f));
+            var p = new Pose
+            {
+                jaw = 0.45f + 0.08f * Mathf.Sin(w) + 0.3f * twitch,
+                headYaw = 5f * Mathf.Sin(w) - 12f * twitch,
+                headPitch = 8f + 2f * Mathf.Sin(w + 1f),
+                bodyYaw = 4f * Mathf.Sin(w),
+                bodyRoll = 75f + 8f * Mathf.Sin(w) + 10f * twitch,
+                bodyPitch = 10f + 3f * Mathf.Sin(w),
+                spineYawAmp = 8f + 26f * twitch,
+                spinePhase = 2f * w,
+            };
+            p.jolt = new Vector3(0f, 0.05f * Mathf.Sin(w), 0f);
+            return p;
+        }
+
         // Jaw pops open then slams shut around `at` (u, a fraction of the loop).
         static float Chomp(float u, float at)
         {
@@ -166,7 +216,9 @@ namespace FishGame.EditorTools
         static AnimationClip Bake(Rig rig, AnimationClip swim, string name, float length, bool loop, LoopPoseAt pose) =>
             BakeFrames(rig, swim, name, length, loop, t => pose(t, length));
 
-        static AnimationClip BakeFrames(Rig rig, AnimationClip swim, string name, float length, bool loop, System.Func<float, Pose> pose)
+        // swimRate: how fast the swim cycle runs underneath; swimWeight: how much of it shows (0 = held still).
+        static AnimationClip BakeFrames(Rig rig, AnimationClip swim, string name, float length, bool loop, System.Func<float, Pose> pose,
+                                        float swimRate = 1f, float swimWeight = 1f)
         {
             int frames = Mathf.RoundToInt(length * Fps);
             var rot = new Dictionary<Transform, AnimationCurve[]>();
@@ -180,8 +232,10 @@ namespace FishGame.EditorTools
             for (int f = 0; f <= frames; f++)
             {
                 float t = f / Fps;
-                swim.SampleAnimation(rig.Model.gameObject, t % swim.length);
-                rig.Apply(pose(loop && f == frames ? 0f : t)); // a loop's last frame is its first
+                float st = loop && f == frames ? 0f : t;
+                swim.SampleAnimation(rig.Model.gameObject, st * swimRate % swim.length);
+                if (swimWeight < 1f) rig.Still(swimWeight);
+                rig.Apply(pose(st)); // a loop's last frame is its first
                 foreach (var b in rig.Bones)
                 {
                     Quaternion q = b.localRotation;
@@ -237,6 +291,8 @@ namespace FishGame.EditorTools
             readonly Transform[] _jaws;
             readonly Quaternion[] _jawOpen;   // the eat clip's widest gape, per jaw bone (local)
             readonly Vector3 _rootHome;
+            readonly Dictionary<Transform, Quaternion> _neutral = new Dictionary<Transform, Quaternion>();
+            Vector3 _neutralRoot;
 
             public Rig(Transform model, AnimationClip eat)
             {
@@ -257,6 +313,39 @@ namespace FishGame.EditorTools
                 _jawOpen = System.Array.ConvertAll(_jaws, j => j.localRotation);
                 eat.SampleAnimation(model.gameObject, 0f);
                 _rootHome = Root.localPosition;
+            }
+
+            /// <summary>The swim cycle's middle: each bone's pose averaged round the cycle - the body held straight.</summary>
+            public void FindNeutral(AnimationClip swim)
+            {
+                const int samples = 24;
+                var sum = new Dictionary<Transform, Vector4>();
+                _neutralRoot = Vector3.zero;
+                for (int i = 0; i < samples; i++)
+                {
+                    swim.SampleAnimation(Model.gameObject, swim.length * i / samples);
+                    foreach (var b in Bones)
+                    {
+                        Quaternion q = b.localRotation;
+                        var v = new Vector4(q.x, q.y, q.z, q.w);
+                        if (sum.TryGetValue(b, out var acc) && Vector4.Dot(acc, v) < 0f) v = -v;   // same hemisphere
+                        sum[b] = (sum.TryGetValue(b, out acc) ? acc : Vector4.zero) + v;
+                    }
+                    _neutralRoot += Root.localPosition / samples;
+                }
+                foreach (var kv in sum)
+                {
+                    Vector4 v = kv.Value.normalized;
+                    _neutral[kv.Key] = new Quaternion(v.x, v.y, v.z, v.w);
+                }
+            }
+
+            /// <summary>Calm whatever the swim has the body doing toward its middle (weight 0 = straight, 1 = as is).</summary>
+            public void Still(float weight)
+            {
+                foreach (var b in Bones)
+                    if (_neutral.TryGetValue(b, out var q)) b.localRotation = Quaternion.Slerp(q, b.localRotation, weight);
+                Root.localPosition = Vector3.Lerp(_neutralRoot, Root.localPosition, weight);
             }
 
             public void Apply(Pose p)
@@ -296,14 +385,20 @@ namespace FishGame.EditorTools
 
         // ------------------------------------------------------------------ animator
 
-        // Any State -> DevourViolent on "Devour"; Any State -> Thrash while "Holding"; both back to Locomotion.
-        static void Wire(AnimationClip devour, AnimationClip thrash)
+        // Any State -> DevourViolent on "Devour"; Any State -> Thrash while "Holding"; Any State -> Hit on "Hit";
+        // Any State -> Stunned while "Stunned" (above everything, and nothing else interrupts it); all back to
+        // Locomotion.
+        static void Wire(AnimationClip devour, AnimationClip thrash, AnimationClip hit, AnimationClip stunned)
         {
             var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
             if (controller == null) { Debug.LogError("[SharkClips] Shark animator controller not found."); return; }
 
             if (!System.Array.Exists(controller.parameters, p => p.name == "Holding"))
                 controller.AddParameter("Holding", AnimatorControllerParameterType.Bool);
+            if (!System.Array.Exists(controller.parameters, p => p.name == "Hit"))
+                controller.AddParameter("Hit", AnimatorControllerParameterType.Trigger);
+            if (!System.Array.Exists(controller.parameters, p => p.name == "Stunned"))
+                controller.AddParameter("Stunned", AnimatorControllerParameterType.Bool);
 
             var sm = controller.layers[0].stateMachine;
             AnimatorState locomotion = null;
@@ -311,13 +406,16 @@ namespace FishGame.EditorTools
 
             var devourState = StateFor(sm, "DevourViolent", devour, new Vector3(450f, 110f));
             var thrashState = StateFor(sm, "Thrash", thrash, new Vector3(450f, 220f));
+            var hitState = StateFor(sm, "Hit", hit, new Vector3(450f, 330f));
+            var stunnedState = StateFor(sm, "Stunned", stunned, new Vector3(450f, 440f));
+            var ours = new[] { devourState, thrashState, hitState, stunnedState };
 
             // Drop transitions this tool made before, so running it again doesn't stack them.
             foreach (var t in sm.anyStateTransitions)
-                if (t.destinationState == devourState || t.destinationState == thrashState)
+                if (System.Array.IndexOf(ours, t.destinationState) >= 0)
                     sm.RemoveAnyStateTransition(t);
-            foreach (var t in devourState.transitions) devourState.RemoveTransition(t);
-            foreach (var t in thrashState.transitions) thrashState.RemoveTransition(t);
+            foreach (var s in ours)
+                foreach (var t in s.transitions) s.RemoveTransition(t);
 
             var toDevour = sm.AddAnyStateTransition(devourState);
             toDevour.AddCondition(AnimatorConditionMode.If, 0f, "Devour");
@@ -331,12 +429,26 @@ namespace FishGame.EditorTools
             toThrash.duration = 0.12f;
             toThrash.canTransitionToSelf = false;
 
-            // Devour and the hold win over a plain bite swing.
+            var toHit = sm.AddAnyStateTransition(hitState);
+            toHit.AddCondition(AnimatorConditionMode.If, 0f, "Hit");
+            toHit.hasExitTime = false;
+            toHit.duration = 0.05f;
+            toHit.canTransitionToSelf = true;
+
+            var toStunned = sm.AddAnyStateTransition(stunnedState);
+            toStunned.AddCondition(AnimatorConditionMode.If, 0f, "Stunned");
+            toStunned.hasExitTime = false;
+            toStunned.duration = 0.35f;
+            toStunned.canTransitionToSelf = false;
+
+            // Out cold beats everything, then a hit, then devour and the hold, then a plain bite swing - and
+            // nothing else cuts into the stun.
             var any = new List<AnimatorStateTransition>(sm.anyStateTransitions);
-            any.Remove(toDevour);
-            any.Remove(toThrash);
-            any.Insert(0, toThrash);
-            any.Insert(0, toDevour);
+            foreach (var t in new[] { toDevour, toThrash, toHit, toStunned }) any.Remove(t);
+            any.InsertRange(0, new[] { toStunned, toHit, toDevour, toThrash });
+            foreach (var t in any)
+                if (t != toStunned && !System.Array.Exists(t.conditions, c => c.parameter == "Stunned"))
+                    t.AddCondition(AnimatorConditionMode.IfNot, 0f, "Stunned");
             sm.anyStateTransitions = any.ToArray();
 
             if (locomotion != null)
@@ -350,6 +462,16 @@ namespace FishGame.EditorTools
                 letGo.AddCondition(AnimatorConditionMode.IfNot, 0f, "Holding");
                 letGo.hasExitTime = false;
                 letGo.duration = 0.25f;
+
+                var shaken = hitState.AddTransition(locomotion);
+                shaken.hasExitTime = true;
+                shaken.exitTime = 0.85f;
+                shaken.duration = 0.2f;
+
+                var comeRound = stunnedState.AddTransition(locomotion);
+                comeRound.AddCondition(AnimatorConditionMode.IfNot, 0f, "Stunned");
+                comeRound.hasExitTime = false;
+                comeRound.duration = 0.6f;
             }
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();

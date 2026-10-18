@@ -129,7 +129,8 @@ namespace FishGame
             for (int i = 0; i < tries && holes.Count < sinkholeCount; i++)
             {
                 if (!RandomSpot(seabed, area, rng, minFlatness, out var p)) continue;
-                if (TooClose(keepClear, p, keepClearRadius) || KelpForests.NearAnyForest(p, forestMargin)) continue;
+                if (TooClose(keepClear, p, keepClearRadius) || KelpForests.NearAnyForest(p, forestMargin)
+                    || CoralReefs.NearAnyReef(p, forestMargin)) continue;
                 float spacing = sinkholeSpacing * Mathf.Lerp(1f, 0.5f, (float)i / tries);
                 if (TooClose(holes, p, spacing)) continue;
                 holes.Add(p);
@@ -166,6 +167,7 @@ namespace FishGame
                                 z < area.min.z + edgeMargin || z > area.max.z - edgeMargin) continue;
                             if (!Ground(seabed, area, x, z, trashMinFlatness, out var p)) continue;
                             if (TooClose(placed, p, trashSpacing) || TooClose(holes, p, 8f)) continue;
+                            if (CoralReefs.NearAnyReef(p, 1.5f)) continue;   // lost in the coral, it couldn't be pushed
                             // A piece with a sharp side starts with its blades toward its sinkhole (give or
                             // take), so pushing it in from behind - the smooth side - is always possible.
                             float yaw = (float)rng.NextDouble() * 360f;

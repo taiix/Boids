@@ -60,6 +60,13 @@ namespace FishGame
             foreach (var veg in s_reefs)
                 InitSeeded(veg);
             KelpForests.RebuildAll(); // same seed, same seabed - same forests for everyone
+            CoralReefs.RebuildAll();  // after the scatter (it thins it) and the forests (it keeps clear of them)
+
+            // Where it all stands, for what swims over it (the orcas, the ammonites).
+            SceneryIndex.Clear();
+            foreach (var veg in s_reefs)
+                if (veg != null) SceneryIndex.Add(veg.GetSpawnedObjects());
+            CoralReefs.AddAllToIndex();
         }
 
         static void InitSeeded(ProceduralVegetation veg)

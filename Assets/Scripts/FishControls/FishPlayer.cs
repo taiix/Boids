@@ -222,6 +222,7 @@ public class FishPlayer : NetworkBehaviour
         if (!TryGetComponent(out SwimTrail _)) gameObject.AddComponent<SwimTrail>();
         if (!TryGetComponent(out SurfaceSplash _)) gameObject.AddComponent<SurfaceSplash>();
         if (TryGetComponent(out SharkAbilities _) && !TryGetComponent(out SharkEatFx _)) gameObject.AddComponent<SharkEatFx>();
+        if (TryGetComponent(out SharkAbilities _) && !TryGetComponent(out SharkCondition _)) gameObject.AddComponent<SharkCondition>();
 
         // Cache now, before OnStartLocalPlayer can unparent the camera.
         _vision = GetComponentInChildren<CreatureVision>(true);
@@ -619,6 +620,32 @@ public class FishPlayer : NetworkBehaviour
 
     /// <summary>Authority: the trawl net swept into us. Hurts (fish and shark alike) and tangles us for
     /// <paramref name="seconds"/>, carried at <paramref name="carry"/>; then we're dropped behind the net.</summary>
+    // ---- Orcas (WorldEvents): a hit knocks the shark about, slows it right down, and shakes loose any fish it holds ----
+
+    /// <summary>Server: an orca hit this shark - <paramref name="damage"/> (at zero it's stunned, FishVitals),
+    /// shoved by <paramref name="push"/>, slowed to <paramref name="slowFactor"/> for <paramref name="slowSeconds"/>.</summary>
+    public void ServerOrcaHit(float damage, float bleedSeconds, Vector3 push, float slowSeconds, float slowFactor)
+    {
+        if (!NetworkServer.active && !IsOffline) return;   // the server's (or, offline, this machine's) call
+        if (TryGetComponent(out FishVitals vitals)) vitals.Damage(damage, bleedSeconds);
+        if (NetworkServer.active) ServerReleasePrey();   // the fish in its jaws gets away
+        if (IsOffline) OrcaHit(push, slowSeconds, slowFactor);
+        else if (connectionToClient != null) TargetOrcaHit(connectionToClient, push, slowSeconds, slowFactor);
+    }
+
+    [TargetRpc]
+    private void TargetOrcaHit(NetworkConnectionToClient target, Vector3 push, float slowSeconds, float slowFactor) =>
+        OrcaHit(push, slowSeconds, slowFactor);
+
+    // The machine driving this body.
+    private void OrcaHit(Vector3 push, float slowSeconds, float slowFactor)
+    {
+        if (!TryGetComponent(out FishMotor motor)) return;
+        motor.SetVelocity(push);
+        motor.SlowFor(slowSeconds, slowFactor);
+        MatchHud.Flash("HIT BY AN ORCA!", 1.5f);
+    }
+
     public void ServerNetCaught(float damage, float seconds, Vector3 carry)
     {
         if (TryGetComponent(out FishVitals vitals)) vitals.Damage(damage);
@@ -1073,6 +1100,10 @@ public class FishPlayer : NetworkBehaviour
             id.TryGetComponent(out NetworkedSequenceTask task))
             task.ServerResetForTesting();
     }
+
+    /// <summary>Shift + F6 (WorldEvents): ask the host to call the orcas in now.</summary>
+    [Command]
+    public void CmdSummonOrcas() => FishGame.WorldEvents.ServerSummonOrcas();
 
     [Command]
     private void CmdSwitchRole()

@@ -110,7 +110,8 @@ namespace FishGame
                 var ray = new Ray(new Vector3(x, area.max.y + 5f, z), Vector3.down);
                 if (!seabed.Raycast(ray, out var hit, area.size.y + 10f) || hit.normal.y < minFlatness) continue;
                 Vector3 p = hit.point;
-                if (TooClose(keepClear, p, keepClearRadius) || KelpForests.NearAnyForest(p, forestMargin)) continue;
+                if (TooClose(keepClear, p, keepClearRadius) || KelpForests.NearAnyForest(p, forestMargin)
+                    || CoralReefs.NearAnyReef(p, forestMargin)) continue;
                 if (TooClose(holes, p, awayFromSinkholes)) continue;
                 // (Over a seabed thick with scenery, give up on that for the last quarter of the tries.)
                 if (i < tries * 3 / 4 && scenery.Near(p + Vector3.up * proto.HoverHeight * 0.5f)) continue;
