@@ -7,6 +7,10 @@ namespace FishGame
     /// A fish's survival stats. Hunger drains constantly; once it hits zero the fish starves and
     /// loses health, and at zero health it dies. Eating restores hunger through <see cref="Feed"/>.
     ///
+    /// The shark never dies: at zero health - from anything (orcas, the trawler net, starving) - it's stunned
+    /// for <see cref="sharkStunSeconds"/> (it can't move, SharkCondition), then its health refills over
+    /// <see cref="sharkRecoverSeconds"/>. While stunned nothing hurts it, and it doesn't starve while it recovers.
+    ///
     /// Server-authoritative when hosting (SyncVars replicate to every client). When fully offline
     /// (the FishControls sandbox with no NetworkManager) it simulates locally so the stats are
     /// visible and testable without hosting.
@@ -35,12 +39,21 @@ namespace FishGame
         [Tooltip("Components disabled the moment this fish dies (controller, abilities, etc.).")]
         [SerializeField] Behaviour[] disableOnDeath;
 
+        [Header("The shark (never dies)")]
+        [Tooltip("Seconds the shark is stunned, unable to move, when its health hits zero.")]
+        [SerializeField] float sharkStunSeconds = 6f;
+        [Tooltip("Seconds its health then takes to refill.")]
+        [SerializeField] float sharkRecoverSeconds = 8f;
+
         [SyncVar] float _health;
         [SyncVar] float _hunger;
         [SyncVar(hook = nameof(OnDeadChanged))] bool _isDead;
         // When the bleeding stops, on the shared clock (NetworkTime, or local time offline).
         [SyncVar] double _bleedUntil;
+        // The shark at zero health: stunned until then, on the shared clock.
+        [SyncVar] double _stunnedUntil;
 
+        double _recoverUntil;   // authority: the shark's health refills until then
         bool _deathApplied;
         FishPlayer _player;
 
@@ -55,6 +68,14 @@ namespace FishGame
         public float HungerNorm => maxHunger > 0f ? _hunger / maxHunger : 0f;
         public bool IsDead => _isDead;
         public bool IsBleeding => !_isDead && !OutOfRound && Now < _bleedUntil;
+        /// <summary>The shark at zero health: it can't move until this runs out.</summary>
+        public bool IsStunned => Now < _stunnedUntil;
+        /// <summary>Seconds of the shark's stun left.</summary>
+        public float StunLeft => Mathf.Max(0f, (float)(_stunnedUntil - Now));
+        /// <summary>Authority: the shark come round from a stun, its health still refilling.</summary>
+        public bool IsRecovering => !IsStunned && Now < _recoverUntil;
+        /// <summary>Whether this is the shark's body (it never dies).</summary>
+        bool IsShark => _player != null && _player.IsSharkBody;
 
         bool Offline => !NetworkServer.active && !NetworkClient.active;
         bool Authority => Offline || isServer;
@@ -90,12 +111,20 @@ namespace FishGame
             if (m != null && !m.RoundRunning) return;
 
             float dt = Time.deltaTime;
+            // The shark, stunned or recovering: no starving meanwhile, and its health comes back.
+            if (IsStunned) return;
+            if (Now < _recoverUntil)
+            {
+                _health = Mathf.Min(maxHealth, _health + maxHealth / Mathf.Max(0.1f, sharkRecoverSeconds) * dt);
+                return;
+            }
+
             if (_hunger > 0f)
                 _hunger = Mathf.Max(0f, _hunger - hungerDrainPerSecond * dt);
             else
                 _health = Mathf.Max(0f, _health - starveDamagePerSecond * dt);
 
-            if (_health <= 0f) Die();
+            if (_health <= 0f) OutOfHealth();
         }
 
         /// <summary>Restore hunger (called by the eating system). Authority-only.</summary>
@@ -111,18 +140,18 @@ namespace FishGame
         /// Authority-only.</summary>
         public void Damage(float amount, float bleedSeconds = -1f)
         {
-            if (!Authority || _isDead || amount <= 0f) return;
+            if (!Authority || _isDead || IsStunned || amount <= 0f) return;
             _health = Mathf.Max(0f, _health - amount);
             StartBleeding(bleedSeconds >= 0f ? bleedSeconds : bleedSecondsOnDamage);
-            if (_health <= 0f) Die();
+            if (_health <= 0f) OutOfHealth();
         }
 
         /// <summary>Health lost to the surroundings (toxic water) - no wound, so no bleeding. Authority-only.</summary>
         public void Drain(float amount)
         {
-            if (!Authority || _isDead || OutOfRound || amount <= 0f) return;
+            if (!Authority || _isDead || OutOfRound || IsStunned || amount <= 0f) return;
             _health = Mathf.Max(0f, _health - amount);
-            if (_health <= 0f) Die();
+            if (_health <= 0f) OutOfHealth();
         }
 
         /// <summary>Bleed for at least <paramref name="seconds"/> from now (a fresh wound never shortens
@@ -132,6 +161,17 @@ namespace FishGame
             if (!Authority || _isDead || seconds <= 0f) return;
             double until = Now + seconds;
             if (until > _bleedUntil) _bleedUntil = until;
+        }
+
+        // Zero health: a fish dies; the shark is stunned, then recovers.
+        void OutOfHealth()
+        {
+            if (!IsShark) { Die(); return; }
+            if (IsStunned) return;
+            _health = 0f;
+            _stunnedUntil = Now + sharkStunSeconds;
+            _recoverUntil = _stunnedUntil + sharkRecoverSeconds;
+            if (NetworkServer.active) _player.ServerReleasePrey();   // limp jaws let go of whatever it held
         }
 
         void Die()

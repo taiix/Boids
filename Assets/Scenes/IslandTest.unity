@@ -2093,6 +2093,300 @@ MonoBehaviour:
   feedbackSeconds: 1.5
   controlsRoot: {fileID: 1683553996}
   controlsLabel: {fileID: 1683553997}
+--- !u!1 &333846311
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 333846313}
+  - component: {fileID: 333846312}
+  m_Layer: 0
+  m_Name: CoralReefs
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &333846312
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 333846311}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d451721e44e617949a2562a25e8c8b9d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.CoralReefs
+  rockPrefabs:
+  - {fileID: 680556474456380593, guid: f432b8c1c7b6efb459011218b57967d7, type: 3}
+  - {fileID: 680556474456380593, guid: 49f100055bb8f3c4fbd4da372349cc83, type: 3}
+  - {fileID: 7106249220713702337, guid: 8c092fd5704e9494ebdef05e56e41c59, type: 3}
+  - {fileID: 7106249220713702337, guid: da16e11f3e4a24649a154b180e1bc6f3, type: 3}
+  - {fileID: 680556474456380593, guid: a5d256fb5b4f8b6459fbbf5582010970, type: 3}
+  - {fileID: 680556474456380593, guid: 8cf364092748bf446bd72ffde8d565c4, type: 3}
+  - {fileID: 680556474456380593, guid: 47ece038b5525f844a156cd109484b78, type: 3}
+  - {fileID: 974800001707778223, guid: c0d0d71ba8f0c3f40975a16b0b5f1df0, type: 3}
+  - {fileID: 974800001707778223, guid: c117465734d2aae47b3c74f107625fea, type: 3}
+  rockScale: {x: 1.5, y: 2.8}
+  rockDensity: 3
+  kinds:
+  - name: Brain coral
+    prefabs:
+    - {fileID: 680556474456380593, guid: 04ebadcc806733742966484c31c23798, type: 3}
+    - {fileID: 680556474456380593, guid: 8293bcbb7e11fe0459f5c3f35e7cfa47, type: 3}
+    scale: {x: 0.9, y: 1.7}
+    colony: {x: 1, y: 3}
+    zone: {x: 0.35, y: 1}
+    weight: 1.2
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.75
+  - name: Table coral
+    prefabs:
+    - {fileID: 680556474456380593, guid: 1c84be18076a9154f8993b4e97ac920d, type: 3}
+    - {fileID: 680556474456380593, guid: 6aee2220a5e092a45b68ed2f4bbc8eaa, type: 3}
+    scale: {x: 0.6, y: 1.1}
+    colony: {x: 1, y: 2}
+    zone: {x: 0.45, y: 1}
+    weight: 0.9
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.55
+  - name: Cauliflower coral (pink)
+    prefabs:
+    - {fileID: 680556474456380593, guid: 9a8fb9c3fd67ed84cb55581c7478a747, type: 3}
+    scale: {x: 0.8, y: 1.5}
+    colony: {x: 3, y: 7}
+    zone: {x: 0.2, y: 1}
+    weight: 1.1
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.7
+  - name: Cauliflower coral (yellow)
+    prefabs:
+    - {fileID: 680556474456380593, guid: 5b653519fe1392c4a91172e1e3843978, type: 3}
+    scale: {x: 0.8, y: 1.5}
+    colony: {x: 3, y: 7}
+    zone: {x: 0.2, y: 1}
+    weight: 1.1
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.7
+  - name: Plate coral
+    prefabs:
+    - {fileID: 680556474456380593, guid: 7e84e64babd5ee3499e6cd14c2773776, type: 3}
+    - {fileID: 680556474456380593, guid: dd5172240a8ee1347a61ecd56bbcc115, type: 3}
+    scale: {x: 0.8, y: 1.3}
+    colony: {x: 2, y: 4}
+    zone: {x: 0.3, y: 0.95}
+    weight: 0.8
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.6
+  - name: Tube sponge
+    prefabs:
+    - {fileID: 680556474456380593, guid: 022dd3f4abc9fbf4baedcb7051491ea3, type: 3}
+    - {fileID: 680556474456380593, guid: a03ede6da61443442b2c67512a365977, type: 3}
+    scale: {x: 0.8, y: 1.3}
+    colony: {x: 1, y: 3}
+    zone: {x: 0.3, y: 1}
+    weight: 0.8
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.7
+  - name: Leaf coral
+    prefabs:
+    - {fileID: 4856111374265647143, guid: 4428c38d694da0d4aa6e780fdb217878, type: 3}
+    scale: {x: 0.45, y: 0.8}
+    colony: {x: 1, y: 2}
+    zone: {x: 0.5, y: 1}
+    weight: 0.5
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.6
+  - name: Finger coral
+    prefabs:
+    - {fileID: 5426480180353014086, guid: 2a77bddc864191d429efa22e4a083b76, type: 3}
+    - {fileID: 5426480180353014086, guid: 11931b50ff9853a4c946d1a943cb6b6f, type: 3}
+    scale: {x: 0.9, y: 1.5}
+    colony: {x: 2, y: 5}
+    zone: {x: 0.2, y: 0.9}
+    weight: 1.2
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.6
+  - name: Purple branching coral
+    prefabs:
+    - {fileID: 680556474456380593, guid: a1de2044dbd52c04fb570cca2238d60a, type: 3}
+    scale: {x: 0.8, y: 1.4}
+    colony: {x: 2, y: 5}
+    zone: {x: 0.25, y: 1}
+    weight: 1
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.6
+  - name: Red branching coral
+    prefabs:
+    - {fileID: 680556474456380593, guid: 57ccb3c3b518932468b56b00845bf8a3, type: 3}
+    - {fileID: 4169909374474516048, guid: aae6e15b69dbb23478c8edc3adfa3409, type: 3}
+    scale: {x: 0.8, y: 1.4}
+    colony: {x: 2, y: 5}
+    zone: {x: 0.25, y: 1}
+    weight: 1
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.6
+  - name: Pillar coral
+    prefabs:
+    - {fileID: 680556474456380593, guid: 49f812266211d90418e06f4b822137d6, type: 3}
+    scale: {x: 0.8, y: 1.3}
+    colony: {x: 2, y: 4}
+    zone: {x: 0.3, y: 1}
+    weight: 0.7
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.6
+  - name: Sea whip
+    prefabs:
+    - {fileID: 2603477839199212025, guid: f350b5d77091c7142bc74053627b2c64, type: 3}
+    scale: {x: 0.7, y: 1.1}
+    colony: {x: 1, y: 3}
+    zone: {x: 0.25, y: 0.9}
+    weight: 0.6
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.7
+  - name: Polyp coral
+    prefabs:
+    - {fileID: 680556474456380593, guid: 96546cfa030c25a439540957bc1cba2f, type: 3}
+    - {fileID: 680556474456380593, guid: cf6a5736a9bb4bf4886b5d6348b6b7e5, type: 3}
+    - {fileID: 680556474456380593, guid: 1843bebeb2590fe419f44dfe36db4b6c, type: 3}
+    scale: {x: 0.8, y: 1.3}
+    colony: {x: 2, y: 4}
+    zone: {x: 0.2, y: 0.8}
+    weight: 0.8
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.6
+  - name: Red sea fan
+    prefabs:
+    - {fileID: 680556474456380593, guid: 6d9ccfed7b4b5354aa35adca1c137377, type: 3}
+    scale: {x: 0.8, y: 1.3}
+    colony: {x: 1, y: 3}
+    zone: {x: 0.3, y: 1}
+    weight: 0.6
+    onRock: 1
+    facesCurrent: 1
+    spacing: 0.5
+  - name: Orange sea fan
+    prefabs:
+    - {fileID: 680556474456380593, guid: c2dcd875216af87429507f2ff47d34d4, type: 3}
+    scale: {x: 0.8, y: 1.3}
+    colony: {x: 1, y: 3}
+    zone: {x: 0.3, y: 1}
+    weight: 0.6
+    onRock: 1
+    facesCurrent: 1
+    spacing: 0.5
+  - name: Yellow sea fan
+    prefabs:
+    - {fileID: 680556474456380593, guid: 4b39feface1afa8459d0747bf007103c, type: 3}
+    scale: {x: 0.8, y: 1.3}
+    colony: {x: 1, y: 3}
+    zone: {x: 0.3, y: 1}
+    weight: 0.6
+    onRock: 1
+    facesCurrent: 1
+    spacing: 0.5
+  - name: Tube coral
+    prefabs:
+    - {fileID: 1696158550041056, guid: d53948dd801a2214eba0c519d19ce2ec, type: 3}
+    - {fileID: 1118434254644988, guid: 00a2cafe03cb8d743b2913933da96e86, type: 3}
+    - {fileID: 1749024933159150, guid: 6854c18fb2e0d1b4a9e5fdc85d04b4de, type: 3}
+    - {fileID: 1575996735089252, guid: 5a7826dbd9fdd5541933e1d412843be0, type: 3}
+    scale: {x: 2.6, y: 4}
+    colony: {x: 2, y: 5}
+    zone: {x: 0.15, y: 0.8}
+    weight: 0.8
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.6
+  - name: Anemones
+    prefabs:
+    - {fileID: 680556474456380593, guid: b38df36412c29f74b92611023b1ccafe, type: 3}
+    scale: {x: 0.7, y: 1.2}
+    colony: {x: 2, y: 6}
+    zone: {x: 0, y: 0.6}
+    weight: 1
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.6
+  - name: Rubble
+    prefabs:
+    - {fileID: 680556474456380593, guid: f432b8c1c7b6efb459011218b57967d7, type: 3}
+    - {fileID: 680556474456380593, guid: 57706593f428aad4189bd692ef6f4a8f, type: 3}
+    - {fileID: 680556474456380593, guid: a5d256fb5b4f8b6459fbbf5582010970, type: 3}
+    - {fileID: 680556474456380593, guid: 8cf364092748bf446bd72ffde8d565c4, type: 3}
+    - {fileID: 680556474456380593, guid: 8d42b5a2b9409884bbf85da504c0e0c3, type: 3}
+    scale: {x: 0.4, y: 0.9}
+    colony: {x: 2, y: 5}
+    zone: {x: 0, y: 0.35}
+    weight: 1
+    onRock: 0
+    facesCurrent: 0
+    spacing: 0.7
+  - name: Shells
+    prefabs:
+    - {fileID: 5453727988437484607, guid: 4708bbcb5624d1d4eb7d0f45f6a6438d, type: 3}
+    - {fileID: 2224961197607438699, guid: a1ad5ba828ff0644fba6bf48851ffd1d, type: 3}
+    scale: {x: 0.8, y: 1.2}
+    colony: {x: 1, y: 2}
+    zone: {x: 0, y: 0.4}
+    weight: 0.4
+    onRock: 0
+    facesCurrent: 0
+    spacing: 0.7
+  - name: Starfish
+    prefabs:
+    - {fileID: 5106502830789915360, guid: e7c10b651eecff141b4888a3ef9d24b0, type: 3}
+    scale: {x: 0.8, y: 1.3}
+    colony: {x: 1, y: 2}
+    zone: {x: 0, y: 0.7}
+    weight: 0.4
+    onRock: 1
+    facesCurrent: 0
+    spacing: 0.7
+  reefCount: 9
+  reefRadius: {x: 12, y: 19}
+  lobesPerReef: {x: 3, y: 5}
+  reefSpacing: 55
+  colonyDensity: 20
+  channels: 0.45
+  minFlatness: 0.8
+  edgeMargin: 22
+  keepClearRadius: 20
+  forestMargin: 6
+  strayCoralKept: 0.2
+--- !u!4 &333846313
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 333846311}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &338689686
 GameObject:
   m_ObjectHideFlags: 0
@@ -7497,6 +7791,57 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1525999147
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1525999149}
+  - component: {fileID: 1525999148}
+  m_Layer: 0
+  m_Name: Ammonites
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1525999148
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1525999147}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56635d33e16195640be5c60ad3956344, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.AmmoniteSchools
+  prefab: {fileID: 4421887030943099715, guid: de88e183ac920c8409c3e5331678861b, type: 3}
+  schools: 10
+  perSchool: {x: 2, y: 5}
+  scale: {x: 2.4, y: 3.3}
+  height: {x: 3, y: 14}
+  roamSpeed: 0.9
+  edgeMargin: 12
+--- !u!4 &1525999149
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1525999147}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1535297278
 GameObject:
   m_ObjectHideFlags: 0
@@ -12642,3 +12987,5 @@ SceneRoots:
   - {fileID: 2020258095}
   - {fileID: 59072502}
   - {fileID: 477639063}
+  - {fileID: 333846313}
+  - {fileID: 1525999149}

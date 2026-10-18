@@ -42,6 +42,8 @@ namespace FishGame
         public Material trawlNet;
         [Tooltip("The trawler on the surface, dragging its net across the arena (WorldEvents).")]
         public GameObject trawlerBoat;
+        [Tooltip("A killer whale for the orca event (WorldEvents): the networked OrcaHunter prefab.")]
+        public GameObject orcaPrefab;
 
         static WaterFxLibrary s_library;
         static bool s_looked;

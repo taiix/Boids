@@ -26,6 +26,7 @@ namespace FishGame
         Jellyfish = 6, // a swarm drifts through; touching one stings
         SandSlide = 7, // a quake raises sand clouds along the seabed
         RedTide = 8,   // a toxic patch drifts across; inside it you lose health and can't see far
+        Orcas = 9,     // two killer whales hunt the shark (at most once a round)
     }
 
     /// <summary>

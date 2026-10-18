@@ -9,18 +9,21 @@ namespace FishGame
     /// <summary>
     /// Things that happen to the whole reef mid-round, one every couple of minutes while the survival clock runs
     /// (never the same as either of the last two). The reef's weather - nightfall, storm, cold layer, jellyfish,
-    /// sand slide, red tide - is <see cref="ReefConditions"/>; this runs the scheduling and these two:
+    /// sand slide, red tide - is <see cref="ReefConditions"/>; this runs the scheduling and these three:
     ///   * <b>Strong current</b> - for <see cref="currentSeconds"/> the water pushes everyone one way
     ///     (<see cref="FishMotor.Flow"/>), fish and shark alike, with a stream of motes showing which way.
     ///   * <b>Trawler</b> - a boat drags a net from one wall to the one opposite. The net spans the arena wall to
     ///     wall and hangs from the surface down to <see cref="netDepthFraction"/> of the depth, so the way past it
     ///     is under it. Anyone it sweeps into - fish or shark - is hurt, carried along for a moment and dropped
     ///     behind it; school fish it catches are gone.
+    ///   * <b>Orcas</b> - at most once a round, two killer whales come in from a wall and hunt the shark for
+    ///     <see cref="orcaSeconds"/> (<see cref="OrcaHunter"/>), then swim off. The fish they leave alone.
     ///
     /// The host (or the offline sandbox) decides when and which (<see cref="MatchManager.ServerStartEvent"/>) and
     /// judges who the net catches; every machine plays the event from MatchManager's synced state, so the net is
     /// in the same place on every screen without sending it. The host presses <see cref="nextEventKey"/> (editor
-    /// and development builds) to start the next event now.
+    /// and development builds) to start the next event now, and any player Shift + <see cref="orcaKey"/> (any
+    /// build, while <see cref="allowOrcaKey"/> is on) to call the orcas in now.
     /// </summary>
     public class WorldEvents : MonoBehaviour
     {
@@ -40,6 +43,10 @@ namespace FishGame
         [SerializeField] Vector2 eventGap = new Vector2(80f, 130f);
         [Tooltip("Editor / development builds: the host presses this to start the next event now.")]
         [SerializeField] Key nextEventKey = Key.F6;
+        [Tooltip("Any player can press Shift + this to call the orcas in now (in any build); everyone sees them. " +
+                 "Handy for testing - turn off for real matches.")]
+        [SerializeField] Key orcaKey = Key.F6;
+        [SerializeField] bool allowOrcaKey = true;
 
         [Header("Strong current")]
         [SerializeField] float currentSeconds = 40f;
@@ -63,11 +70,22 @@ namespace FishGame
         [SerializeField] float entangleSeconds = 3f;
         [SerializeField] float boatScale = 1.6f;
 
+        [Header("Orcas")]
+        [Tooltip("Seconds of warning between the announcement and the orcas arriving.")]
+        [SerializeField] float orcaWarning = 6f;
+        [Tooltip("How long they hunt the shark (seconds).")]
+        [SerializeField] float orcaSeconds = 90f;
+        [Tooltip("How many come.")]
+        [Min(1)][SerializeField] int orcaCount = 2;
+
         // ---- authority ----
         double _nextAt = -1;
         WorldEventKind _lastKind, _beforeLast;
         readonly List<WorldEventKind> _choices = new List<WorldEventKind>();
         readonly Dictionary<FishPlayer, double> _netImmune = new Dictionary<FishPlayer, double>();
+        readonly List<OrcaHunter> _orcas = new List<OrcaHunter>();
+        bool _orcasThisRound;
+        double _roundSeen = double.NaN;
 
         // ---- every machine ----
         WorldEventKind _shownKind;
@@ -89,6 +107,16 @@ namespace FishGame
 
         static bool Authority => MatchManager.Offline || NetworkServer.active;
 
+        void Awake()
+        {
+            // Clients spawn the orcas the server spawns, so they need to know the prefab.
+            var lib = WaterFxLibrary.Get();
+            var prefab = lib != null ? lib.orcaPrefab : null;
+            if (prefab != null && prefab.TryGetComponent(out NetworkIdentity id)
+                && !(NetworkClient.prefabs.TryGetValue(id.assetId, out var known) && known == prefab))
+                NetworkClient.RegisterPrefab(prefab);
+        }
+
         void OnDestroy()
         {
             if (s_instance == this) s_instance = null;
@@ -100,6 +128,8 @@ namespace FishGame
             var m = MatchManager.Instance;
             if (m == null) { FishMotor.Flow = Vector3.zero; return; }
 
+            if (allowOrcaKey && Keyboard.current != null && ShiftHeld && Keyboard.current[orcaKey].wasPressedThisFrame)
+                RequestOrcas(m);
             if (Authority) Schedule(m);
 
             // A new event was announced: tell this player, and set the trawler up.
@@ -116,6 +146,7 @@ namespace FishGame
 
             UpdateCurrent(m, on && m.Event == WorldEventKind.Current, now);
             UpdateTrawler(m, on && m.Event == WorldEventKind.Trawler, now);
+            UpdateOrcas(m, !over && m.Event == WorldEventKind.Orcas && now < m.EventEnd, now);
         }
 
         // ------------------------------------------------------------------ deciding (authority)
@@ -124,19 +155,22 @@ namespace FishGame
         {
             if (m.Phase != MatchPhase.Playing) return;
             double now = MatchManager.Now;
+            if (m.RoundStartTime != _roundSeen) { _roundSeen = m.RoundStartTime; _orcasThisRound = false; }
             if (_nextAt < 0) _nextAt = m.RoundStartTime + Random.Range(firstEventAfter.x, firstEventAfter.y);
 
-            bool skip = Debug.isDebugBuild && Keyboard.current != null && Keyboard.current[nextEventKey].wasPressedThisFrame;
+            bool skip = Debug.isDebugBuild && Keyboard.current != null && !ShiftHeld && Keyboard.current[nextEventKey].wasPressedThisFrame;
             bool busy = m.Event != WorldEventKind.None && now < m.EventEnd;
             if (busy || (now < _nextAt && !skip)) return;
 
             // Something different from the last two; the trawler needs the arena's walls to know where to go.
             var walls = ArenaWalls.Instance;
             _choices.Clear();
-            for (var k = WorldEventKind.Current; k <= WorldEventKind.RedTide; k++)
+            for (var k = WorldEventKind.Current; k <= WorldEventKind.Orcas; k++)
             {
                 if (k == _lastKind || k == _beforeLast) continue;
                 if (k == WorldEventKind.Trawler && (walls == null || walls.Count < 2)) continue;
+                // The orcas: once a round at most, and only with a shark to hunt and orcas to send.
+                if (k == WorldEventKind.Orcas && (_orcasThisRound || Shark() == null || OrcaPrefab() == null)) continue;
                 _choices.Add(k);
             }
             var kind = _force != WorldEventKind.None ? _force : _choices[Random.Range(0, _choices.Count)];
@@ -148,6 +182,15 @@ namespace FishGame
                 float a = Random.Range(0f, Mathf.PI * 2f);
                 m.ServerStartEvent(kind, now, now + ReefConditions.Duration(kind), new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)),
                                    Random.Range(1, int.MaxValue));
+            }
+            else if (kind == WorldEventKind.Orcas)
+            {
+                // They come in from one of the walls (or, without walls, from far off).
+                int wall = walls != null && walls.Count > 0 ? Random.Range(0, walls.Count) : -1;
+                float a = Random.Range(0f, Mathf.PI * 2f);
+                double start = now + orcaWarning;
+                m.ServerStartEvent(kind, start, start + orcaSeconds, new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)), wall);
+                _orcasThisRound = true;
             }
             else if (kind == WorldEventKind.Current)
             {
@@ -167,6 +210,39 @@ namespace FishGame
             _lastKind = kind;
             _netImmune.Clear();
             _nextAt = m.EventEnd + Random.Range(eventGap.x, eventGap.y);
+        }
+
+        static bool ShiftHeld => Keyboard.current != null && (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
+
+        // Shift + F6 on any machine: the orcas now - started here if we decide, else asked of the host.
+        void RequestOrcas(MatchManager m)
+        {
+            string why = WhyNoOrcas(m);
+            if (why != null) { MatchHud.Flash(why, 2f); return; }
+            if (Authority) ServerSummonOrcas();
+            else
+            {
+                var me = LocalBody();
+                if (me != null) me.CmdSummonOrcas();
+            }
+        }
+
+        static string WhyNoOrcas(MatchManager m)
+        {
+            if (m.Phase != MatchPhase.Playing) return "The orcas can only come during the round";
+            if (m.Event == WorldEventKind.Orcas && MatchManager.Now < m.EventEnd) return "The orcas are already here";
+            if (Shark() == null) return "There's no shark for the orcas to hunt";
+            if (OrcaPrefab() == null) return "No orca prefab (FishGame > Build Orca Assets)";
+            return null;
+        }
+
+        /// <summary>Server / offline: a player pressed Shift + F6 - the orcas come now, ending whatever's on
+        /// (if the key's allowed here and they can come).</summary>
+        public static void ServerSummonOrcas()
+        {
+            var m = MatchManager.Instance;
+            if (s_instance == null || m == null || !Authority || !s_instance.allowOrcaKey || WhyNoOrcas(m) != null) return;
+            DevStart(WorldEventKind.Orcas);
         }
 
         /// <summary>Testing (host / offline): start <paramref name="kind"/> right now, ending whatever is on.</summary>
@@ -196,6 +272,36 @@ namespace FishGame
                 if (_layout.valid)
                     MatchHud.Flash($"A TRAWLER IS COMING FROM THE {_layout.fromName.ToUpperInvariant()} - dive under its net!", 4.5f);
             }
+            else if (m.Event == WorldEventKind.Orcas)
+            {
+                if (GameAudio.Lib != null) GameAudio.Play(GameAudio.Lib.uiWarning, 0.9f);
+                var me = LocalBody();
+                MatchHud.Flash(me != null && me.IsSharkBody
+                    ? "ORCAS ARE COMING FOR YOU - GET AWAY FROM THEM!"
+                    : "A PAIR OF ORCAS IS HUNTING THE SHARK", 4.5f);
+            }
+        }
+
+        static FishPlayer LocalBody()
+        {
+            if (NetworkClient.active)
+                return NetworkClient.localPlayer != null ? NetworkClient.localPlayer.GetComponent<FishPlayer>() : null;
+            foreach (var fp in FishPlayer.All)
+                if (fp != null && fp.IsOfflineSandboxBody) return fp;
+            return null;
+        }
+
+        static FishPlayer Shark()
+        {
+            foreach (var fp in FishPlayer.All)
+                if (fp != null && fp.isActiveAndEnabled && fp.IsSharkBody && !fp.IsOut) return fp;
+            return null;
+        }
+
+        static GameObject OrcaPrefab()
+        {
+            var lib = WaterFxLibrary.Get();
+            return lib != null ? lib.orcaPrefab : null;
         }
 
         static string Compass(Vector3 dir)
@@ -231,6 +337,99 @@ namespace FishGame
                 if (p.y > WaterFx.SurfaceY - 0.3f) continue;
                 WaterFx.Bubble(p, FishMotor.Flow * 1.6f + Random.insideUnitSphere * 0.25f, Random.Range(0.05f, 0.11f), Random.Range(2f, 3f));
             }
+        }
+
+        // ------------------------------------------------------------------ orcas
+
+        void UpdateOrcas(MatchManager m, bool on, double now)
+        {
+            if (Authority)
+            {
+                _orcas.RemoveAll(o => o == null);
+                bool hunting = on && now >= m.EventStart;
+                if (hunting && _orcas.Count == 0 && !_orcasSent) SpawnOrcas(m);
+                if (!on && _orcas.Count > 0)
+                {
+                    // They see themselves off; a new hunt brings new ones.
+                    foreach (var orca in _orcas) orca.ServerLeave(ExitPoint(orca.transform.position));
+                    _orcas.Clear();
+                }
+                if (!on) _orcasSent = false;
+            }
+            if (!on) return;
+
+            float wait = (float)(m.EventStart - now), left = (float)(m.EventEnd - now);
+            var me = LocalBody();
+            bool shark = me != null && me.IsSharkBody;
+            if (wait > 0f) MatchHud.ShowEvent(shark ? $"ORCAS COMING FOR YOU IN {Mathf.CeilToInt(wait)}s" : $"ORCAS IN {Mathf.CeilToInt(wait)}s");
+            else MatchHud.ShowEvent(shark ? $"ORCAS HUNTING YOU  -  {Clock(left)}" : $"ORCAS HUNTING THE SHARK  -  {Clock(left)}");
+        }
+
+        bool _orcasSent;
+
+        static string Clock(float seconds)
+        {
+            int s = Mathf.Max(0, Mathf.CeilToInt(seconds));
+            return $"{s / 60}:{s % 60:00}";
+        }
+
+        // Authority: the orcas, in from the announced wall (just inside it, at the shark's depth), side by side.
+        void SpawnOrcas(MatchManager m)
+        {
+            var prefab = OrcaPrefab();
+            var shark = Shark();
+            if (prefab == null || shark == null) return;
+            _orcasSent = true;
+
+            Vector3 target = shark.transform.position;
+            Vector3 at, inward, along;
+            var walls = ArenaWalls.Instance;
+            if (walls != null && walls.Describe(m.EventParam, out var home, out var outward, out var side, out float half, out float gapMin, out float gapMax))
+            {
+                inward = -outward;
+                along = side;
+                at = home + inward * (half + 12f) + side * ((gapMin + gapMax) * 0.5f);
+            }
+            else
+            {
+                inward = -m.EventDirection.normalized;
+                along = Vector3.Cross(Vector3.up, inward);
+                at = target - inward * 70f;
+            }
+            float surface = WaterFx.SurfaceY;
+            for (int i = 0; i < orcaCount; i++)
+            {
+                Vector3 p = at + along * ((i - (orcaCount - 1) * 0.5f) * 14f);
+                float ground = WaterFx.SeabedHeight(p, out float g) ? g : surface - 40f;
+                p.y = Mathf.Clamp(target.y, ground + 5f, surface - 5f);
+                var go = Instantiate(prefab, p, Quaternion.LookRotation(Vector3.ProjectOnPlane(target - p, Vector3.up).normalized + inward * 0.01f));
+                if (!go.TryGetComponent(out OrcaHunter orca)) { Destroy(go); continue; }
+                orca.ServerBegin(i % 2, ExitPoint(p));
+                if (NetworkServer.active) NetworkServer.Spawn(go);
+                _orcas.Add(orca);
+            }
+            Debug.Log($"[WorldEvents] {_orcas.Count} orcas hunting the shark.");
+        }
+
+        // Out past the nearest wall (or just far off), to swim away to.
+        static Vector3 ExitPoint(Vector3 from)
+        {
+            var walls = ArenaWalls.Instance;
+            Vector3 best = from + (from - Vector3.zero).normalized * 80f;
+            float bestD = float.MaxValue;
+            if (walls != null)
+                for (int i = 0; i < walls.Count; i++)
+                {
+                    if (!walls.Describe(i, out var home, out var outward, out _, out float half, out _, out _)) continue;
+                    float d = Mathf.Abs(Vector3.Dot(from - home, outward));
+                    if (d < bestD)
+                    {
+                        bestD = d;
+                        best = from + outward * (d + half + 40f);
+                        best.y = from.y;
+                    }
+                }
+            return best;
         }
 
         // ------------------------------------------------------------------ trawler

@@ -91,11 +91,12 @@ namespace FishGame
                 && hit.collider.gameObject.layer != 3)   // the seabed is handled below, by climbing
                 PickTarget(pos, Vector3.Reflect(heading, hit.normal));
 
-            // Ground rising ahead or close below: climb over it. The surface: stay under it.
+            // Ground - or the reef's coral and rock (SceneryIndex) - rising ahead or close below: climb over it.
+            // The surface: stay under it.
             float clear = heightAboveSeabed.x;
             Vector3 ahead = pos + heading * 6f;
-            if (WaterFx.SeabedHeight(ahead, out float groundAhead) && ahead.y < groundAhead + clear) want.y = Mathf.Max(want.y, 0.55f);
-            if (WaterFx.SeabedHeight(pos, out float groundHere) && pos.y < groundHere + clear * 0.6f) want.y = Mathf.Max(want.y, 0.85f);
+            if (SceneryIndex.FloorAt(ahead, 0.6f, clear, 0.9f, out float floorAhead) && ahead.y < floorAhead) want.y = Mathf.Max(want.y, 0.55f);
+            if (SceneryIndex.FloorAt(pos, 0.6f, clear * 0.6f, 0.6f, out float floorHere) && pos.y < floorHere) want.y = Mathf.Max(want.y, 0.85f);
             if (pos.y > WaterFx.SurfaceY - underSurface) want.y = Mathf.Min(want.y, -0.4f);
             want.Normalize();
 
