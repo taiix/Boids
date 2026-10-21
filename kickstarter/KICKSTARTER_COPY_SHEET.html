@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reef Run Copy Sheet</title>
+<style>
+  :root { --bg:#051729; --panel:#0a2a42; --line:rgba(143,176,187,.25); --text:#eef6f7; --dim:#8fb0bb; --aqua:#2cc3c4; --orange:#ffb84d; --red:#ff6b6b; }
+  @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg:#f3f8f9; --panel:#ffffff; --line:#cfdde2; --text:#0b2233; --dim:#4f6b77; --aqua:#127f84; --orange:#a8620a; --red:#b3261e; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width:860px; margin:0 auto; padding:24px 16px 80px; }
+  h1 { font-size:1.6rem; margin:.2em 0; }
+  h2 { font-size:1.15rem; margin:2.2em 0 .6em; padding-top:.6em; border-top:1px solid var(--line); color:var(--aqua); text-transform:uppercase; letter-spacing:.04em; }
+  .warn { border:2px solid var(--orange); border-radius:10px; padding:12px 14px; margin:14px 0; }
+  .warn strong { color:var(--orange); }
+  nav { display:flex; flex-wrap:wrap; gap:6px; margin:14px 0; }
+  nav a { color:var(--aqua); border:1px solid var(--line); border-radius:999px; padding:3px 10px; text-decoration:none; font-size:.9rem; }
+  .field { background:var(--panel); border:1px solid var(--line); border-radius:10px; margin:10px 0; overflow:hidden; }
+  .head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; border-bottom:1px solid var(--line); }
+  .label { font-weight:600; }
+  .meta { color:var(--dim); font-size:.85rem; }
+  .meta.over { color:var(--red); font-weight:600; }
+  .val { margin:0; padding:10px 12px; white-space:pre-wrap; word-break:break-word; font:inherit; }
+  .val mark { background:rgba(255,184,77,.28); color:inherit; border-radius:3px; padding:0 2px; }
+  button { flex:none; background:var(--aqua); color:#051729; border:0; border-radius:8px; padding:6px 12px; font-weight:700; cursor:pointer; min-width:74px; }
+  button.done { background:var(--orange); }
+  .note { color:var(--dim); font-size:.9rem; margin:4px 2px 0; }
+  .img { color:var(--dim); font-size:.9rem; margin:6px 2px; }
+  .img code, .note code { color:var(--text); }
+  ul.check { padding-left:1.2em; }
+  ul.check li { margin:3px 0; }
+</style>
+</head>
+
+<body>
+<main>
+<h1>Reef Run: Kickstarter copy sheet (v2)</h1>
+<p class="meta">Individual Dutch project · EUR · goal €14,000 · v2 built 2026-10-20 from docs 05, 14, 15 and 16. Re-check numbers in <code>03_funding_model.xlsx</code> on the day you submit.</p>
+<div class="warn"><strong>Draft only.</strong> Save the draft. <strong>Don't click "Submit for review" or "Launch".</strong> Highlighted <mark>[[…]]</mark> parts are facts only you can supply. Steam-key tiers need Reef Run's own Steam app first (12 B2).</div>
+<nav><a href="#basics">Basics</a><a href="#rewards">Rewards</a><a href="#story">Story</a><a href="#risks">Risks and challenges</a><a href="#ai">Use of AI</a><a href="#faq">FAQ</a></nav>
+<h2 id="basics">1 · Basics</h2>
+<p class="img">Project image: kickstarter/assets/visuals/ks_project_image_1920x1080.png · Project video: the real gameplay trailer only (never the animatic).</p>
+<div class="field" data-max="60"><div class="head"><span class="label">Project title</span><span class="meta"></span></div><pre class="val">Reef Run — 3 fish, 1 shark, and it can hear you</pre></div>
+<div class="field" data-max="135"><div class="head"><span class="label">Subtitle</span><span class="meta"></span></div><pre class="val">A 4-player online party game: hide in the school, finish the tasks, and keep your voice down — the shark hears proximity chat.</pre></div>
+<div class="field"><div class="head"><span class="label">Category</span></div><pre class="val">Games › Video Games</pre></div>
+<div class="field"><div class="head"><span class="label">Location</span></div><pre class="val"><mark>[[your city]]</mark>, Netherlands</pre></div>
+<div class="field"><div class="head"><span class="label">Funding goal (EUR)</span></div><pre class="val">14000</pre></div>
+<p class="note">Default v2 goal. Lean alternative €6,000 (all founder hours unpaid) — team decision, 03 §1.</p>
+<div class="field"><div class="head"><span class="label">Campaign duration (days)</span></div><pre class="val">30</pre></div>
+<p class="note">Fixed 30 days — Steam's key rules allow 30 at most.</p>
+<h2 id="rewards">2 · Rewards (v2 prices)</h2>
+<p class="img">Reward images (3:2, no overlaid text): kickstarter/assets/visuals/rewards_3x2/reward_*.jpg · Shipping: Digital reward (no shipping).</p>
+<div class="field"><div class="head"><span class="label">Ripple · title</span><span class="meta">€5 · no limit · Jun 2027</span></div><pre class="val">Ripple</pre></div>
+<div class="field"><div class="head"><span class="label">Ripple · description</span></div><pre class="val">Thank you! Your name goes into Reef Run's in-game Supporters credits, you get the Backer role in our Discord, and a 4K wallpaper pack of the reef. No copy of the game is included.</pre></div>
+<div class="field"><div class="head"><span class="label">Early Diver · title</span><span class="meta">€12 · limit 300 · Jul 2027</span></div><pre class="val">Early Diver</pre></div>
+<div class="field"><div class="head"><span class="label">Early Diver · description</span></div><pre class="val">1 Steam key for Reef Run: backer beta (planned July 2027), then the full game at release. Your name in the Supporters credits. Limited to the first 300 backers.
+
+Steam keys are delivered through Kickstarter's Pledge Manager. Reef Run is PC (Windows) on Steam. <mark>[[VAT line, per your accountant: Kickstarter recommends "Prices exclude VAT; it's added in the Pledge Manager"]]</mark></pre></div>
+<div class="field"><div class="head"><span class="label">Diver · title</span><span class="meta">€15 · no limit · Jul 2027</span></div><pre class="val">Diver</pre></div>
+<div class="field"><div class="head"><span class="label">Diver · description</span></div><pre class="val">1 Steam key for Reef Run: backer beta (planned July 2027), then the full game at release. Your name in the Supporters credits.
+
+Steam keys are delivered through Kickstarter's Pledge Manager. Reef Run is PC (Windows) on Steam. <mark>[[VAT line, per your accountant: Kickstarter recommends "Prices exclude VAT; it's added in the Pledge Manager"]]</mark></pre></div>
+<div class="field"><div class="head"><span class="label">Founding Diver · title</span><span class="meta">€29 · no limit · key Jul 2027, rest Dec 2027</span></div><pre class="val">Founding Diver</pre></div>
+<div class="field"><div class="head"><span class="label">Founding Diver · description</span></div><pre class="val">1 Steam key (beta + full game), the Founder cosmetic set (a "Founder Fin" fish pattern and an "Old Scar" shark skin, exclusive to Kickstarter backers), your name in the Founders credits, and the digital "Making of Reef Run" PDF.
+
+Steam keys are delivered through Kickstarter's Pledge Manager. Reef Run is PC (Windows) on Steam. <mark>[[VAT line, per your accountant: Kickstarter recommends "Prices exclude VAT; it's added in the Pledge Manager"]]</mark></pre></div>
+<div class="field"><div class="head"><span class="label">Pod of Four · title</span><span class="meta">€49 · no limit · Jul 2027</span></div><pre class="val">Pod of Four</pre></div>
+<div class="field"><div class="head"><span class="label">Pod of Four · description</span></div><pre class="val">Reef Run is a 4-player game. This is the one for your group: 4 Steam keys (beta + full game) to share, and 4 names in the Supporters credits.
+
+Steam keys are delivered through Kickstarter's Pledge Manager. Reef Run is PC (Windows) on Steam. <mark>[[VAT line, per your accountant: Kickstarter recommends "Prices exclude VAT; it's added in the Pledge Manager"]]</mark></pre></div>
+<div class="field"><div class="head"><span class="label">Founding Pod · title</span><span class="meta">€99 · no limit · keys Jul 2027, rest Dec 2027</span></div><pre class="val">Founding Pod</pre></div>
+<div class="field"><div class="head"><span class="label">Founding Pod · description</span></div><pre class="val">Everything in Founding Diver, x4: 4 Steam keys, 4 Founder cosmetic sets, 4 Founders credits, and the Making-of PDF.
+
+Steam keys are delivered through Kickstarter's Pledge Manager. Reef Run is PC (Windows) on Steam. <mark>[[VAT line, per your accountant: Kickstarter recommends "Prices exclude VAT; it's added in the Pledge Manager"]]</mark></pre></div>
+<div class="field"><div class="head"><span class="label">Name the Trawler · title</span><span class="meta">€199 · limit 25 · Dec 2027</span></div><pre class="val">Name the Trawler</pre></div>
+<div class="field"><div class="head"><span class="label">Name the Trawler · description</span></div><pre class="val">Everything in Founding Diver, plus your name (or your group's) painted on the hull of the trawler that drags its net across the reef. One backer name shows per round, rotating. Names are checked by us and must suit a PG-13 game. Limited to 25.
+
+Steam keys are delivered through Kickstarter's Pledge Manager. Reef Run is PC (Windows) on Steam. <mark>[[VAT line, per your accountant: Kickstarter recommends "Prices exclude VAT; it's added in the Pledge Manager"]]</mark></pre></div>
+<h2 id="story">3 · Story (v2 order: hero → what → GIFs → features → why → rewards → stretch → money → roadmap)</h2>
+<p class="img">Images: ks_funding_allocation_1360x780.png under 3.7, ks_roadmap_1360x700.png under 3.8, reward cards under the rewards. GIF-1…GIF-6 come from the capture session (16 §5).</p>
+<div class="field"><div class="head"><span class="label">3.1 · Hero (under GIF-1: whisper → ripple → lunge)</span></div><pre class="val">Three of you are fish. One of you is the shark.
+And the shark can hear you.</pre></div>
+<div class="field"><div class="head"><span class="label">3.2 · What is Reef Run?</span></div><pre class="val">Reef Run is an online party game for four friends.
+One player is a great white. Three are reef fish who have to survive ten minutes, finish co-op tasks and escape.
+You talk on proximity voice, and the tasks need talking. But every word near the shark shows up on its screen.
+So you whisper. You hide inside a school of a thousand fish. And somebody always laughs at the wrong moment.</pre></div>
+<div class="field"><div class="head"><span class="label">3.3 · GIF captions (one under each GIF)</span></div><pre class="val">Disappear into a school of a thousand fish.
+Talk to win: each fish sees a different clue.
+Play the shark: sonar, lunge, and very good ears.
+The reef fights back: 9 mid-round events.
+Then — run.</pre></div>
+<div class="field"><div class="head"><span class="label">3.4 · Key features</span></div><pre class="val">🦈 One shark, three fish: a 10-minute round for exactly four friends, online on Steam.
+🎙️ Proximity voice that can kill you: the shark sees ripples wherever someone talks.
+🐟 Hide in a living school: a real flocking simulation with hundreds to thousands of fish.
+🐢 Co-op tasks built around talking: free a tangled turtle, relay a code, clean the reef.
+🌊 9 world events: a trawler net, nightfall, a red tide, a jellyfish swarm and more, plus orcas that hunt the shark.
+👻 Dead isn't quiet: spectate, chat on the ghost channel, and flash the shark's position once.</pre></div>
+<div class="field"><div class="head"><span class="label">3.5 · Why we&#x27;re making it</span></div><pre class="val"><mark>[[Two or three sentences in your own words: who you are, why sharks, and the game night that started it.]]</mark>
+
+Since June 2026 we've built Reef Run in our spare time, two developers and <mark>[[N]]</mark> commits, and everything on this page is captured from the game. <mark>[[If true: "N groups played our public playtest; X% said they'd buy it."]]</mark>
+
+Unacite Studio · <mark>[[city]]</mark>, the Netherlands · <mark>[[name, role]]</mark> · <mark>[[name, role]]</mark></pre></div>
+<div class="field"><div class="head"><span class="label">3.6 · Stretch goals (reveal one at a time)</span></div><pre class="val">€17,500: +1 co-op task, and an extra Kickstarter cosmetic for every backer
+€21,000: backers vote on a 10th world event, plus a Steam Deck pass
+€28,000: 6 languages (DE, FR, ES, PT-BR, PL, NL)
+€35,000: an original soundtrack by a commissioned composer
+€55,500: a second map (kelp forest / shipwreck), 2 more tasks and 4 months of free updates</pre></div>
+<div class="field"><div class="head"><span class="label">3.7 · Where the money goes</span></div><pre class="val">Programming &amp; netcode: €2,900 (21%)
+Game design, balance &amp; onboarding: €800 (6%)
+Playtests, community &amp; campaign: €1,400 (10%)
+Backer rewards in game: €400 (3%)
+Marketing (pre-launch + live ads): €2,250 (16%)
+Steam fee, KvK, accountant, test hardware &amp; software: €1,432 (10%)
+Contingency: €1,377 (10%)
+Kickstarter &amp; payment fees, failed payments, VAT, tax reserve: €3,441 (25%)
+
+Half of our remaining 1,100 hours stays unpaid. That's our share of the bet, worth about €27,500 at market rates.</pre></div>
+<div class="field"><div class="head"><span class="label">3.8 · Roadmap</span></div><pre class="val">Done (Jun–Oct 2026): online round, voice, schools, tasks, 9 events
+Feb 2027: Steam Next Fest demo
+Apr–May 2027: this campaign
+July 2027: backer beta
+Q4 2027: release on Steam
+2028: second map, if unlocked
+
+There's a 30% buffer in the schedule. If a date slips anyway, you hear it from us first.</pre></div>
+<h2 id="risks">4 · Risks and challenges</h2>
+<div class="field"><div class="head"><span class="label">Risks</span></div><pre class="val">We're two people. If one of us is out, things slow down. That's why the goal only covers what already works plus polish.
+
+Online games break in the wild. Backers get a beta months before release, and bug fixing is the biggest budget line.
+
+It needs four players. Public lobbies and our Discord help you find a group. Bots aren't promised.
+
+Dates can move. There's a 30% buffer in the schedule. If a date slips anyway, you hear it from us first, with the reason.</pre></div>
+<h2 id="ai">5 · Use of AI (must be accurate)</h2>
+<div class="field"><div class="head"><span class="label">Other AI use (coding)</span></div><pre class="val">We used an AI coding assistant to help write and debug parts of the game's code and tooling. Every system was designed, reviewed, tested and integrated by us. <mark>[[Confirm and adjust the scope honestly.]]</mark> No AI-generated art, models, music or sound is in the game, and the fish schools use a classic flocking algorithm (boids), not machine learning.</pre></div>
+<div class="field"><div class="head"><span class="label">AI-generated content (only if you keep AI-drafted page text)</span></div><pre class="val">First drafts of this page's text were written with an AI assistant and edited by us. <mark>[[Delete if you rewrite the page yourselves — recommended, see 14 §4.]]</mark></pre></div>
+<h2 id="faq">6 · FAQ (top 10)</h2>
+<div class="field"><div class="head"><span class="label">Q: Platforms?</span></div><pre class="val">PC (Windows) on Steam.</pre></div>
+<div class="field"><div class="head"><span class="label">Q: Exactly 4 players?</span></div><pre class="val">Yes, 1 shark and 3 fish. Use friends, public lobbies or our Discord.</pre></div>
+<div class="field"><div class="head"><span class="label">Q: Mic required?</span></div><pre class="val">Strongly recommended. Push-to-talk and open mic are both supported (planned).</pre></div>
+<div class="field"><div class="head"><span class="label">Q: Shark every round?</span></div><pre class="val">No, the shark is picked at random.</pre></div>
+<div class="field"><div class="head"><span class="label">Q: Is there a demo?</span></div><pre class="val"><mark>[[Yes, link / at Steam Next Fest Feb 2027]]</mark></pre></div>
+<div class="field"><div class="head"><span class="label">Q: When do I play?</span></div><pre class="val">Beta in July 2027, full release in Q4 2027.</pre></div>
+<div class="field"><div class="head"><span class="label">Q: Price on Steam?</span></div><pre class="val">Planned €12.99. Our best backer price will be matched by a launch discount.</pre></div>
+<div class="field"><div class="head"><span class="label">Q: How do I get my key?</span></div><pre class="val">Through Kickstarter's Pledge Manager after the campaign.</pre></div>
+<div class="field"><div class="head"><span class="label">Q: Late pledges?</span></div><pre class="val">Not until the game is on sale. Steam's rules don't allow selling keys before release.</pre></div>
+<div class="field"><div class="head"><span class="label">Q: Taxes?</span></div><pre class="val"><mark>[[VAT line, per your accountant: Kickstarter recommends "Prices exclude VAT; it's added in the Pledge Manager"]]</mark></pre></div>
+<h2 id="settings">7 · Settings checklist</h2><ul class="check"><li>Netherlands (individual) · EUR · goal €14,000 · fixed 30 days</li><li>Late Pledges off · Pledge Over Time off · Pledge Manager on</li><li>Add-ons none · Shipping: digital</li><li>Video: real gameplay trailer only</li><li><strong>Save the draft. Don't submit, don't launch.</strong></li></ul>
+</main>
+<script>
+  // One copy button per field; copies the field's plain text (placeholders included, so you see what's left to fill).
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    ta.remove();
+  }
+  document.querySelectorAll('.field').forEach(f => {
+    const head = f.querySelector('.head'), val = f.querySelector('.val');
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.textContent = 'Copy';
+    btn.addEventListener('click', async () => {
+      const text = val.innerText;
+      try { await navigator.clipboard.writeText(text); } catch (e) { fallbackCopy(text); }
+      btn.textContent = 'Copied'; btn.classList.add('done');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1500);
+    });
+    head.appendChild(btn);
+    const max = +f.dataset.max;
+    if (max) {
+      const meta = f.querySelector('.meta'), n = val.innerText.length;
+      meta.textContent = n + ' / ' + max + ' characters';
+      if (n > max) meta.classList.add('over');
+    }
+  });
+</script>
+</body>
+</html>

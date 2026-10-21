@@ -909,7 +909,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7e77ccd0e4e7003489692865497a7eb2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FishGame.FishBodyAnimator
-  modelRoot: {fileID: 4695178838789969128}
+  modelRoot: {fileID: 2735622867745661962}
   spineSegments:
   - {fileID: 1990349165667178663}
   - {fileID: 5523420568592845805}

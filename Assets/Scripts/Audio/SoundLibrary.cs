@@ -14,7 +14,14 @@ namespace FishGame
         [Header("Music")]
         public AudioClip musicMenu;
         public AudioClip musicRound;
+        [Tooltip("One is picked at random for each round (falls back to Music Round when empty).")]
+        public AudioClip[] musicRounds;
         public AudioClip musicEscape;
+
+        [Header("Tension (the round's dread, rising as the shark closes in)")]
+        public AudioClip tensionDrone;
+        public AudioClip tensionNear;
+        public AudioClip tensionSting;
 
         [Header("Jingles")]
         public AudioClip jingleRoundStart;
@@ -49,6 +56,7 @@ namespace FishGame
         public AudioClip[] bubbles;
         public AudioClip swim;
         public AudioClip ambientBubbles;
+        public AudioClip ambientDeep;
 
         [Header("Alerts")]
         public AudioClip taskDoneShark;

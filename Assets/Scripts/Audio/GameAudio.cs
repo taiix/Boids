@@ -9,8 +9,10 @@ namespace FishGame
     /// The game's sound: music that follows the round, one-shot effects (flat or placed in the world), and
     /// looping beds that systems ask for every frame they want them. Created once, survives scene loads.
     ///
-    ///   * <b>Music</b>: the menu theme outside a match; in a match the round theme, the tense one once the exit
-    ///     opens, and silence after the result (a jingle plays instead). Tracks cross-fade.
+    ///   * <b>Music</b>: the menu theme outside a match; in a match a dark round theme (one drawn per round), the
+    ///     tense one once the exit opens, and silence after the result (a jingle plays instead). Tracks cross-fade.
+    ///   * <b>Tension</b>: a drone under every round; for the fish, a dissonant layer that swells (and ducks the
+    ///     music) as the shark closes in, and a sting when it gets close.
     ///   * <b>Effects</b>: <see cref="Play"/> (flat, for this player's own feedback) and <see cref="PlayAt"/> (3D,
     ///     muffled while the listener is underwater). Jingles duck the music while they play.
     ///   * <b>Loops</b>: <see cref="Loop"/> each frame keeps one going (rain, an engine, a heartbeat); stop asking
@@ -45,8 +47,14 @@ namespace FishGame
 
         // ---- music ----
         AudioSource _musicA, _musicB, _musicOn;
-        AudioClip _wantMusic;
+        AudioClip _wantMusic, _roundTrack;
         float _duckUntil;
+
+        // ---- tension ----
+        const float ThreatFar = 40f, ThreatNear = 10f;   // m: the shark starts to be felt / is right there
+        const float StingAt = 0.6f, StingRearm = 0.2f;   // threat that fires the sting, and that re-arms it
+        float _threat;                                   // 0..1, eased: how close the shark is to this fish
+        bool _stingArmed = true;
 
         // ---- one-shots ----
         readonly List<AudioSource> _pool = new List<AudioSource>();
@@ -109,6 +117,20 @@ namespace FishGame
             s_instance.Fire(clip, position, volume, pitchJitter, range);
         }
 
+        /// <summary>A flat effect played at <paramref name="pitch"/> (e.g. rising as a meter fills).</summary>
+        public static void PlayPitched(AudioClip clip, float volume, float pitch)
+        {
+            if (s_instance == null || clip == null) return;
+            s_instance.Fire(clip, null, volume, 0f, 0f, pitch);
+        }
+
+        /// <summary><see cref="PlayAt"/> at <paramref name="pitch"/> (e.g. a deep thump from a lighter sound).</summary>
+        public static void PlayAtPitched(AudioClip clip, Vector3 position, float volume, float range, float pitch)
+        {
+            if (s_instance == null || clip == null) return;
+            s_instance.Fire(clip, position, volume, 0.04f, range, pitch);
+        }
+
         /// <summary>A short musical sting (round start, a win): played flat, with the music ducked under it.</summary>
         public static void Jingle(AudioClip clip, float volume = 0.8f)
         {
@@ -117,14 +139,14 @@ namespace FishGame
             s_instance.Fire(clip, null, volume, 0f, 0f);
         }
 
-        void Fire(AudioClip clip, Vector3? at, float volume, float pitchJitter, float range)
+        void Fire(AudioClip clip, Vector3? at, float volume, float pitchJitter, float range, float pitch = 1f)
         {
             var s = _pool[_next];
             _next = (_next + 1) % _pool.Count;
             s.Stop();
             s.clip = clip;
             s.volume = Mathf.Clamp01(volume * _sfxVolume);
-            s.pitch = 1f + Random.Range(-pitchJitter, pitchJitter);
+            s.pitch = pitch * (1f + Random.Range(-pitchJitter, pitchJitter));
             bool world = at.HasValue;
             s.spatialBlend = world ? 1f : 0f;
             if (world)
@@ -211,7 +233,12 @@ namespace FishGame
             if (m == null) want = lib.musicMenu;
             else if (m.IsOver) want = null;                       // the result's jingle, then quiet
             else if (m.Phase == MatchPhase.Escape) want = lib.musicEscape;
-            else want = lib.musicRound;
+            else
+            {
+                if (_roundTrack == null) _roundTrack = Pick(lib.musicRounds) ?? lib.musicRound;
+                want = _roundTrack;
+            }
+            if (m == null || m.IsOver) _roundTrack = null;        // the next round draws a fresh track
 
             if (want != _wantMusic)
             {
@@ -229,6 +256,7 @@ namespace FishGame
             }
 
             float duck = Time.unscaledTime < _duckUntil ? 0.25f : 1f;
+            duck *= 1f - 0.45f * _threat;                          // the shark's cluster takes over from the music
             float level = MusicLevel * _musicVolume * duck;
             float step = Time.unscaledDeltaTime * 0.35f;
             FadeMusic(_musicA, level, step);
@@ -278,6 +306,7 @@ namespace FishGame
                 _nextPrefsRead = Time.unscaledTime + 0.5f;
                 ReadPrefs();
             }
+            UpdateTension();
             UpdateMusic();
             UpdateAmbience();
             UpdateLoops();
@@ -291,7 +320,54 @@ namespace FishGame
             if (lib == null || MatchManager.Instance == null) return;
             var cam = WaterFx.ViewCamera;
             if (cam != null && cam.transform.position.y < WaterFx.SurfaceY)
+            {
                 Loop("ambient", lib.ambientBubbles, 0.12f);
+                Loop("deep", lib.ambientDeep, 0.3f);
+            }
+        }
+
+        // ================================================================== tension
+
+        // Under every round a low drone; for a fish, a tight dissonant cluster that swells as the shark closes in
+        // (it ducks the music), and a sting the moment the shark comes close. The shark hears only the drone.
+        void UpdateTension()
+        {
+            var lib = Lib;
+            var m = MatchManager.Instance;
+            if (lib == null || m == null || !m.RoundRunning) { _threat = 0f; _stingArmed = true; return; }
+
+            float raw = SharkThreat();
+            float rate = raw > _threat ? 1.2f : 0.25f;          // dread comes fast and leaves slowly
+            _threat = Mathf.MoveTowards(_threat, raw, Time.unscaledDeltaTime * rate);
+
+            Loop("dread", lib.tensionDrone, 0.22f + 0.25f * _threat);
+            if (_threat > 0.02f) Loop("near", lib.tensionNear, 0.7f * _threat * _threat);
+
+            if (raw < StingRearm) _stingArmed = true;
+            else if (_stingArmed && raw >= StingAt)
+            {
+                _stingArmed = false;
+                Play(lib.tensionSting, 0.85f);
+            }
+        }
+
+        // 0 (no shark within ThreatFar) .. 1 (within ThreatNear) for the local fish, or for whatever the camera
+        // follows once that fish is out (spectating). Always 0 for the shark's own player.
+        static float SharkThreat()
+        {
+            var local = Mirror.NetworkClient.localPlayer;
+            var me = local != null ? local.GetComponent<FishPlayer>() : null;
+            if (me != null && me.IsSharkBody) return 0f;
+            Vector3 at;
+            if (me != null && !me.IsOut) at = me.transform.position;
+            else if (WaterFx.ViewCamera != null) at = WaterFx.ViewCamera.transform.position;
+            else return 0f;
+
+            float best = float.MaxValue;
+            foreach (var fp in FishPlayer.All)
+                if (fp != null && fp != me && fp.isActiveAndEnabled && fp.IsSharkBody && !fp.IsOut)
+                    best = Mathf.Min(best, Vector3.Distance(at, fp.transform.position));
+            return 1f - Mathf.Clamp01(Mathf.InverseLerp(ThreatNear, ThreatFar, best));
         }
 
         void OnEnable() => MatchManager.TaskDone += OnTaskDone;

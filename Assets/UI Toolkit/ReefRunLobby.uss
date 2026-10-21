@@ -31,8 +31,8 @@
 .f-b   { -unity-font-definition: url("Fonts/Barlow-Bold.ttf"); }
 
 /* ---------- stage ---------- */
-.stage { flex-grow: 1; background-color: #020a12; -unity-background-scale-mode: scale-and-crop; background-image: url("Images/Lobby_Background.jpg"); }
-.shade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(3, 14, 26, 0.8); }
+.stage { flex-grow: 1; background-color: #020a12; -unity-background-scale-mode: scale-and-crop; background-image: url("Images/Lobby_Background_Eclipse.jpg"); }
+.shade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(3, 14, 26, 0.5); }
 .ui { position: absolute; left: 0; top: 0; right: 0; bottom: 0; flex-direction: row; padding: 40px 48px; }
 
 .panel { background-color: var(--panel); border-width: 1px; border-color: var(--line); border-radius: 14px; }

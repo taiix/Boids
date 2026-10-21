@@ -223,6 +223,7 @@ public class FishPlayer : NetworkBehaviour
         if (!TryGetComponent(out SurfaceSplash _)) gameObject.AddComponent<SurfaceSplash>();
         if (TryGetComponent(out SharkAbilities _) && !TryGetComponent(out SharkEatFx _)) gameObject.AddComponent<SharkEatFx>();
         if (TryGetComponent(out SharkAbilities _) && !TryGetComponent(out SharkCondition _)) gameObject.AddComponent<SharkCondition>();
+        if (!TryGetComponent(out BodyJuice _)) gameObject.AddComponent<BodyJuice>();
 
         // Cache now, before OnStartLocalPlayer can unparent the camera.
         _vision = GetComponentInChildren<CreatureVision>(true);
@@ -397,6 +398,7 @@ public class FishPlayer : NetworkBehaviour
 
         // Health / hunger / round clock for whoever we are (fish or shark).
         MatchHud.Show();
+        GameFeel.Ensure();
     }
 
     /// <summary>
@@ -437,6 +439,10 @@ public class FishPlayer : NetworkBehaviour
             {
                 LastStrugglePress = Time.unscaledTime;
                 CmdStruggle();
+                if (GameAudio.Lib != null)
+                    GameAudio.PlayPitched(GameAudio.Pick(GameAudio.Lib.bubbles), 0.7f, 0.85f + 0.6f * Mathf.Clamp01(StruggleMeter));
+                GameFeel.Shake(0.12f);
+                if (TryGetComponent(out BodyJuice thrash)) thrash.Punch(Random.value < 0.5f ? 0.08f : -0.08f);
             }
         }
 
@@ -457,10 +463,23 @@ public class FishPlayer : NetworkBehaviour
         // E eats — unless we're next to a task, where E joins it instead (the task handles that press).
         if (_controlsLive && _eatAction != null && _eatAction.WasPressedThisFrame() && !taskOwnsE)
         {
-            if (PelletInReach(_offlineLocal ? 0f : remoteEatSlack) != null && GameAudio.Lib != null)
-                GameAudio.Play(GameAudio.Lib.pellet, 0.6f, 0.1f); // instant, on our own screen
+            var bite = PelletInReach(_offlineLocal ? 0f : remoteEatSlack);
+            if (bite != null)
+            {
+                if (GameAudio.Lib != null) GameAudio.Play(GameAudio.Lib.pellet, 0.6f, 0.1f); // instant, on our own screen
+                Vector3 at = bite.transform.position;
+                WaterFx.BubbleBurst(at, 14, 0.12f, 1.6f, new Vector2(0.015f, 0.04f));
+                WaterFx.Shockwave(at, 1.2f, 0.3f);
+            }
             if (_offlineLocal) ServerEatNearestPellet(); // offline: eat directly (no Command/server)
             else CmdEat();
+        }
+
+        // A shark lunging past pushes the water, and us with it (never toward its jaws).
+        if (_controlsLive && !IsSharkBody && TryGetComponent(out FishMotor wakeMotor))
+        {
+            Vector3 push = SharkAbilities.LungeWakeAt(transform.position, transform);
+            if (push.sqrMagnitude > 0f) wakeMotor.SetVelocity(wakeMotor.Velocity + push * Time.deltaTime);
         }
 
         // Tell everyone when we blend into / out of a school, so their flock sims react to us too.
@@ -644,6 +663,35 @@ public class FishPlayer : NetworkBehaviour
         motor.SetVelocity(push);
         motor.SlowFor(slowSeconds, slowFactor);
         MatchHud.Flash("HIT BY AN ORCA!", 1.5f);
+        GameFeel.HitStop(0.08f, gameObject);
+        GameFeel.Shake(0.9f);
+        if (TryGetComponent(out BodyJuice juice)) juice.Punch(-0.12f);
+        var lib = GameAudio.Lib;
+        if (lib != null)
+        {
+            GameAudio.PlayPitched(GameAudio.Pick(lib.bites), 0.9f, 0.7f);
+            GameAudio.Play(lib.rumble, 0.7f, 0.05f);
+        }
+    }
+
+    /// <summary>Server: an orca's body ran into this shark (no bite). It's shoved by <paramref name="push"/>.</summary>
+    public void ServerOrcaShove(Vector3 push)
+    {
+        if (!NetworkServer.active && !IsOffline) return;
+        if (IsOffline) OrcaShove(push);
+        else if (connectionToClient != null) TargetOrcaShove(connectionToClient, push);
+    }
+
+    [TargetRpc]
+    private void TargetOrcaShove(NetworkConnectionToClient target, Vector3 push) => OrcaShove(push);
+
+    // The machine driving this body: brought up to the push's speed that way (a shove, not a stack of them).
+    private void OrcaShove(Vector3 push)
+    {
+        if (!TryGetComponent(out FishMotor motor)) return;
+        Vector3 v = motor.Velocity, dir = push.normalized;
+        float along = Vector3.Dot(v, dir);
+        if (along < push.magnitude) motor.SetVelocity(v + dir * (push.magnitude - along));
     }
 
     public void ServerNetCaught(float damage, float seconds, Vector3 carry)
@@ -663,6 +711,8 @@ public class FishPlayer : NetworkBehaviour
         motor.Entangle(seconds, carry);
         if (GameAudio.Lib != null) GameAudio.Play(GameAudio.Lib.netCatch, 0.9f, 0.05f);
         MatchHud.Flash(IsSharkBody ? "CAUGHT IN THE NET!" : "CAUGHT IN THE NET! You're hurt", 2.5f);
+        GameFeel.Shake(0.55f);
+        if (TryGetComponent(out BodyJuice juice)) juice.Punch(-0.1f);
         StartCoroutine(DropBehindNet(seconds, carry));
     }
 
@@ -697,6 +747,7 @@ public class FishPlayer : NetworkBehaviour
             GameAudio.Play(GameAudio.Lib.stingHit, 0.6f, 0.05f);
         }
         MatchHud.Flash("STUNG BY A JELLYFISH!", 1.8f);
+        GameFeel.Shake(0.3f);
     }
 
     // ---- Ghost hint: an eaten or dead fish can, once a round, show the shark to the fish still in the water ----
@@ -780,7 +831,13 @@ public class FishPlayer : NetworkBehaviour
         BloodInWater.Spill(transform.position, null, bloodSeed);
         var lib = GameAudio.Lib;
         if (lib != null) GameAudio.PlayAt(lib.graze, transform.position, 0.9f, 30f);
-        if (isLocalPlayer) MatchHud.Flash("GRAZED! You're bleeding - one more bite and you can't break free", 3f);
+        if (TryGetComponent(out BodyJuice juice)) juice.Punch(-0.1f);
+        if (isLocalPlayer)
+        {
+            MatchHud.Flash("GRAZED! You're bleeding - one more bite and you can't break free", 3f);
+            GameFeel.HitStop(0.06f, gameObject);
+            GameFeel.Shake(0.45f);
+        }
     }
 
     // ---- Caught: the shark shakes us while we mash to break free; then we're swallowed or we tear loose ----
@@ -827,11 +884,16 @@ public class FishPlayer : NetworkBehaviour
         if (jaws != null) jaws.SetHolding(true);
         var lib = GameAudio.Lib;
         if (lib != null) GameAudio.PlayAt(lib.scream, transform.position, 0.8f, 30f, 0.1f);
+        if (TryGetComponent(out BodyJuice juice)) juice.Punch(-0.12f);
+        // The shark's own player already felt the bite land (SharkAbilities); everyone else sees the jaws freeze on it.
+        if (shark != null && !shark.isLocalPlayer) GameFeel.HitStop(0.09f, shark.gameObject, gameObject);
 
         if (isLocalPlayer && shark != null)
         {
             var orbit = LocalOrbit();
             if (orbit != null) orbit.Spectate(shark.transform);
+            GameFeel.Shake(0.8f);
+            MatchHud.HurtFlash(0.9f);
         }
     }
 
@@ -893,6 +955,12 @@ public class FishPlayer : NetworkBehaviour
         }
         var lib = GameAudio.Lib;
         if (lib != null) GameAudio.PlayAt(lib.devour, transform.position, 1f, 35f);
+        if (shark != null && shark.isLocalPlayer) GameFeel.Shake(0.55f);
+        if (isLocalPlayer)
+        {
+            GameFeel.Shake(0.6f);
+            MatchHud.HurtFlash(1f);
+        }
         // Once it's swallowed the body goes, so it doesn't ride in the shark's jaws for the rest of the round.
         StartCoroutine(VanishAfter(SwallowSeconds, leaveJaws: true));
     }
@@ -949,6 +1017,14 @@ public class FishPlayer : NetworkBehaviour
             GameAudio.PlayAt(GameAudio.Lib.breakFree, transform.position, 0.9f, 30f);
             GameAudio.PlayAt(GameAudio.Pick(GameAudio.Lib.bubbles), transform.position, 0.8f, 25f);
         }
+        if (wasInJaws)
+        {
+            // Tearing loose: a ring of bubbles and the water buckling around the jaws.
+            Vector3 at = jaws != null && jaws.MouthAnchor != null ? jaws.MouthAnchor.position : transform.position;
+            WaterFx.BubbleBurst(at, 40, 0.5f, 4f, new Vector2(0.03f, 0.09f));
+            WaterFx.Shockwave(at, 6f, 0.45f);
+            if (shark != null && shark.isLocalPlayer) GameFeel.Shake(0.3f);
+        }
         if (!TryGetComponent(out Edible edible) || !edible.IsEaten) return; // already out
         edible.Release();
         if (TryGetComponent(out NetworkTransformBase netTransform)) netTransform.enabled = true;
@@ -973,6 +1049,12 @@ public class FishPlayer : NetworkBehaviour
         if (orbit != null) orbit.SetTarget(transform);
         // The motor owns the velocity, so the burst out of the jaws is a short dash, not a push.
         if (TryGetComponent(out FishMotor motor)) motor.BeginDash(fling.magnitude, 0.45f, 0.4f);
+        // A beat of stillness, then the burst: a white pop, the view punching out, the body stretching away.
+        GameFeel.HitStop(0.07f, gameObject);
+        GameFeel.Shake(0.5f);
+        GameFeel.FovKick(10f);
+        MatchHud.WhiteFlash(0.5f);
+        if (TryGetComponent(out BodyJuice juice)) juice.Punch(0.12f);
     }
 
     // ---- Never under the seabed ----

@@ -219,12 +219,7 @@ namespace FishGame
         {
             // The quake at the start of a sand slide shakes this player's view.
             if (_kind != WorldEventKind.SandSlide || _t > quakeSeconds) return;
-            var cam = WaterFx.ViewCamera;
-            if (cam == null) return;
-            float shake = 0.35f * (1f - _t / quakeSeconds);
-            cam.transform.position += new Vector3(Mathf.PerlinNoise(Time.time * 25f, 0f) - 0.5f,
-                                                  Mathf.PerlinNoise(0f, Time.time * 25f) - 0.5f,
-                                                  Mathf.PerlinNoise(Time.time * 25f, Time.time * 25f) - 0.5f) * shake;
+            GameFeel.Tremor(0.8f * (1f - _t / quakeSeconds));
         }
 
         // ------------------------------------------------------------------ setup

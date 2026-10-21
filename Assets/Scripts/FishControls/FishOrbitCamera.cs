@@ -133,6 +133,8 @@ namespace FishGame
 
         /// <summary>The creature being watched while spectating (null when following our own).</summary>
         public Transform SpectateTarget => _spectating;
+        /// <summary>The creature the camera follows right now (our own, or the one we spectate).</summary>
+        public Transform Target => target;
 
         // A menu or the results screen has the mouse: it mustn't also swing the camera or flip views.
         static bool MouseTaken => PauseMenu.IsOpen || RoundScreen.ShowingResults;

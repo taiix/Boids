@@ -14,7 +14,9 @@ namespace FishGame
             ("MUSIC", new[]
             {
                 "\"Underwater\" - Cleyton Kauffman (soundcloud.com/cleytonkauffman) - CC0",
-                "\"Nautilus\" - poinl - CC0",
+                "\"Post Apocalyptic Wastelands\" - Juhani Junkala / SubspaceAudio - CC0",
+                "\"The Creep\" - Ruskerdax (with a field recording by galeku) - CC0",
+                "\"Paranoid Truth\" - Tsorthan Grove - CC0",
                 "\"Sirens in Darkness\" - The Cynic Project / cynicmusic.com / pixelsphere.org - CC0",
                 "Music Jingles - Kenney (kenney.nl) - CC0",
             }),
@@ -31,6 +33,7 @@ namespace FishGame
                 "Sonar Ping - Spiceman - CC0",
                 "7 Eating Crunches - StarNinjas - CC0",
                 "Swishes Sound Pack, Freeze Spell - artisticdude - CC0",
+                "\"Aquaria\" (deep ambience) - cynicmusic / pixelsphere.org - CC0",
                 "Heartbeat sounds - bart - CC0",
                 "Acid burn sounds - mikhog - CC-BY 3.0 (creativecommons.org/licenses/by/3.0)",
             }),

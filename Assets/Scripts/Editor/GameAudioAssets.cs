@@ -19,8 +19,12 @@ namespace FishGame
         static readonly Dictionary<string, string[]> Map = new Dictionary<string, string[]>
         {
             { "musicMenu", new[] { "Music/Music_Menu" } },
-            { "musicRound", new[] { "Music/Music_Round" } },
+            { "musicRound", new[] { "Music/Music_Round_Wastes" } },
+            { "musicRounds", new[] { "Music/Music_Round_Wastes", "Music/Music_Round_Creep", "Music/Music_Round_Paranoid" } },
             { "musicEscape", new[] { "Music/Music_Escape" } },
+            { "tensionDrone", new[] { "Tension/Tension_Drone" } },
+            { "tensionNear", new[] { "Tension/Tension_Near" } },
+            { "tensionSting", new[] { "Tension/Tension_Sting" } },
             { "jingleRoundStart", new[] { "Jingles/Jingle_RoundStart" } },
             { "jingleEscaped", new[] { "Jingles/Jingle_Escaped" } },
             { "jingleFishWin", new[] { "Jingles/Jingle_FishWin" } },
@@ -45,6 +49,7 @@ namespace FishGame
             { "bubbles", new[] { "Water/Bubbles_1", "Water/Bubbles_2", "Water/Bubbles_3" } },
             { "swim", new[] { "Water/Swim" } },
             { "ambientBubbles", new[] { "Water/AmbientBubbles" } },
+            { "ambientDeep", new[] { "Water/AmbientDeep" } },
             { "taskDoneShark", new[] { "Alerts/TaskDoneShark" } },
             { "taskDoneFish", new[] { "Alerts/TaskDoneFish" } },
             { "exitOpen", new[] { "Alerts/ExitOpen" } },
@@ -116,7 +121,8 @@ namespace FishGame
         }
 
         // Music streams (long, played one at a time); effects load decompressed so they start instantly;
-        // anything placed in the world is mono so it pans and fades with distance.
+        // anything placed in the world is mono so it pans and fades with distance. The long stereo beds (tension
+        // layers, the deep ambience) stay stereo and compressed in memory instead of decompressing ~10 MB each.
         static void ConfigureImports()
         {
             foreach (var guid in AssetDatabase.FindAssets("t:AudioClip", new[] { Root }))
@@ -124,9 +130,11 @@ namespace FishGame
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 if (!(AssetImporter.GetAtPath(path) is AudioImporter imp)) continue;
                 bool music = path.Contains("/Music/");
-                bool flat = music || path.Contains("/Jingles/") || path.Contains("/Ui/");
+                bool bed = path.Contains("/Tension/Tension_Drone") || path.Contains("/Tension/Tension_Near") || path.EndsWith("/AmbientDeep.ogg");
+                bool flat = music || bed || path.Contains("/Jingles/") || path.Contains("/Ui/") || path.Contains("/Tension/");
                 var s = imp.defaultSampleSettings;
-                s.loadType = music ? AudioClipLoadType.Streaming : AudioClipLoadType.DecompressOnLoad;
+                s.loadType = music ? AudioClipLoadType.Streaming
+                           : bed ? AudioClipLoadType.CompressedInMemory : AudioClipLoadType.DecompressOnLoad;
                 s.compressionFormat = AudioCompressionFormat.Vorbis;
                 s.quality = music ? 0.6f : 0.7f;
                 imp.defaultSampleSettings = s;

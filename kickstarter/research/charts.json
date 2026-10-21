@@ -1,0 +1,233 @@
+{
+ "Among Us": {
+  "current": "9611",
+  "peak24": "13597",
+  "alltime": "438524",
+  "last_month": [
+   "September 2026",
+   "6769.37",
+   "16103"
+  ],
+  "months": 96
+ },
+ "Dead by Daylight": {
+  "current": "46246",
+  "peak24": "65546",
+  "alltime": "168845",
+  "last_month": [
+   "September 2026",
+   "47609.97",
+   "75951"
+  ],
+  "months": 125
+ },
+ "Feed and Grow: Fish": {
+  "current": "159",
+  "peak24": "179",
+  "alltime": "1046",
+  "last_month": [
+   "September 2026",
+   "156.26",
+   "268"
+  ],
+  "months": 130
+ },
+ "Maneater": {
+  "current": "139",
+  "peak24": "194",
+  "alltime": "4158",
+  "last_month": [
+   "September 2026",
+   "352.23",
+   "884"
+  ],
+  "months": 74
+ },
+ "Depth": {
+  "current": "16",
+  "peak24": "29",
+  "alltime": "10775",
+  "last_month": [
+   "September 2026",
+   "26.65",
+   "55"
+  ],
+  "months": 146
+ },
+ "Lethal Company": {
+  "current": "3285",
+  "peak24": "4622",
+  "alltime": "239369",
+  "last_month": [
+   "September 2026",
+   "2654.16",
+   "5486"
+  ],
+  "months": 37
+ },
+ "Content Warning": {
+  "current": "845",
+  "peak24": "1480",
+  "alltime": "63320",
+  "last_month": [
+   "September 2026",
+   "732.52",
+   "1901"
+  ],
+  "months": 31
+ },
+ "PEAK": {
+  "current": "10154",
+  "peak24": "23964",
+  "alltime": "169910",
+  "last_month": [
+   "September 2026",
+   "21021.94",
+   "52449"
+  ],
+  "months": 17
+ },
+ "Goose Goose Duck": {
+  "current": "1451",
+  "peak24": "7917",
+  "alltime": "701898",
+  "last_month": [
+   "September 2026",
+   "3288.05",
+   "10401"
+  ],
+  "months": 66
+ },
+ "Deceive Inc.": {
+  "current": "9",
+  "peak24": "9",
+  "alltime": "8499",
+  "last_month": [
+   "September 2026",
+   "16.05",
+   "89"
+  ],
+  "months": 44
+ },
+ "R.E.P.O.": {
+  "current": "13412",
+  "peak24": "25834",
+  "alltime": "266908",
+  "last_month": [
+   "September 2026",
+   "16857.59",
+   "35170"
+  ],
+  "months": 20
+ },
+ "Midnight Ghost Hunt": {
+  "current": "16",
+  "peak24": "16",
+  "alltime": "4801",
+  "last_month": [
+   "September 2026",
+   "2.76",
+   "14"
+  ],
+  "months": 55
+ },
+ "Shark Attack Deathmatch 2": {
+  "current": "0",
+  "peak24": "0",
+  "alltime": "92",
+  "last_month": [
+   "April 2023",
+   "40.78",
+   "92"
+  ],
+  "months": 85
+ },
+ "Barotrauma": {
+  "current": "1661",
+  "peak24": "3898",
+  "alltime": "19528",
+  "last_month": [
+   "September 2026",
+   "2614.06",
+   "5496"
+  ],
+  "months": 89
+ },
+ "Witch It": {
+  "current": "40",
+  "peak24": "107",
+  "alltime": "4971",
+  "last_month": [
+   "September 2026",
+   "29.00",
+   "105"
+  ],
+  "months": 119
+ },
+ "Carnival Hunt": {
+  "current": "91",
+  "peak24": "190",
+  "alltime": "1771",
+  "last_month": [
+   "September 2026",
+   "238.83",
+   "599"
+  ],
+  "months": 4
+ },
+ "Beasts of Bermuda": {
+  "current": "1078",
+  "peak24": "1383",
+  "alltime": "3516",
+  "last_month": [
+   "September 2026",
+   "684.17",
+   "1068"
+  ],
+  "months": 95
+ },
+ "Day of Dragons": {
+  "current": "190",
+  "peak24": "280",
+  "alltime": "3183",
+  "last_month": [
+   "September 2026",
+   "196.94",
+   "375"
+  ],
+  "months": 83
+ },
+ "The Isle": {
+  "current": "14728",
+  "peak24": "22053",
+  "alltime": "27843",
+  "last_month": [
+   "September 2026",
+   "17754.90",
+   "27789"
+  ],
+  "months": 131
+ },
+ "I Am Fish": {
+  "current": "33",
+  "peak24": "47",
+  "alltime": "541",
+  "last_month": [
+   "September 2026",
+   "44.17",
+   "116"
+  ],
+  "months": 62
+ },
+ "ABZU": {
+  "current": "15",
+  "peak24": "18",
+  "alltime": "1311",
+  "last_month": [
+   "September 2026",
+   "10.43",
+   "26"
+  ],
+  "months": 124
+ }
+}

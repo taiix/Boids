@@ -42,6 +42,11 @@
                         <ui:Label text="VSync" class="mm-setting-name"/>
                         <ui:Toggle name="vsync-toggle" class="mm-toggle"/>
                     </ui:VisualElement>
+                    <ui:VisualElement class="mm-setting-row">
+                        <ui:Label text="Screen shake" class="mm-setting-name"/>
+                        <ui:Slider name="shake-slider" low-value="0" high-value="1" value="1" class="mm-slider"/>
+                        <ui:Label name="shake-val" text="100%" class="mm-setting-val"/>
+                    </ui:VisualElement>
                 </ui:VisualElement>
 
                 <!-- ============ right: microphone (voice chat runs through Steam) ============ -->
