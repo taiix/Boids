@@ -52,6 +52,8 @@ namespace FishGame
         public string outputFolder = "Marketing/Screenshots";
         [Tooltip("Where capsule plates (ShowcaseOutput.CapsulePlate shots) are saved, relative to the project folder.")]
         public string plateFolder = "Marketing/SteamCapsules/plates";
+        [Tooltip("Where RecordClip writes its frame sequences (one folder per clip), relative to the project folder.")]
+        public string clipFolder = "Marketing/Clips/frames";
 
         [Header("Play")]
         public bool activateOnPlay = true;
@@ -141,6 +143,7 @@ namespace FishGame
         readonly Queue<System.Func<IEnumerator>> _requests = new Queue<System.Func<IEnumerator>>();
         bool _running, _worldReady;
         int _frame, _frames;
+        int _postFrames;   // a clip runs on past the shot's moment; bodies keep swimming for this many frames
 
         Light _sun;
         float _sunIntensity;
@@ -183,6 +186,18 @@ namespace FishGame
                 if (shots[k].includeInCaptureAll && shots[k].output == output) Enqueue(() => CaptureRoutine(k, true));
             }
         }
+
+        /// <summary>
+        /// Record shot <paramref name="index"/> as a numbered JPEG sequence (for GIFs and short videos): the last
+        /// <paramref name="before"/> seconds of its run-up, then <paramref name="after"/> seconds past the shot's
+        /// moment with the bodies swimming on past their marks. Same fixed 60 fps simulation as a screenshot, so
+        /// the clip is smooth however slowly it renders. <paramref name="dolly"/> pushes the camera this many
+        /// metres along its view over the clip; <paramref name="track"/> (0..1) turns it to follow the shark.
+        /// Frames go to <see cref="clipFolder"/>/&lt;name&gt;/.
+        /// </summary>
+        public void RecordClip(int index, string name, float before, float after, int fps = 30,
+                               int clipWidth = 1280, int clipHeight = 720, float dolly = 0f, float track = 0f) =>
+            Enqueue(() => ClipRoutine(index, name, before, after, fps, clipWidth, clipHeight, dolly, track));
 
         /// <summary>Let time run again (the shot stays set up).</summary>
         public void Resume()
@@ -261,7 +276,11 @@ namespace FishGame
 
         // ------------------------------------------------------------------ shots
 
-        IEnumerator ShowRoutine(int index)
+        IEnumerator ShowRoutine(int index) => RunShot(index, 0, null);
+
+        // Sets the shot up and simulates it. Without onFrame it freezes on the shot's moment (a screenshot);
+        // with it, it runs postFrames further and calls onFrame at the end of every frame, after rendering.
+        IEnumerator RunShot(int index, int postFrames, System.Action<int> onFrame)
         {
             var shots = Shots;
             if (index < 0 || index >= shots.Count) yield break;
@@ -281,9 +300,22 @@ namespace FishGame
             if (shot.worldEvent != WorldEventKind.None) StartEvent(shot);
 
             _frames = Mathf.Max(1, Mathf.RoundToInt(shot.settleSeconds * 60f));
+            _postFrames = onFrame != null ? Mathf.Max(0, postFrames) : 0;
             _shotTime = 0.0;
             foreach (var a in shot.Actors)
                 if (a.isActiveAndEnabled) Spawn(a, shot);
+
+            if (onFrame != null)
+            {
+                for (_frame = 0; _frame <= _frames + _postFrames; _frame++)
+                {
+                    StepActors(shot, _frame);
+                    yield return new WaitForEndOfFrame();
+                    onFrame(_frame);
+                }
+                Status = $"{index + 1:00} {shot.slug}: clip done";
+                yield break;
+            }
 
             for (_frame = 0; _frame <= _frames; _frame++)
             {
@@ -315,6 +347,86 @@ namespace FishGame
             Written.Add(path);
             Status = $"saved {Path.GetFileName(path)}";
             Debug.Log($"[Marketing] Saved {path} ({w}x{h}, {ss}x supersampled)");
+        }
+
+        IEnumerator ClipRoutine(int index, string name, float before, float after, int fps, int w, int h, float dolly, float track)
+        {
+            if (index < 0 || index >= Shots.Count || showcaseCamera == null) yield break;
+            string dir = Path.Combine(ProjectPath(clipFolder), Sanitize(name));
+            if (Directory.Exists(dir))
+                foreach (var f in Directory.GetFiles(dir, "*.jpg")) File.Delete(f);
+            Directory.CreateDirectory(dir);
+
+            var rt = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32) { name = "Showcase Clip" };
+            rt.Create();
+            var go = new GameObject("Showcase Clip Camera");
+            go.transform.SetParent(showcaseCamera.transform, false);
+            var cam = go.AddComponent<Camera>();
+            var hd = go.AddComponent<HDAdditionalCameraData>();
+            var tex = new Texture2D(w, h, TextureFormat.RGB24, false);
+            go.SetActive(false);
+
+            int step = Mathf.Max(1, Mathf.RoundToInt(60f / Mathf.Max(1, fps)));
+            int post = Mathf.RoundToInt(after * 60f);
+            int first = 0, last = 0, written = 0;
+            Vector3 camStart = default;
+            Status = $"recording {name}";
+
+            yield return RunShot(index, post, frame =>
+            {
+                if (frame == 0)
+                {
+                    first = Mathf.Max(30, _frames - Mathf.RoundToInt(before * 60f));
+                    last = _frames + _postFrames;
+                }
+                // Warm the capture camera up half a second early, so TAA and volumetrics have history.
+                if (frame == first - 30)
+                {
+                    cam.CopyFrom(showcaseCamera);
+                    var srcHd = showcaseCamera.GetComponent<HDAdditionalCameraData>();
+                    if (srcHd != null) srcHd.CopyTo(hd);
+                    cam.depth = showcaseCamera.depth - 1;
+                    cam.targetTexture = rt;
+                    cam.ResetAspect();
+                    go.transform.localPosition = Vector3.zero;
+                    go.transform.localRotation = Quaternion.identity;
+                    go.SetActive(true);
+                    ApplyGrade(Shots[index]);
+                    camStart = showcaseCamera.transform.position;
+                }
+                if (frame >= first && (frame - first) % step == 0 && go.activeSelf)
+                {
+                    var prev = RenderTexture.active;
+                    RenderTexture.active = rt;
+                    tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+                    tex.Apply(false);
+                    RenderTexture.active = prev;
+                    File.WriteAllBytes(Path.Combine(dir, $"{written++:0000}.jpg"), tex.EncodeToJPG(95));
+                }
+                if (frame >= first - 30 && string.IsNullOrEmpty(Shots[index].cameraMountBone))
+                {
+                    var t = showcaseCamera.transform;
+                    if (dolly != 0f)
+                    {
+                        float k = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(first - 30, last, frame));
+                        t.position = camStart + t.forward * (dolly * k);
+                    }
+                    var shark = _live.Find(l => l.mark.kind == ShowcaseActorKind.Shark && l.body != null);
+                    if (track > 0f && shark != null)
+                    {
+                        var look = Quaternion.LookRotation(shark.body.position - t.position, Vector3.up);
+                        t.rotation = Quaternion.Slerp(t.rotation, look, track * 0.08f);
+                    }
+                }
+            });
+
+            cam.targetTexture = null;
+            Destroy(go);
+            rt.Release();
+            Destroy(rt);
+            Destroy(tex);
+            Status = $"clip {name}: {written} frames";
+            Debug.Log($"[Marketing] Clip {name}: {written} frames at {60 / step} fps in {dir}");
         }
 
         /// <summary>The absolute screenshot folder.</summary>
@@ -537,21 +649,31 @@ namespace FishGame
             return live;
         }
 
-        // Backwards from the mark, so the body is exactly on it (facing its way) at capture.
+        // Backwards from the mark, so the body is exactly on it (facing its way) at capture; a clip carries on
+        // forwards past it.
         void BuildPath(Live live, Vector3 mark, Quaternion facing)
         {
-            int n = _frames + 1;
+            int n = _frames + 1 + _postFrames;
             live.path = new Vector3[n];
             live.rot = new Quaternion[n];
             Vector3 p = mark;
             Quaternion r = facing;
             float dt = 1f / 60f;
-            for (int i = n - 1; i >= 0; i--)
+            for (int i = _frames; i >= 0; i--)
             {
                 live.path[i] = p;
                 live.rot[i] = r;
                 p -= r * Vector3.forward * (live.mark.swimSpeed * dt);
                 r = Quaternion.AngleAxis(-live.mark.turnRate * dt, Vector3.up) * r;
+            }
+            p = mark;
+            r = facing;
+            for (int i = _frames + 1; i < n; i++)
+            {
+                r = Quaternion.AngleAxis(live.mark.turnRate * dt, Vector3.up) * r;
+                p += r * Vector3.forward * (live.mark.swimSpeed * dt);
+                live.path[i] = p;
+                live.rot[i] = r;
             }
         }
 

@@ -12,6 +12,10 @@ namespace FishGame
     ///   * health / hunger (bottom left), "STARVING" once hunger runs out
     ///   * voice (bottom right): talking / quiet / mic off
     ///   * prompts with key tiles ("Press E to eat"), a task status line, a hold-progress bar, short flash messages
+    ///   * screen flashes: red from the edges when you're hurt (<see cref="HurtFlash"/>, and on its own whenever your
+    ///     health drops), a white pop when you tear free (<see cref="WhiteFlash"/>), and a slow red pulse while your
+    ///     health is low; the bars react too - health shakes and flashes on a hit, hunger pops when you eat, and an
+    ///     ability row pulses as it comes back
     /// (Your outcome and the round's result are RoundScreen's.)
     ///
     /// Created by the local player's body when it spawns, in the game scene, so it goes away with that
@@ -77,6 +81,14 @@ namespace FishGame
             s_eventFrame = Time.frameCount;
         }
 
+        static float s_hurt, s_pop;
+
+        /// <summary>Red flash in from the screen's edges (0-1), fading on its own.</summary>
+        public static void HurtFlash(float strength) => s_hurt = Mathf.Max(s_hurt, Mathf.Clamp01(strength));
+
+        /// <summary>A white pop over the whole screen (0-1), fading fast.</summary>
+        public static void WhiteFlash(float strength) => s_pop = Mathf.Max(s_pop, Mathf.Clamp01(strength));
+
         /// <summary>A short message in the middle of the screen (fades after a moment).</summary>
         public static void Flash(string text, float seconds = 1.2f)
         {
@@ -91,6 +103,13 @@ namespace FishGame
         Label _clockLabel, _clockTime, _healthVal, _hungerVal, _hungerLabel, _voiceLabel,
               _flashText, _statusText, _eventText;
         ReefGlyph _micIcon;
+        VisualElement _vignette, _whitePop, _vitals, _hungerRow;
+        FishVitals _feelVitals;
+        float _lastHealth = -1f, _lastHunger = -1f;
+        float _healthHitAt = -10f, _hungerPopAt = -10f, _lungeReadyAt = -10f, _sonarReadyAt = -10f;
+        bool _lungeWasReady = true, _sonarWasReady = true, _barsMoved;
+        static Texture2D s_vignetteTexture;
+        static readonly Color HurtRed = new(0.85f, 0.05f, 0.04f);
         string _shownPrompt;
         int _shownSeconds = int.MinValue, _shownHealth = int.MinValue, _shownHunger = int.MinValue;
         bool _built;
@@ -119,6 +138,14 @@ namespace FishGame
             if (sheet != null) _root.styleSheets.Add(sheet);
             _root.pickingMode = PickingMode.Ignore;
 
+            // full-screen flashes, under everything else
+            _vignette = Overlay(_root);
+            _vignette.style.backgroundImage = VignetteTexture();
+            _vignette.style.backgroundSize = new BackgroundSize(Length.Percent(100), Length.Percent(100));
+            _vignette.style.unityBackgroundImageTintColor = HurtRed;
+            _whitePop = Overlay(_root);
+            _whitePop.style.backgroundColor = Color.white;
+
             var hud = Add(_root, "hud");
 
             // clock
@@ -132,9 +159,10 @@ namespace FishGame
             _eventText = Text(_event, "", "event-text", "cb");
 
             // vitals
-            var vitals = Add(hud, "hud-panel", "vitals");
+            var vitals = _vitals = Add(hud, "hud-panel", "vitals");
             (_healthFill, _healthVal, _) = VitalRow(vitals, "HEALTH", "vfill--health");
             (_hungerFill, _hungerVal, _hungerLabel) = VitalRow(vitals, "HUNGER", "vfill--hunger");
+            _hungerRow = _hungerLabel.parent;
 
             // voice
             _voice = Add(hud, "hud-panel", "voice");
@@ -189,7 +217,9 @@ namespace FishGame
 
             UpdateClock();
             UpdateEvent();
-            UpdateVitals(FindLocalVitals());
+            var vitals = FindLocalVitals();
+            UpdateVitals(vitals);
+            UpdateFeel(vitals);
             UpdateVoice();
             UpdateAbilities();
             UpdatePrompt();
@@ -263,6 +293,109 @@ namespace FishGame
             _sonarFill.style.width = Length.Percent(shark.SonarCharge * 100f);
             _lungeRow.EnableInClassList("arow--ready", shark.LungeReady);
             _sonarRow.EnableInClassList("arow--ready", shark.SonarReady);
+
+            // A row that's just come back pulses.
+            float now = Time.unscaledTime;
+            if (shark.LungeReady && !_lungeWasReady) _lungeReadyAt = now;
+            if (shark.SonarReady && !_sonarWasReady) _sonarReadyAt = now;
+            _lungeWasReady = shark.LungeReady;
+            _sonarWasReady = shark.SonarReady;
+            Pop(_lungeRow, now - _lungeReadyAt, 0.4f, 0.14f);
+            Pop(_sonarRow, now - _sonarReadyAt, 0.4f, 0.14f);
+        }
+
+        // ---------------------------------------------------------------- feel
+
+        void UpdateFeel(FishVitals v)
+        {
+            float dt = Time.unscaledDeltaTime, now = Time.unscaledTime;
+
+            // Health dropping (whatever hurt us) flashes red and shakes the bar; hunger rising (we ate) pops it.
+            if (v != _feelVitals) { _feelVitals = v; _lastHealth = _lastHunger = -1f; }
+            if (v != null)
+            {
+                float h = v.HealthNorm, g = v.HungerNorm;
+                float lost = _lastHealth - h;
+                if (_lastHealth >= 0f && lost >= 0.03f)
+                {
+                    HurtFlash(Mathf.Clamp(lost * 5f, 0.35f, 1f));
+                    _healthHitAt = now;
+                }
+                if (_lastHunger >= 0f && g - _lastHunger >= 0.03f) _hungerPopAt = now;
+                _lastHealth = h;
+                _lastHunger = g;
+            }
+
+            s_hurt = Mathf.Max(0f, s_hurt - 2.2f * dt);
+            s_pop = Mathf.Max(0f, s_pop - 4f * dt);
+
+            // Low health: a slow red pulse, like a heartbeat, until we're out of danger (or out of the round).
+            var me = v != null ? v.GetComponent<FishPlayer>() : null;
+            bool low = v != null && !v.IsDead && v.HealthNorm < 0.25f && (me == null || !me.IsOut);
+            float beat = Mathf.Pow(Mathf.Abs(Mathf.Sin(now * 2.6f)), 6f);
+            float pulse = low ? 0.14f + 0.2f * beat : 0f;
+            _vignette.style.opacity = Mathf.Clamp01(Mathf.Max(s_hurt * 0.9f, pulse));
+            _whitePop.style.opacity = s_pop * 0.45f;
+
+            // The health bar jolts and flashes white for a moment after a hit.
+            float since = now - _healthHitAt;
+            if (since < 0.35f)
+            {
+                float a = 1f - since / 0.35f;
+                _vitals.style.translate = new Translate(Random.Range(-7f, 7f) * a, Random.Range(-3f, 3f) * a);
+                _healthFill.style.backgroundColor = since < 0.1f ? new StyleColor(Color.white) : new StyleColor(StyleKeyword.Null);
+                _barsMoved = true;
+            }
+            else if (_barsMoved)
+            {
+                _barsMoved = false;
+                _vitals.style.translate = StyleKeyword.Null;
+                _healthFill.style.backgroundColor = StyleKeyword.Null;
+            }
+            Pop(_hungerRow, now - _hungerPopAt, 0.35f, 0.15f);
+        }
+
+        // Scale an element up by `amount` and let it settle back over `seconds`.
+        static void Pop(VisualElement e, float since, float seconds, float amount)
+        {
+            if (e == null) return;
+            if (since >= 0f && since < seconds)
+            {
+                float u = since / seconds;
+                float s = 1f + amount * Mathf.Sin(u * Mathf.PI) * (1f - u * 0.5f);
+                e.style.scale = new Scale(new Vector3(s, s, 1f));
+            }
+            else if (e.style.scale.keyword != StyleKeyword.Null) e.style.scale = StyleKeyword.Null;
+        }
+
+        static VisualElement Overlay(VisualElement parent)
+        {
+            var e = new VisualElement { pickingMode = PickingMode.Ignore };
+            e.style.position = Position.Absolute;
+            e.style.left = e.style.top = e.style.right = e.style.bottom = 0f;
+            e.style.opacity = 0f;
+            parent.Add(e);
+            return e;
+        }
+
+        // White, clear in the middle and solid at the edges (tinted red where it's drawn).
+        static Texture2D VignetteTexture()
+        {
+            if (s_vignetteTexture != null) return s_vignetteTexture;
+            const int n = 128;
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "HurtVignette" };
+            var px = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float dx = (x + 0.5f) / n * 2f - 1f, dy = (y + 0.5f) / n * 2f - 1f;
+                    float r = Mathf.Sqrt(dx * dx + dy * dy) / 1.4142f;
+                    float a = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.38f, 1f, r));
+                    px[y * n + x] = new Color32(255, 255, 255, (byte)(a * 255f));
+                }
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+            return s_vignetteTexture = tex;
         }
 
         static SharkAbilities FindLocalShark()

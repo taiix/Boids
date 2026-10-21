@@ -1,0 +1,795 @@
+[
+ {
+  "id": 945360,
+  "name": "Among Us",
+  "dev": [
+   "Innersloth"
+  ],
+  "pub": [
+   "Innersloth"
+  ],
+  "release": "Nov 16, 2018",
+  "coming_soon": false,
+  "free": false,
+  "price": "$2.99",
+  "initial": "$4.99",
+  "genres": [
+   "Casual"
+  ],
+  "cats": [
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 751273,
+  "pos": 691397,
+  "desc": "Very Positive",
+  "ea": false
+ },
+ {
+  "id": 381210,
+  "name": "Dead by Daylight",
+  "dev": [
+   "Behaviour Interactive Inc."
+  ],
+  "pub": [
+   "Behaviour Interactive Inc."
+  ],
+  "release": "Jun 14, 2016",
+  "coming_soon": false,
+  "free": false,
+  "price": "$19.99",
+  "initial": "",
+  "genres": [
+   "Action"
+  ],
+  "cats": [
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 940168,
+  "pos": 735787,
+  "desc": "Mostly Positive",
+  "ea": false
+ },
+ {
+  "id": 429050,
+  "name": "Feed and Grow: Fish",
+  "dev": [
+   "Old B1ood"
+  ],
+  "pub": [
+   "Greens s.r.o."
+  ],
+  "release": "Jan 8, 2016",
+  "coming_soon": false,
+  "free": false,
+  "price": "$14.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Indie",
+   "Simulation",
+   "Early Access"
+  ],
+  "cats": [
+   "Single-player",
+   "Multi-player"
+  ],
+  "reviews_total": 21875,
+  "pos": 17122,
+  "desc": "Mostly Positive",
+  "ea": true
+ },
+ {
+  "id": 629820,
+  "name": "Maneater",
+  "dev": [
+   "Tripwire Interactive"
+  ],
+  "pub": [
+   "Tripwire Interactive"
+  ],
+  "release": "May 25, 2021",
+  "coming_soon": false,
+  "free": false,
+  "price": "$39.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Adventure",
+   "Indie",
+   "RPG"
+  ],
+  "cats": [
+   "Single-player"
+  ],
+  "reviews_total": 27168,
+  "pos": 23712,
+  "desc": "Very Positive",
+  "ea": false
+ },
+ {
+  "id": 274940,
+  "name": "Depth",
+  "dev": [
+   "Ammobox Studios"
+  ],
+  "pub": [
+   "Ammobox Studios"
+  ],
+  "release": "Nov 3, 2014",
+  "coming_soon": false,
+  "free": false,
+  "price": "$19.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Indie"
+  ],
+  "cats": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP"
+  ],
+  "reviews_total": 32947,
+  "pos": 28985,
+  "desc": "Very Positive",
+  "ea": false
+ },
+ {
+  "id": 1966720,
+  "name": "Lethal Company",
+  "dev": [
+   "Zeekerss"
+  ],
+  "pub": [
+   "Zeekerss"
+  ],
+  "release": "Oct 23, 2023",
+  "coming_soon": false,
+  "free": false,
+  "price": "$9.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Adventure",
+   "Indie",
+   "Early Access"
+  ],
+  "cats": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 511403,
+  "pos": 495806,
+  "desc": "Overwhelmingly Positive",
+  "ea": true
+ },
+ {
+  "id": 2881650,
+  "name": "Content Warning",
+  "dev": [
+   "Zorro",
+   "Wilnyl",
+   "Philip",
+   "thePetHen",
+   "Skog"
+  ],
+  "pub": [
+   "Evil Landfall?"
+  ],
+  "release": "Apr 1, 2024",
+  "coming_soon": false,
+  "free": false,
+  "price": "$4.95",
+  "initial": "$7.99",
+  "genres": [
+   "Action",
+   "Adventure",
+   "Indie"
+  ],
+  "cats": [
+   "Multi-player",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 163912,
+  "pos": 153708,
+  "desc": "Very Positive",
+  "ea": false
+ },
+ {
+  "id": 3527290,
+  "name": "PEAK",
+  "dev": [
+   "Team PEAK"
+  ],
+  "pub": [
+   "Aggro Crab",
+   "Evil Landfall?"
+  ],
+  "release": "Jun 16, 2025",
+  "coming_soon": false,
+  "free": false,
+  "price": "$7.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Adventure",
+   "Indie"
+  ],
+  "cats": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 379991,
+  "pos": 358874,
+  "desc": "Very Positive",
+  "ea": false
+ },
+ {
+  "id": 1568590,
+  "name": "Goose Goose Duck",
+  "dev": [
+   "Gaggle Studios, Inc."
+  ],
+  "pub": [
+   "Gaggle Studios, Inc."
+  ],
+  "release": "Oct 3, 2021",
+  "coming_soon": false,
+  "free": true,
+  "price": null,
+  "initial": null,
+  "genres": [
+   "Casual",
+   "Indie",
+   "Massively Multiplayer",
+   "Strategy",
+   "Free To Play"
+  ],
+  "cats": [
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 82841,
+  "pos": 71687,
+  "desc": "Very Positive",
+  "ea": false
+ },
+ {
+  "id": 820520,
+  "name": "Deceive Inc.",
+  "dev": [
+   "Sweet Bandits Studios"
+  ],
+  "pub": [
+   "Tripwire Presents"
+  ],
+  "release": "Mar 21, 2023",
+  "coming_soon": false,
+  "free": false,
+  "price": "$19.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Indie",
+   "Strategy"
+  ],
+  "cats": [
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 7904,
+  "pos": 6407,
+  "desc": "Very Positive",
+  "ea": false
+ },
+ {
+  "id": 3241660,
+  "name": "R.E.P.O.",
+  "dev": [
+   "semiwork"
+  ],
+  "pub": [
+   "semiwork"
+  ],
+  "release": "Feb 26, 2025",
+  "coming_soon": false,
+  "free": false,
+  "price": "$9.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Early Access"
+  ],
+  "cats": [
+   "Single-player",
+   "Multi-player",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 429006,
+  "pos": 411810,
+  "desc": "Overwhelmingly Positive",
+  "ea": true
+ },
+ {
+  "id": 915810,
+  "name": "Midnight Ghost Hunt",
+  "dev": [
+   "Vaulted Sky Games"
+  ],
+  "pub": [
+   "Coffee Stain Publishing"
+  ],
+  "release": "Mar 21, 2024",
+  "coming_soon": false,
+  "free": false,
+  "price": "$19.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Indie"
+  ],
+  "cats": [
+   "Multi-player",
+   "PvP",
+   "Online PvP"
+  ],
+  "reviews_total": 7532,
+  "pos": 5761,
+  "desc": "Mostly Positive",
+  "ea": false
+ },
+ {
+  "id": 330580,
+  "name": "Shark Attack Deathmatch 2",
+  "dev": [
+   "Lighthouse Games Studio"
+  ],
+  "pub": [
+   "Lighthouse Games Studio"
+  ],
+  "release": "Jul 26, 2019",
+  "coming_soon": false,
+  "free": false,
+  "price": "$4.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Indie"
+  ],
+  "cats": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 1883,
+  "pos": 1421,
+  "desc": "Mostly Positive",
+  "ea": false
+ },
+ {
+  "id": 384190,
+  "name": "ABZU",
+  "dev": [
+   "Giant Squid"
+  ],
+  "pub": [
+   "505 Games"
+  ],
+  "release": "Aug 2, 2016",
+  "coming_soon": false,
+  "free": false,
+  "price": "$19.99",
+  "initial": "",
+  "genres": [
+   "Adventure",
+   "Casual",
+   "Indie",
+   "Simulation"
+  ],
+  "cats": [
+   "Single-player"
+  ],
+  "reviews_total": 27732,
+  "pos": 25772,
+  "desc": "Very Positive",
+  "ea": false
+ },
+ {
+  "id": 602960,
+  "name": "Barotrauma",
+  "dev": [
+   "FakeFish",
+   "Undertow Games"
+  ],
+  "pub": [
+   "Daedalic Entertainment"
+  ],
+  "release": "Mar 13, 2023",
+  "coming_soon": false,
+  "free": false,
+  "price": "$34.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Indie",
+   "Simulation",
+   "Strategy"
+  ],
+  "cats": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 90432,
+  "pos": 85030,
+  "desc": "Very Positive",
+  "ea": false
+ },
+ {
+  "id": 1472560,
+  "name": "I Am Fish",
+  "dev": [
+   "Bossa Studios"
+  ],
+  "pub": [
+   "Curve Games"
+  ],
+  "release": "Sep 16, 2021",
+  "coming_soon": false,
+  "free": false,
+  "price": "$19.99",
+  "initial": "",
+  "genres": [
+   "Adventure",
+   "Simulation"
+  ],
+  "cats": [
+   "Single-player"
+  ],
+  "reviews_total": 4016,
+  "pos": 2939,
+  "desc": "Mostly Positive",
+  "ea": false
+ },
+ {
+  "id": 559650,
+  "name": "Witch It",
+  "dev": [
+   "Barrel Roll Games"
+  ],
+  "pub": [
+   "Barrel Roll Games"
+  ],
+  "release": "Oct 22, 2020",
+  "coming_soon": false,
+  "free": false,
+  "price": "$19.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Casual",
+   "Indie"
+  ],
+  "cats": [
+   "Multi-player",
+   "PvP",
+   "Online PvP"
+  ],
+  "reviews_total": 19872,
+  "pos": 17654,
+  "desc": "Very Positive",
+  "ea": false
+ },
+ {
+  "id": 1181550,
+  "name": "Carnival Hunt",
+  "dev": [
+   "Crytivo",
+   "Beer Night Studio"
+  ],
+  "pub": [
+   "Crytivo"
+  ],
+  "release": "Jul 23, 2026",
+  "coming_soon": false,
+  "free": false,
+  "price": "$19.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Indie",
+   "Strategy",
+   "Early Access"
+  ],
+  "cats": [
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 2738,
+  "pos": 1702,
+  "desc": "Mixed",
+  "ea": true
+ },
+ {
+  "id": 4241240,
+  "name": "Springfield Hotel",
+  "dev": [
+   "McGaw Sharkie, LLC"
+  ],
+  "pub": [
+   "McGaw Sharkie, LLC"
+  ],
+  "release": "To be announced",
+  "coming_soon": true,
+  "free": false,
+  "price": null,
+  "initial": null,
+  "genres": [
+   "Action",
+   "Early Access"
+  ],
+  "cats": [
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 0,
+  "pos": 0,
+  "desc": "No user reviews",
+  "ea": true
+ },
+ {
+  "id": 719890,
+  "name": "Beasts of Bermuda",
+  "dev": [
+   "Sastrei Studios, LLC"
+  ],
+  "pub": [
+   "Sastrei Studios, LLC"
+  ],
+  "release": "Dec 21, 2018",
+  "coming_soon": false,
+  "free": false,
+  "price": "$19.99",
+  "initial": "",
+  "genres": [
+   "Adventure",
+   "Indie",
+   "Massively Multiplayer",
+   "Simulation",
+   "Early Access"
+  ],
+  "cats": [
+   "Multi-player",
+   "PvP",
+   "Online PvP"
+  ],
+  "reviews_total": 9795,
+  "pos": 6744,
+  "desc": "Mixed",
+  "ea": true
+ },
+ {
+  "id": 1088090,
+  "name": "Day of Dragons",
+  "dev": [
+   "Beawesome Games"
+  ],
+  "pub": [
+   "Beawesome Games"
+  ],
+  "release": "Dec 4, 2019",
+  "coming_soon": false,
+  "free": false,
+  "price": "$19.99",
+  "initial": "",
+  "genres": [
+   "Indie",
+   "Massively Multiplayer",
+   "RPG",
+   "Simulation",
+   "Early Access"
+  ],
+  "cats": [
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 7916,
+  "pos": 5152,
+  "desc": "Mixed",
+  "ea": true
+ },
+ {
+  "id": 595280,
+  "name": "Throne of Lies\u00ae: Medieval Politics",
+  "dev": [
+   "PT.farm Inc.",
+   "Imperium42\u00ae, LLC"
+  ],
+  "pub": [
+   "PT.farm Inc."
+  ],
+  "release": "Sep 29, 2017",
+  "coming_soon": false,
+  "free": true,
+  "price": null,
+  "initial": null,
+  "genres": [
+   "RPG"
+  ],
+  "cats": [
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 2705,
+  "pos": 2061,
+  "desc": "Mostly Positive",
+  "ea": false
+ },
+ {
+  "id": 376210,
+  "name": "The Isle",
+  "dev": [
+   "Afterthought LLC"
+  ],
+  "pub": [
+   "Afterthought LLC"
+  ],
+  "release": "Dec 1, 2015",
+  "coming_soon": false,
+  "free": false,
+  "price": "$19.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Adventure",
+   "Indie",
+   "Massively Multiplayer",
+   "Simulation",
+   "Early Access"
+  ],
+  "cats": [
+   "Multi-player",
+   "PvP",
+   "Online PvP"
+  ],
+  "reviews_total": 122697,
+  "pos": 98359,
+  "desc": "Very Positive",
+  "ea": true
+ },
+ {
+  "id": 1681110,
+  "name": "Drunken Nuke'em",
+  "dev": [
+   "DrazorStudio"
+  ],
+  "pub": [
+   "DrazorStudio"
+  ],
+  "release": "Jul 28, 2022",
+  "coming_soon": false,
+  "free": false,
+  "price": "$1.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Casual",
+   "Indie",
+   "Early Access"
+  ],
+  "cats": [
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 11,
+  "pos": 9,
+  "desc": "Positive",
+  "ea": true
+ },
+ {
+  "id": 3788110,
+  "name": "DungeonBox",
+  "dev": [
+   "Foxtail Games LLC"
+  ],
+  "pub": [
+   "Foxtail Games LLC"
+  ],
+  "release": "Dec 1, 2026",
+  "coming_soon": true,
+  "free": false,
+  "price": null,
+  "initial": null,
+  "genres": [
+   "Casual",
+   "Indie",
+   "RPG"
+  ],
+  "cats": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op",
+   "Remote Play Together"
+  ],
+  "reviews_total": 0,
+  "pos": 0,
+  "desc": "No user reviews",
+  "ea": false
+ },
+ {
+  "id": 3553750,
+  "name": "Deep Blue: Devour and Evolve",
+  "dev": [
+   "ZHOUZEMING"
+  ],
+  "pub": [
+   "ZHOUZEMING"
+  ],
+  "release": "Aug 9, 2025",
+  "coming_soon": false,
+  "free": false,
+  "price": "$8.99",
+  "initial": "",
+  "genres": [
+   "Action",
+   "Simulation"
+  ],
+  "cats": [
+   "Single-player",
+   "Multi-player",
+   "PvP",
+   "Online PvP",
+   "Co-op",
+   "Online Co-op"
+  ],
+  "reviews_total": 106,
+  "pos": 89,
+  "desc": "Very Positive",
+  "ea": false
+ }
+]

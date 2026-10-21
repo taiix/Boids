@@ -19,15 +19,16 @@
    a scene-load frame stall would otherwise eat the fade-out. */
 .overlay {
     position: absolute; left: 0; top: 0; right: 0; bottom: 0;
-    align-items: center; justify-content: center;
+    /* the text sits in the dark lower third, under the Eclipse key art's light (graded dark, fading to the deep) */
+    align-items: center; justify-content: flex-end; padding-bottom: 9%;
     background-color: #020a12;
-    background-image: url("Images/Lobby_Background.jpg");
+    background-image: url("Images/Launch_Background.jpg");
     -unity-background-scale-mode: scale-and-crop;
     opacity: 0;
     color: var(--text);
     -unity-font-definition: url("Fonts/Barlow-Regular.ttf");
 }
-.ov-shade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(3, 12, 22, 0.86); }
+.ov-shade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(3, 12, 22, 0.3); }
 .overlay Label { padding: 0; margin: 0; }
 
 .ov-inner { align-items: center; }

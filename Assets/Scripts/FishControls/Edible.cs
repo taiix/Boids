@@ -74,6 +74,11 @@ namespace FishGame
             // The crunch of the jaws closing - every machine, for every catch.
             var lib = GameAudio.Lib;
             if (lib != null) GameAudio.PlayAt(GameAudio.Pick(lib.bites), transform.position, 0.9f, 35f);
+            // The impact: the water buckles and bubbles burst out where the teeth meet - bigger for a player.
+            bool player = GetComponentInParent<FishPlayer>() != null;
+            Vector3 hit = mouth != null ? mouth.position : transform.position;
+            WaterFx.Shockwave(hit, player ? 5f : 2.5f, 0.35f);
+            WaterFx.BubbleBurst(hit, player ? 30 : 12, player ? 0.4f : 0.2f, player ? 3f : 2f, new Vector2(0.02f, 0.07f));
             _parentBefore = transform.parent;
             _scaleBefore = transform.localScale;
 

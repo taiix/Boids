@@ -77,6 +77,14 @@ namespace FishGame
         [Tooltip("The shark's speed for those seconds after a hit (1 = not slowed).")]
         [Range(0.1f, 1f)][SerializeField] float hitSlowFactor = 0.45f;
 
+        [Header("Bodies")]
+        [Tooltip("Half the orca's girth (metres): its body is a capsule this thick from nose to tail.")]
+        [SerializeField] float bodyRadius = 1.15f;
+        [Tooltip("Half the shark's girth (metres), dorsal fin included.")]
+        [SerializeField] float sharkRadius = 1f;
+        [Tooltip("How much of the orca's speed into the shark a body contact passes on to it as a shove.")]
+        [Range(0f, 1.5f)][SerializeField] float contactShove = 0.8f;
+
         // The animator states of each attack, where in it to start (seconds), and when (seconds after) the blow
         // lands. The bite starts at its big lunge (its first, small snap skipped), the bite-and-shake lands on its
         // first head swing, the slaps as the tail whips through.
@@ -100,6 +108,7 @@ namespace FishGame
         Attack _strikeKind;
         Vector3 _exit, _peelTo;
         FishPlayer _shark;
+        float _shoveAt;                     // next body-contact shove allowed (they'd flood the network otherwise)
         static float s_lastHit = -99f;      // any orca's last hit, so they take turns
 
         // ---- every machine ----
@@ -146,7 +155,11 @@ namespace FishGame
         {
             float dt = Time.deltaTime;
             if (dt <= 0f) return;
-            if (Authority) Hunt(dt);
+            if (Authority)
+            {
+                Hunt(dt);
+                KeepOffShark();
+            }
             Animate(dt);
         }
 
@@ -256,9 +269,12 @@ namespace FishGame
                 case Mode.Strike:
                 {
                     bool slap = IsSlap(_strikeKind);
-                    // A bite follows the shark in; a slap carries straight on while the tail comes round.
-                    goal = slap ? pos + transform.forward * 10f : sharkPos + sharkVel * 0.3f;
-                    speed = slap ? cruiseSpeed * 0.8f : Mathf.Lerp(chargeSpeed, cruiseSpeed, 0.5f);
+                    // A bite follows the shark in, and once it lands rides up and over it (not on into it); a slap
+                    // carries straight on while the tail comes round.
+                    if (slap) goal = pos + transform.forward * 10f;
+                    else if (_struck) goal = pos + (transform.forward + Vector3.up * 0.7f) * 10f;
+                    else goal = sharkPos + sharkVel * 0.3f;
+                    speed = slap || _struck ? cruiseSpeed * 0.8f : Mathf.Lerp(chargeSpeed, cruiseSpeed, 0.5f);
                     turn = chargeTurnRate;
                     if (!_struck && Time.time >= _impactTime)
                     {
@@ -347,6 +363,46 @@ namespace FishGame
             Vector3 at = Vector3.Lerp(from, sharkPos, 0.5f);
             if (NetworkServer.active) RpcStruck(at, _shark.netIdentity, slap);
             else Struck(at, _shark, slap);
+        }
+
+        // Whales aren't ghosts. Where its body meets the shark's it stops short against it rather than swimming on
+        // through, and whatever speed it had into the shark shoves the shark away instead.
+        void KeepOffShark()
+        {
+            if (_shark == null || _mode == Mode.Leave) return;
+            Vector3 pos = transform.position, fwd = transform.forward;
+            Vector3 sharkPos = _shark.transform.position, sharkFwd = _shark.transform.forward;
+            ClosestPoints(pos - fwd * (bodyLength * 0.45f), pos + fwd * (bodyLength * 0.45f),
+                          sharkPos - sharkFwd * 1.8f, sharkPos + sharkFwd * 1.8f, out Vector3 onOrca, out Vector3 onShark);
+            Vector3 gap = onOrca - onShark;
+            float dist = gap.magnitude, reach = bodyRadius + sharkRadius;
+            if (dist >= reach) return;
+
+            Vector3 away = dist > 1e-4f ? gap / dist : Vector3.Cross(Vector3.up, fwd).normalized;   // shark -> orca
+            transform.position = pos + away * (reach - dist);
+
+            float closing = Vector3.Dot(fwd * _speed - SharkVelocity(), -away);
+            if (closing <= 0f) return;
+            _speed = Mathf.Max(0f, _speed - closing * Mathf.Max(0f, Vector3.Dot(fwd, -away)));
+            if (Time.time < _shoveAt) return;
+            _shoveAt = Time.time + 0.2f;
+            Vector3 push = -away;
+            push.y *= 0.6f;   // one riding over it presses it down, but mostly it's knocked aside
+            _shark.ServerOrcaShove(push.normalized * (closing * contactShove));
+        }
+
+        // The closest points between segments p1-q1 and p2-q2 (Ericson, Real-Time Collision Detection 5.1.9).
+        static void ClosestPoints(Vector3 p1, Vector3 q1, Vector3 p2, Vector3 q2, out Vector3 c1, out Vector3 c2)
+        {
+            Vector3 d1 = q1 - p1, d2 = q2 - p2, r = p1 - p2;
+            float a = Vector3.Dot(d1, d1), e = Vector3.Dot(d2, d2), f = Vector3.Dot(d2, r);
+            float c = Vector3.Dot(d1, r), b = Vector3.Dot(d1, d2), denom = a * e - b * b;
+            float s = denom > 1e-6f ? Mathf.Clamp01((b * f - c * e) / denom) : 0f;
+            float t = (b * s + f) / e;
+            if (t < 0f) { t = 0f; s = Mathf.Clamp01(-c / a); }
+            else if (t > 1f) { t = 1f; s = Mathf.Clamp01((b - c) / a); }
+            c1 = p1 + d1 * s;
+            c2 = p2 + d2 * t;
         }
 
         void Despawn()

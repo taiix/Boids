@@ -24,8 +24,8 @@ namespace ReefRun
         const string K_VSYNC = "rr_vsync";
 
         readonly VisualElement _overlay;
-        readonly Slider _masterSlider, _musicSlider, _sfxSlider;
-        readonly Label _masterVal, _musicVal, _sfxVal;
+        readonly Slider _masterSlider, _musicSlider, _sfxSlider, _shakeSlider;
+        readonly Label _masterVal, _musicVal, _sfxVal, _shakeVal;
         readonly DropdownField _resDropdown, _qualityDropdown;
         readonly Toggle _fullscreenToggle, _vsyncToggle;
         Resolution[] _resolutions;
@@ -55,6 +55,8 @@ namespace ReefRun
             _masterVal = root.Q<Label>("master-val");
             _musicVal = root.Q<Label>("music-val");
             _sfxVal = root.Q<Label>("sfx-val");
+            _shakeSlider = root.Q<Slider>("shake-slider");
+            _shakeVal = root.Q<Label>("shake-val");
             _resDropdown = root.Q<DropdownField>("resolution-dropdown");
             _qualityDropdown = root.Q<DropdownField>("quality-dropdown");
             _fullscreenToggle = root.Q<Toggle>("fullscreen-toggle");
@@ -96,6 +98,7 @@ namespace ReefRun
             });
             _musicSlider?.RegisterValueChangedCallback(e => _musicVal.text = Pct(e.newValue));
             _sfxSlider?.RegisterValueChangedCallback(e => _sfxVal.text = Pct(e.newValue));
+            _shakeSlider?.RegisterValueChangedCallback(e => _shakeVal.text = Pct(e.newValue));
 
             PopulateDropdowns();
             ApplySavedToControls(); // populate controls from PlayerPrefs
@@ -149,6 +152,7 @@ namespace ReefRun
             if (_masterSlider != null) { _masterSlider.SetValueWithoutNotify(master); _masterVal.text = Pct(master); }
             if (_musicSlider != null) { _musicSlider.SetValueWithoutNotify(music); _musicVal.text = Pct(music); }
             if (_sfxSlider != null) { _sfxSlider.SetValueWithoutNotify(sfx); _sfxVal.text = Pct(sfx); }
+            if (_shakeSlider != null) { _shakeSlider.SetValueWithoutNotify(GameFeel.ShakeScale); _shakeVal.text = Pct(GameFeel.ShakeScale); }
 
             AudioListener.volume = master;
 
@@ -269,6 +273,7 @@ namespace ReefRun
             if (_micToggle != null) VoiceSettings.MicOn = _micToggle.value;
             if (_thresholdSlider != null) VoiceSettings.Threshold = VoiceSettings.MeterToRms(_thresholdSlider.value);
             if (_voiceVolSlider != null) VoiceSettings.Volume = _voiceVolSlider.value;
+            if (_shakeSlider != null) GameFeel.ShakeScale = _shakeSlider.value;
             PlayerPrefs.Save();
 
             Close();
