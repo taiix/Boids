@@ -53,6 +53,10 @@ namespace FishGame
         float _phase;
         float _bank;
         float _pitch;
+        float _pausedUntil;
+
+        /// <summary>Hold the pose as it is for <paramref name="seconds"/> (hit stop).</summary>
+        public void Pause(float seconds) => _pausedUntil = Mathf.Max(_pausedUntil, Time.unscaledTime + seconds);
 
         void Awake()
         {
@@ -72,7 +76,7 @@ namespace FishGame
 
         void LateUpdate()
         {
-            if (motor == null) return;
+            if (motor == null || Time.unscaledTime < _pausedUntil) return;
             float dt = Time.deltaTime;
             float speed01 = motor.SpeedFraction;
 

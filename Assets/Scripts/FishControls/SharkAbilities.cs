@@ -105,6 +105,15 @@ namespace FishGame
         [Tooltip("Fraction of the shark's speed kept when it catches a fish. 1 = full momentum, 0 = stop dead.")]
         [SerializeField] float momentumOnCatch = 0.85f;
 
+        [Header("Feel")]
+        [Tooltip("A bite or lunge pressed this long (seconds) before it's allowed - mid-dash, or just before the " +
+                 "cooldown ends - still fires the moment it can.")]
+        [SerializeField] float inputBuffer = 0.15f;
+        [Tooltip("Fish within this distance (metres) of a passing lunge are shoved aside by the water it pushes.")]
+        [SerializeField] float wakeRadius = 4f;
+        [Tooltip("How hard the lunge's wake shoves a fish (m/s^2 at the shark's side, fading with distance).")]
+        [SerializeField] float wakePush = 14f;
+
         [Header("Animator")]
         [SerializeField] string biteTrigger = "Bite";
         [Tooltip("Trigger for the devour/eat clip, played when a fish is actually caught.")]
@@ -147,6 +156,9 @@ namespace FishGame
 
         float _attackCd;
         float _lungeCd;
+        float _attackPressed = -10f, _lungePressed = -10f; // when each was last pressed (input buffer)
+        bool _wasLungeReady = true, _wasSonarReady = true;
+        float _lungingUntil = -1f;                          // every machine: this shark's lunge is tearing through the water
         float _eatWindow; // > 0 while a dash can connect into a bite
         int _biteId;
         int _devourId;
@@ -217,6 +229,7 @@ namespace FishGame
             if (_attackCd > 0f) _attackCd -= dt;
             if (_lungeCd > 0f) _lungeCd -= dt;
             if (_sonarCd > 0f) _sonarCd -= dt;
+            PingWhenReady();
             if (_eatWindow > 0f)
             {
                 _eatWindow -= dt;
@@ -235,13 +248,24 @@ namespace FishGame
             if (SonarReady && _sonarAction.WasPressedThisFrame() && !PauseMenu.IsOpen)
                 DoSonar();
 
-            // Don't let a new ability interrupt an in-progress dash.
-            if (!motor.IsDashing)
+            // Presses are remembered for a moment (the input buffer), so one made mid-dash or a hair before the
+            // cooldown ends still fires as soon as it can. Don't let a new ability interrupt an in-progress dash.
+            if (_attackAction.WasPressedThisFrame()) _attackPressed = Time.unscaledTime;
+            if (_lungeAction.WasPressedThisFrame()) _lungePressed = Time.unscaledTime;
+            bool wantAttack = Time.unscaledTime - _attackPressed <= inputBuffer;
+            bool wantLunge = Time.unscaledTime - _lungePressed <= inputBuffer;
+            if (!motor.IsDashing && !PauseMenu.IsOpen)
             {
-                if (AttackReady && _attackAction.WasPressedThisFrame())
+                if (AttackReady && wantAttack)
+                {
+                    _attackPressed = -10f;
                     DoAttack();
-                else if (LungeReady && _lungeAction.WasPressedThisFrame())
+                }
+                else if (LungeReady && wantLunge)
+                {
+                    _lungePressed = -10f;
                     DoLunge();
+                }
             }
 
             if (_eatWindow > 0f)
@@ -256,6 +280,8 @@ namespace FishGame
             _attackCd = attackCooldown;
             _eatWindow = attackDashDuration + 0.05f;
             _grazed = null;
+            GameFeel.FovKick(2.5f);
+            GameFeel.Shake(0.15f);
         }
 
         void DoLunge()
@@ -266,6 +292,19 @@ namespace FishGame
             _lungeCd = lungeCooldown;
             _eatWindow = lungeDuration; // contact anywhere along the lunge = a catch
             _grazed = null;
+            GameFeel.FovKick(10f);
+            GameFeel.Shake(0.25f);
+        }
+
+        // Local: a soft ping as the lunge or the sonar comes back.
+        void PingWhenReady()
+        {
+            bool lunge = LungeReady, sonar = SonarReady;
+            var lib = GameAudio.Lib;
+            if (lib != null && ((lunge && !_wasLungeReady) || (sonar && !_wasSonarReady)))
+                GameAudio.PlayPitched(lib.uiClick, 0.35f, sonar && !_wasSonarReady ? 1.35f : 1.6f);
+            _wasLungeReady = lunge;
+            _wasSonarReady = sonar;
         }
 
         void DoSonar()
@@ -291,9 +330,43 @@ namespace FishGame
         public void PlayAttackFx(bool lunge)
         {
             if (!lunge) TriggerBite();
-            if (TryGetComponent(out SwimTrail trail)) trail.Dash(lunge ? lungeDuration : attackDashDuration);
+            if (TryGetComponent(out SwimTrail trail))
+            {
+                trail.Dash(lunge ? lungeDuration : attackDashDuration);
+                if (lunge) trail.Streaks(lungeDuration);
+            }
             var lib = GameAudio.Lib;
             if (lib != null) GameAudio.PlayAt(lunge ? lib.lunge : GameAudio.Pick(lib.swishes), transform.position, 0.9f, 30f);
+            if (!lunge) return;
+
+            // The tell: the body coils and kicks, a thump of the tail and a puff of water off it - fish nearby
+            // see and hear it go, though the lunge itself isn't held back.
+            _lungingUntil = Time.time + lungeDuration;
+            if (TryGetComponent(out BodyJuice juice)) juice.Punch(-0.09f);
+            Vector3 tail = transform.position - transform.forward * 2.2f;
+            WaterFx.BubbleBurst(tail, 22, 0.5f, 2.2f, new Vector2(0.03f, 0.08f), -transform.forward * 1.5f);
+            WaterFx.Shockwave(tail, 5f, 0.4f);
+            if (lib != null) GameAudio.PlayAtPitched(GameAudio.Pick(lib.splashes), tail, 0.85f, 25f, 0.55f);
+        }
+
+        /// <summary>Every machine: the shove the water gives a body at <paramref name="p"/> from any shark lunging
+        /// past (m/s^2). Beside or behind the head only, and always away from the shark's line - never into the jaws.</summary>
+        public static Vector3 LungeWakeAt(Vector3 p, Transform self)
+        {
+            Vector3 push = Vector3.zero;
+            foreach (var shark in Loaded)
+            {
+                if (shark == null || Time.time > shark._lungingUntil || shark.transform == self) continue;
+                Transform t = shark.transform;
+                Vector3 r = p - t.position;
+                float along = Vector3.Dot(r, t.forward);
+                if (along > 0.5f || along < -6f) continue;             // ahead of the head, or well behind the tail
+                Vector3 side = r - t.forward * along;
+                float d = side.magnitude;
+                if (d < 0.05f || d > shark.wakeRadius) continue;
+                push += side / d * (shark.wakePush * (1f - d / shark.wakeRadius));
+            }
+            return push;
         }
 
         void TryEat()
@@ -399,6 +472,8 @@ namespace FishGame
             _grazed = null;
             if (grazed == null || grazed.IsEaten || _holding) return;
             MatchHud.Flash("Grazed!");
+            GameFeel.HitStop(0.06f, gameObject);
+            GameFeel.Shake(0.22f);
             if (GrazedPrey != null) GrazedPrey.Invoke(grazed);  // networked: the host hurts it
             else if (grazed.TryGetComponent(out FishVitals vitals)) vitals.Damage(grazeDamage, grazeWoundSeconds);
         }
@@ -430,6 +505,7 @@ namespace FishGame
             motor.CancelDash(momentumOnCatch);
             TriggerDevour();
             _eatWindow = 0f;
+            BiteLanded(player: false);
 
             if (!fish.TryGetComponent(out Edible edible)) edible = fish.AddComponent<Edible>();
             edible.Devour(gameObject, mouthAnchor, bloodSeed: BloodInWater.SeedFor(flock.NetId, id)); // same seed FlockNetSync uses
@@ -454,6 +530,7 @@ namespace FishGame
             bool player = edible != null && CaughtPrey != null && edible.GetComponentInParent<FishPlayer>() != null;
             if (!player) TriggerDevour();
             _eatWindow = 0f;
+            BiteLanded(player: edible != null && edible.GetComponentInParent<FishPlayer>() != null);
 
             if (edible != null)
             {
@@ -473,17 +550,30 @@ namespace FishGame
             }
         }
 
+        // Local: the jaws connect - the hit lands with a freeze, a jolt and the head clamping down.
+        void BiteLanded(bool player)
+        {
+            GameFeel.HitStop(player ? 0.09f : 0.04f, gameObject);
+            GameFeel.Shake(player ? 0.45f : 0.2f);
+            if (TryGetComponent(out BodyJuice juice)) juice.Punch(player ? -0.1f : -0.06f);
+        }
+
         /// <summary>Every machine: shake a caught player fish in the jaws (the thrash loop), or stop. While
         /// holding, this shark (on its owner's machine) can't bite anything else.</summary>
         public void SetHolding(bool holding)
         {
+            if (holding && !_holding && TryGetComponent(out BodyJuice juice)) juice.Punch(-0.1f); // the jaws clamp
             _holding = holding;
             if (animator != null && !string.IsNullOrEmpty(holdingBool))
                 animator.SetBool(_holdingId, holding);
         }
 
         /// <summary>Every machine: the violent eat - a school fish going down, or the final swallow of a player.</summary>
-        public void PlayDevour() => TriggerDevour();
+        public void PlayDevour()
+        {
+            TriggerDevour();
+            if (TryGetComponent(out BodyJuice juice)) juice.Punch(-0.08f);
+        }
 
         /// <summary>The catch tore free: no bites for <paramref name="seconds"/>, so it gets a head start.</summary>
         public void Stun(float seconds)

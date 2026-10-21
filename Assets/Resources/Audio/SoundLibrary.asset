@@ -13,8 +13,15 @@ MonoBehaviour:
   m_Name: SoundLibrary
   m_EditorClassIdentifier: Assembly-CSharp::FishGame.SoundLibrary
   musicMenu: {fileID: 8300000, guid: 5358758f61a34d84d95df3c589d97475, type: 3}
-  musicRound: {fileID: 8300000, guid: 52f1c49eb8f8fb148b01808426ce2ef6, type: 3}
+  musicRound: {fileID: 8300000, guid: 88141ef80711f3448a7680e8ff6da869, type: 3}
+  musicRounds:
+  - {fileID: 8300000, guid: 88141ef80711f3448a7680e8ff6da869, type: 3}
+  - {fileID: 8300000, guid: 0358b1eb8c7085041bbbe9e3da7e7165, type: 3}
+  - {fileID: 8300000, guid: 2f45faec05d6b9e469f7f3d839b96511, type: 3}
   musicEscape: {fileID: 8300000, guid: 25acb97edef3f27459e90b6eb814c69e, type: 3}
+  tensionDrone: {fileID: 8300000, guid: f7d68ebc39fead5468ae78540e1418f8, type: 3}
+  tensionNear: {fileID: 8300000, guid: 845fb82d0d2fbb649b49076ce65bf375, type: 3}
+  tensionSting: {fileID: 8300000, guid: 6029310b9d451c24bb44f9fcfa44bc2f, type: 3}
   jingleRoundStart: {fileID: 8300000, guid: 351aa0ea390e677478a5b9431e09d087, type: 3}
   jingleEscaped: {fileID: 8300000, guid: 30f9676d51a98864980d5361bc8a0066, type: 3}
   jingleFishWin: {fileID: 8300000, guid: d5339909355f8f84dab8f7f545927ac4, type: 3}
@@ -52,6 +59,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 06f37246e759a9543a34d43f29dbddf5, type: 3}
   swim: {fileID: 8300000, guid: a3f0d96cefab1a842bd1c0411ce7c7e6, type: 3}
   ambientBubbles: {fileID: 8300000, guid: 655c9aca4458cb4478d820c626ea74b5, type: 3}
+  ambientDeep: {fileID: 8300000, guid: d69bece0cd940fb40ac1d306461c0992, type: 3}
   taskDoneShark: {fileID: 8300000, guid: 5ac5e0c93db442343a661e1645438238, type: 3}
   taskDoneFish: {fileID: 8300000, guid: 3f2dc9f93c7745d47a492a19acf22191, type: 3}
   exitOpen: {fileID: 8300000, guid: c01c59b972bc098449cc3756e7483978, type: 3}

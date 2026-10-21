@@ -211,6 +211,14 @@ namespace FishGame
 
         /// <summary>Cruise top speed (m/s) at full throttle.</summary>
         public float MaxSpeed => maxSpeed;
+        /// <summary>Top speed (m/s) while sprinting.</summary>
+        public float BoostSpeed => boostSpeed;
+
+        float _frozenFor;
+
+        /// <summary>Hit stop: hold the body dead still for <paramref name="seconds"/>, then carry on with the
+        /// velocity it had (<see cref="GameFeel.HitStop"/>).</summary>
+        public void Freeze(float seconds) => _frozenFor = Mathf.Max(_frozenFor, seconds);
 
         /// <summary>Temporarily cap cruise speed (e.g. to match the flock's pace). 0 clears it.</summary>
         public void SetSpeedLimit(float limit) => _speedLimit = Mathf.Max(0f, limit);
@@ -277,6 +285,14 @@ namespace FishGame
         void FixedUpdate()
         {
             float dt = Time.fixedDeltaTime;
+
+            // Hit stop: frozen in place for a moment; the stored velocity carries on afterwards.
+            if (_frozenFor > 0f)
+            {
+                _frozenFor -= dt;
+                _rb.linearVelocity = Vector3.zero;
+                return;
+            }
 
             // --- Water check: below the surface we swim, above it we go ballistic ---------
             EnsureWaterSurface();

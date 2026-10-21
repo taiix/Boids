@@ -8,6 +8,7 @@
   <Project Path="Unity.VisualScripting.Core.Editor.csproj" />
   <Project Path="Unity.Mirror.CodeGen.csproj" />
   <Project Path="Edgegap.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Mirror.Components.csproj" />
   <Project Path="Unity.RenderPipelines.HighDefinition.Runtime.csproj" />
   <Project Path="Unity.VisualScripting.Flow.Editor.csproj" />
@@ -33,7 +34,6 @@
   <Project Path="Mirror.Authenticators.csproj" />
   <Project Path="Mirror.Transports.csproj" />
   <Project Path="EncryptionTransportEditor.csproj" />
-  <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Telepathy.csproj" />
   <Project Path="Unity.VisualScripting.SettingsProvider.Editor.csproj" />
   <Project Path="Unity.Settings.Editor.csproj" />
