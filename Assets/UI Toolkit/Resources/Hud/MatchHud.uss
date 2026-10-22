@@ -1,5 +1,5 @@
 /* ============================================================
-   REEF RUN — in-game HUD (built in code by MatchHud)
+   REEF RUN — in-game HUD (laid out in MatchHud.uxml - edit both in the UI Builder)
    Same palette and type as the menu/lobby: navy panels #051729,
    teal #179499 key tiles with orange #ffb84d glyphs, health #d94040,
    hunger #e6b333. Authored at 1920x1080 (HudPanelSettings scales).
@@ -46,6 +46,11 @@
 .event-text { font-size: 15px; letter-spacing: 2.5px; color: var(--orange); -unity-text-align: middle-center; }
 
 .hidden { display: none; }
+
+/* ---------- full-screen flashes (MatchHud fades them in and out) ---------- */
+.overlay { position: absolute; left: 0; top: 0; right: 0; bottom: 0; opacity: 0; }
+.hurt-vignette { -unity-background-image-tint-color: rgb(217, 13, 10); }   /* hurt: red in from the edges */
+.white-pop { background-color: white; }                                     /* tearing free */
 
 /* ---------- vitals (bottom left) ---------- */
 .vitals { position: absolute; left: 32px; bottom: 32px; width: 380px; padding: 14px 18px; }

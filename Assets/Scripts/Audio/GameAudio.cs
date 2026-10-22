@@ -14,7 +14,8 @@ namespace FishGame
     ///   * <b>Tension</b>: a drone under every round; for the fish, a dissonant layer that swells (and ducks the
     ///     music) as the shark closes in, and a sting when it gets close.
     ///   * <b>Effects</b>: <see cref="Play"/> (flat, for this player's own feedback) and <see cref="PlayAt"/> (3D,
-    ///     muffled while the listener is underwater). Jingles duck the music while they play.
+    ///     muffled while the listener is underwater - and much more so from the other side of the surface - kept
+    ///     up to date while they play, so a splash goes dull as you follow it under). Jingles duck the music.
     ///   * <b>Loops</b>: <see cref="Loop"/> each frame keeps one going (rain, an engine, a heartbeat); stop asking
     ///     and it fades out by itself.
     ///   * <b>Buttons</b>: every UI Toolkit button clicks, without each screen having to wire it.
@@ -42,6 +43,8 @@ namespace FishGame
         const string K_SFX = "rr_vol_sfx";
         const float MusicLevel = 0.45f;         // music sits under the effects and voices
         const float UnderwaterCutoff = 2800f;   // Hz: how muffled world sounds are underwater
+        const float AcrossSurfaceCutoff = 900f; // Hz: a sound on the other side of the surface (a splash, from below)
+        const float Clear = 22000f;             // Hz: not muffled at all
 
         float _musicVolume = 1f, _sfxVolume = 1f, _nextPrefsRead;
 
@@ -155,8 +158,16 @@ namespace FishGame
                 s.minDistance = Mathf.Max(1f, range * 0.12f);
                 s.maxDistance = Mathf.Max(s.minDistance + 1f, range);
             }
-            Muffle(s, world);
+            Muffle(s, world, at ?? Vector3.zero, instant: true);
             s.Play();
+        }
+
+        // Effects still playing keep up with where the listener is: one that started above the water goes dull
+        // as you follow it under (and clears as you come up).
+        void UpdateOneShots()
+        {
+            foreach (var s in _pool)
+                if (s.isPlaying && s.spatialBlend > 0.5f) Muffle(s, true, s.transform.position, instant: false);
         }
 
         // ================================================================== loops
@@ -202,7 +213,7 @@ namespace FishGame
                 float target = asked ? Mathf.Clamp01(v.want * _sfxVolume) : 0f;
                 v.src.volume = Mathf.MoveTowards(v.src.volume, target, Time.unscaledDeltaTime * 1.2f);
                 if (v.follow != null) v.src.transform.position = v.follow.position;
-                Muffle(v.src, v.world);
+                Muffle(v.src, v.world, v.src.transform.position, instant: false);
                 if (!asked && v.src.volume <= 0.001f) _loopDrop.Add(kv.Key);
             }
             foreach (var k in _loopDrop)
@@ -212,14 +223,29 @@ namespace FishGame
             }
         }
 
-        // World sounds heard from underwater are dull and close; above the surface they're clear.
-        static void Muffle(AudioSource s, bool world)
+        // World sounds heard from underwater are dull and close; above the surface they're clear; and from the
+        // other side of the surface (a splash heard from below, something in the deep heard from above the
+        // water) they're duller still. Glides there unless it's starting (no click as the camera dips under).
+        static void Muffle(AudioSource s, bool world, Vector3 source, bool instant)
         {
             if (!s.TryGetComponent(out AudioLowPassFilter lp)) return;
+            float want = world ? CutoffFor(source) : Clear;
+            float now = lp.enabled ? lp.cutoffFrequency : Clear;
+            float k = instant ? 1f : 1f - Mathf.Exp(-14f * Time.unscaledDeltaTime);
+            float cutoff = Mathf.Exp(Mathf.Lerp(Mathf.Log(now), Mathf.Log(want), k));   // evenly, to the ear
+            lp.enabled = cutoff < Clear * 0.95f;
+            if (lp.enabled) lp.cutoffFrequency = cutoff;
+        }
+
+        static float CutoffFor(Vector3 source)
+        {
             var cam = WaterFx.ViewCamera;
-            bool under = world && cam != null && cam.transform.position.y < WaterFx.SurfaceY;
-            lp.enabled = under;
-            if (under) lp.cutoffFrequency = UnderwaterCutoff;
+            if (cam == null) return Clear;
+            float surface = WaterFx.SurfaceY;
+            bool listenerUnder = cam.transform.position.y < surface;
+            bool sourceUnder = source.y < surface - 1.5f;   // a splash rides the swell, a metre either way: above it
+            if (listenerUnder != sourceUnder) return AcrossSurfaceCutoff;
+            return listenerUnder ? UnderwaterCutoff : Clear;
         }
 
         // ================================================================== music
@@ -310,6 +336,7 @@ namespace FishGame
             UpdateMusic();
             UpdateAmbience();
             UpdateLoops();
+            UpdateOneShots();
             HookButtons();
         }
 

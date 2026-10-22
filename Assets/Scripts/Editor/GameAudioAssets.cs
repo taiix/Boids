@@ -46,6 +46,7 @@ namespace FishGame
             { "breakFree", new[] { "Fish/BreakFree" } },
             { "pellet", new[] { "Fish/Pellet" } },
             { "splashes", new[] { "Water/Splash_1", "Water/Splash_2", "Water/Splash_3", "Water/Splash_4" } },
+            { "sharkSplashIn", new[] { "Water/SharkSplashSoundGoingIntoWater" } },
             { "bubbles", new[] { "Water/Bubbles_1", "Water/Bubbles_2", "Water/Bubbles_3" } },
             { "swim", new[] { "Water/Swim" } },
             { "ambientBubbles", new[] { "Water/AmbientBubbles" } },

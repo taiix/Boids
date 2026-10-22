@@ -5,7 +5,7 @@ namespace FishGame
     /// <summary>
     /// A splash when a body leaps out of the water and another when it crashes back in, sized to the body and
     /// to how fast it hit. On every machine, from each body's own movement - nothing networked. FishPlayer adds
-    /// it to each body.
+    /// it to each body. The shark crashing back in has its own sound (SoundLibrary.sharkSplashIn).
     /// </summary>
     public class SurfaceSplash : MonoBehaviour
     {
@@ -18,7 +18,7 @@ namespace FishGame
         [SerializeField] float cooldown = 0.8f;
 
         float _size = 1f, _nextSplash;
-        bool _above, _known;
+        bool _above, _known, _shark;
         Vector3 _lastPos;
         Renderer _body;
 
@@ -26,6 +26,7 @@ namespace FishGame
         {
             Vector3 size = SwimTrail.BodySize(transform, out _body);
             _size = Mathf.Clamp(Mathf.Max(size.x, size.y) * 1.2f, 0.6f, 4f);
+            _shark = TryGetComponent(out SharkAbilities _);
             _lastPos = transform.position;
         }
 
@@ -52,7 +53,12 @@ namespace FishGame
             float strength = Mathf.Clamp(Mathf.Abs(velocity.y) / 6f, 0.6f, 1.6f);
             WaterFx.Splash(new Vector3(pos.x, surface, pos.z), velocity, _size * strength);
             var lib = GameAudio.Lib;
-            if (lib != null) GameAudio.PlayAt(GameAudio.Pick(lib.splashes), new Vector3(pos.x, surface, pos.z), 0.45f * strength, 45f);
+            if (lib == null) return;
+            Vector3 at = new Vector3(pos.x, surface, pos.z);
+            if (_shark && !_above && lib.sharkSplashIn != null)   // the shark crashing back in
+                GameAudio.PlayAt(lib.sharkSplashIn, at, Mathf.Clamp01(0.7f * strength), 70f);
+            else
+                GameAudio.PlayAt(GameAudio.Pick(lib.splashes), at, 0.45f * strength, 45f);
         }
     }
 }

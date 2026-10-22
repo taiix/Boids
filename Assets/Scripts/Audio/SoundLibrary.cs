@@ -53,6 +53,8 @@ namespace FishGame
 
         [Header("Water")]
         public AudioClip[] splashes;
+        [Tooltip("The shark crashing back into the water after a leap (the other splashes use the set above).")]
+        public AudioClip sharkSplashIn;
         public AudioClip[] bubbles;
         public AudioClip swim;
         public AudioClip ambientBubbles;

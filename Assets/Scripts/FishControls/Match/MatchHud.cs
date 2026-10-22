@@ -7,7 +7,9 @@ using UnityEngine.UIElements;
 namespace FishGame
 {
     /// <summary>
-    /// The in-game HUD, in the same look as the menu and lobby (UI Toolkit, built in code):
+    /// The in-game HUD, in the same look as the menu and lobby (UI Toolkit). Its layout - every panel, bar and
+    /// label, and their text - is Resources/Hud/MatchHud.uxml (styles in MatchHud.uss): open it in the UI
+    /// Builder to change it. This fills in the live values and shows / hides the panels, finding them by name:
     ///   * survival clock (top centre), red in the last minute
     ///   * health / hunger (bottom left), "STARVING" once hunger runs out
     ///   * voice (bottom right): talking / quiet / mic off
@@ -19,7 +21,7 @@ namespace FishGame
     /// (Your outcome and the round's result are RoundScreen's.)
     ///
     /// Created by the local player's body when it spawns, in the game scene, so it goes away with that
-    /// scene. Style and panel settings load from Resources/Hud, so nothing needs placing in a scene.
+    /// scene. Layout, style and panel settings load from Resources/Hud, so nothing needs placing in a scene.
     /// </summary>
     public class MatchHud : MonoBehaviour
     {
@@ -100,8 +102,11 @@ namespace FishGame
         UIDocument _doc;
         VisualElement _root, _clockFill, _healthFill, _hungerFill, _voice, _prompt, _promptPill, _status,
                       _progress, _progressFill, _flash, _abilities, _lungeFill, _sonarFill, _lungeRow, _sonarRow, _event;
-        Label _clockLabel, _clockTime, _healthVal, _hungerVal, _hungerLabel, _voiceLabel,
-              _flashText, _statusText, _eventText;
+        Label _clockTime, _healthVal, _hungerVal, _flashText, _statusText, _eventText;
+        HudClockLabel _clockLabel;
+        HudHungerLabel _hungerLabel;
+        HudVoiceLabel _voiceLabel;
+        string _clockPlaying, _hungerNormal, _voiceQuiet;   // their usual wordings, as laid out
         ReefGlyph _micIcon;
         VisualElement _vignette, _whitePop, _vitals, _hungerRow;
         FishVitals _feelVitals;
@@ -109,7 +114,6 @@ namespace FishGame
         float _healthHitAt = -10f, _hungerPopAt = -10f, _lungeReadyAt = -10f, _sonarReadyAt = -10f;
         bool _lungeWasReady = true, _sonarWasReady = true, _barsMoved;
         static Texture2D s_vignetteTexture;
-        static readonly Color HurtRed = new(0.85f, 0.05f, 0.04f);
         string _shownPrompt;
         int _shownSeconds = int.MinValue, _shownHealth = int.MinValue, _shownHunger = int.MinValue;
         bool _built;
@@ -121,8 +125,11 @@ namespace FishGame
         {
             var settings = Resources.Load<PanelSettings>("Hud/HudPanelSettings");
             if (settings == null) { Debug.LogWarning("[HUD] Resources/Hud/HudPanelSettings is missing - HUD disabled."); enabled = false; return; }
+            var layout = Resources.Load<VisualTreeAsset>("Hud/MatchHud");
+            if (layout == null) { Debug.LogWarning("[HUD] Resources/Hud/MatchHud.uxml is missing - HUD disabled."); enabled = false; return; }
             _doc = gameObject.AddComponent<UIDocument>();
             _doc.panelSettings = settings;
+            _doc.visualTreeAsset = layout;
         }
 
         void OnDestroy()
@@ -130,82 +137,70 @@ namespace FishGame
             if (s_instance == this) s_instance = null;
         }
 
+        // The layout's pieces, found by name (MatchHud.uxml).
         void Build()
         {
             _root = _doc.rootVisualElement;
-            if (_root == null) return;
-            var sheet = Resources.Load<StyleSheet>("Hud/MatchHud");
-            if (sheet != null) _root.styleSheets.Add(sheet);
+            if (_root == null || _root.Q("hud") == null) return;   // not laid out yet
+            // A HUD never takes the mouse - nothing in it, whatever gets added in the UI Builder.
             _root.pickingMode = PickingMode.Ignore;
+            _root.Query<VisualElement>().ForEach(e => e.pickingMode = PickingMode.Ignore);
 
-            // full-screen flashes, under everything else
-            _vignette = Overlay(_root);
+            // full-screen flashes
+            _vignette = Find<VisualElement>("hurt-vignette");
             _vignette.style.backgroundImage = VignetteTexture();
             _vignette.style.backgroundSize = new BackgroundSize(Length.Percent(100), Length.Percent(100));
-            _vignette.style.unityBackgroundImageTintColor = HurtRed;
-            _whitePop = Overlay(_root);
-            _whitePop.style.backgroundColor = Color.white;
+            _whitePop = Find<VisualElement>("white-pop");
 
-            var hud = Add(_root, "hud");
+            _clockLabel = Find<HudClockLabel>("clock-label");
+            _clockTime = Find<Label>("clock-time");
+            _clockFill = Find<VisualElement>("clock-fill");
+            _event = Find<VisualElement>("event");
+            _eventText = Find<Label>("event-text");
 
-            // clock
-            var clock = Add(hud, "hud-panel", "clock");
-            _clockLabel = Text(clock, "SURVIVE", "clock-label", "cb");
-            _clockTime = Text(clock, "10:00", "clock-time", "xb");
-            _clockFill = Add(Add(clock, "clock-bar"), "clock-fill");
+            _vitals = Find<VisualElement>("vitals");
+            _healthFill = Find<VisualElement>("health-fill");
+            _healthVal = Find<Label>("health-value");
+            _hungerRow = Find<VisualElement>("hunger-row");
+            _hungerLabel = Find<HudHungerLabel>("hunger-label");
+            _hungerFill = Find<VisualElement>("hunger-fill");
+            _hungerVal = Find<Label>("hunger-value");
 
-            // world event, under the clock
-            _event = Add(hud, "hud-panel", "event", "hidden");
-            _eventText = Text(_event, "", "event-text", "cb");
+            _voice = Find<VisualElement>("voice");
+            _micIcon = Find<ReefGlyph>("mic-icon");
+            _voiceLabel = Find<HudVoiceLabel>("voice-label");
 
-            // vitals
-            var vitals = _vitals = Add(hud, "hud-panel", "vitals");
-            (_healthFill, _healthVal, _) = VitalRow(vitals, "HEALTH", "vfill--health");
-            (_hungerFill, _hungerVal, _hungerLabel) = VitalRow(vitals, "HUNGER", "vfill--hunger");
-            _hungerRow = _hungerLabel.parent;
+            _prompt = Find<VisualElement>("prompt");
+            _promptPill = Find<VisualElement>("prompt-pill");
+            _promptPill.Clear();   // the layout's example prompt; the game writes its own
+            _status = Find<VisualElement>("status");
+            _statusText = Find<Label>("status-text");
+            _progress = Find<VisualElement>("progress");
+            _progressFill = Find<VisualElement>("progress-fill");
 
-            // voice
-            _voice = Add(hud, "hud-panel", "voice");
-            _micIcon = new ReefGlyph(ReefGlyph.Kind.Mic, new Color(0.56f, 0.69f, 0.73f), 22);
-            _voice.Add(_micIcon);
-            _voiceLabel = Text(_voice, "QUIET", "voice-label", "cb");
+            _abilities = Find<VisualElement>("abilities");
+            _lungeRow = Find<VisualElement>("lunge-row");
+            _lungeFill = Find<VisualElement>("lunge-fill");
+            _sonarRow = Find<VisualElement>("sonar-row");
+            _sonarFill = Find<VisualElement>("sonar-fill");
 
-            // prompt + progress
-            _prompt = Add(hud, "prompt", "hidden");
-            _promptPill = Add(_prompt, "hud-panel", "prompt-pill");
-            _status = Add(_prompt, "hud-panel", "status", "hidden");
-            _statusText = Text(_status, "", "status-text");
-            _progress = Add(_prompt, "progress", "hidden");
-            _progressFill = Add(_progress, "progress-fill");
+            _flash = Find<VisualElement>("flash");
+            _flashText = Find<Label>("flash-text");
 
-            // shark abilities (bottom right, above the voice panel)
-            _abilities = Add(hud, "hud-panel", "abilities", "hidden");
-            (_lungeRow, _lungeFill) = AbilityRow(_abilities, "Q", "LUNGE");
-            (_sonarRow, _sonarFill) = AbilityRow(_abilities, "R", "SONAR");
-
-            // flash
-            _flash = Add(hud, "flash");
-            _flashText = Text(_flash, "", "flash-text", "hud-panel", "xb");
-
+            _clockPlaying = _clockLabel.text;
+            _hungerNormal = _hungerLabel.text;
+            _voiceQuiet = _voiceLabel.text;
             _built = true;
         }
 
-        (VisualElement row, VisualElement fill) AbilityRow(VisualElement parent, string key, string name)
+        // A piece of the layout by name. One that's been removed (or renamed) in the UI Builder just doesn't show:
+        // a stand-in off screen takes its place, with a warning saying which.
+        T Find<T>(string name) where T : VisualElement, new()
         {
-            var row = Add(parent, "arow");
-            Text(row, key, "key", "akey");
-            Text(row, name, "alabel", "cb");
-            var fill = Add(Add(row, "abar"), "afill");
-            return (row, fill);
-        }
-
-        (VisualElement fill, Label val, Label label) VitalRow(VisualElement parent, string name, string fillClass)
-        {
-            var row = Add(parent, "vrow");
-            var label = Text(row, name, "vlabel", "cb");
-            var fill = Add(Add(row, "vbar"), "vfill", fillClass);
-            var val = Text(row, "100%", "vval", "sb");
-            return (fill, val, label);
+            var e = _root.Q<T>(name);
+            if (e != null) return e;
+            Debug.LogWarning($"[HUD] MatchHud.uxml has no {typeof(T).Name} named '{name}' - that part of the HUD won't show.");
+            return new T();
         }
 
         void LateUpdate()
@@ -230,11 +225,11 @@ namespace FishGame
         void UpdateClock()
         {
             var m = MatchManager.Instance;
-            if (m == null) { _clockLabel.text = "NO MATCH"; return; }
+            if (m == null) { _clockLabel.text = _clockLabel.noMatchText; return; }
             float left = m.RemainingSeconds;
             int s = Mathf.CeilToInt(left);
             if (s != _shownSeconds) { _shownSeconds = s; _clockTime.text = $"{s / 60:00}:{s % 60:00}"; } // no new string every frame
-            _clockLabel.text = m.Phase == MatchPhase.Warmup ? "DIVE STARTING" : m.IsPlaying ? "SURVIVE" : "ROUND OVER";
+            _clockLabel.text = m.Phase == MatchPhase.Warmup ? _clockLabel.warmupText : m.IsPlaying ? _clockPlaying : _clockLabel.overText;
             bool low = m.IsPlaying && left <= 60f;
             _clockTime.EnableInClassList("clock-time--low", low);
             _clockFill.EnableInClassList("clock-fill--low", low);
@@ -257,7 +252,7 @@ namespace FishGame
             if (hp != _shownHealth) { _shownHealth = hp; _healthVal.text = $"{hp}%"; }
             if (gp != _shownHunger) { _shownHunger = gp; _hungerVal.text = $"{gp}%"; }
             bool starving = v != null && !v.IsDead && g <= 0f;
-            _hungerLabel.text = starving ? "STARVING" : "HUNGER";
+            _hungerLabel.text = starving ? _hungerLabel.starvingText : _hungerNormal;
             // blink while starving
             _hungerLabel.EnableInClassList("vlabel--alert", starving && Mathf.Repeat(Time.unscaledTime, 1f) < 0.6f);
         }
@@ -271,8 +266,9 @@ namespace FishGame
             bool heard = Time.unscaledTime < ProximityVoice.HeardBySharkUntil;
             // Out of the round: only the other ghosts hear us now.
             bool ghost = mic != null && mic.IsGhost;
-            _voiceLabel.text = heard ? "SHARK HEARD YOU" : mic == null ? "NO MIC" : off ? "MIC OFF"
-                             : ghost ? (talking ? "TALKING TO GHOSTS" : "GHOST CHANNEL") : talking ? "TALKING" : "QUIET";
+            var v = _voiceLabel;
+            v.text = heard ? v.sharkHeardText : mic == null ? v.noMicText : off ? v.micOffText
+                   : ghost ? (talking ? v.ghostTalkingText : v.ghostText) : talking ? v.talkingText : _voiceQuiet;
             _voice.EnableInClassList("voice--talking", talking && !heard);
             _voice.EnableInClassList("voice--off", (off || mic == null) && !heard);
             _voice.EnableInClassList("voice--heard", heard);
@@ -368,17 +364,7 @@ namespace FishGame
             else if (e.style.scale.keyword != StyleKeyword.Null) e.style.scale = StyleKeyword.Null;
         }
 
-        static VisualElement Overlay(VisualElement parent)
-        {
-            var e = new VisualElement { pickingMode = PickingMode.Ignore };
-            e.style.position = Position.Absolute;
-            e.style.left = e.style.top = e.style.right = e.style.bottom = 0f;
-            e.style.opacity = 0f;
-            parent.Add(e);
-            return e;
-        }
-
-        // White, clear in the middle and solid at the edges (tinted red where it's drawn).
+        // White, clear in the middle and solid at the edges (tinted red by MatchHud.uss's .hurt-vignette).
         static Texture2D VignetteTexture()
         {
             if (s_vignetteTexture != null) return s_vignetteTexture;
@@ -466,14 +452,6 @@ namespace FishGame
         }
 
         // ---------------------------------------------------------------- helpers
-        static VisualElement Add(VisualElement parent, params string[] classes)
-        {
-            var e = new VisualElement { pickingMode = PickingMode.Ignore };
-            foreach (var c in classes) e.AddToClassList(c);
-            parent.Add(e);
-            return e;
-        }
-
         static Label Text(VisualElement parent, string text, params string[] classes)
         {
             var l = new Label(text) { pickingMode = PickingMode.Ignore };
