@@ -1,0 +1,147 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import { SITE } from "../site";
+
+// One screen, no scrolling, built the way ABZÛ and Celeste do it: the key art fills the
+// window, the logo sits in it, and two matching store-style badges sit under the logo.
+// The Steam logo and the Discord symbol are the official files, used unaltered (public/brand/).
+const year = new Date().getFullYear();
+
+const badges = [
+  {
+    href: SITE.steamUrl,
+    label: "Wishlist on",
+    soon: "Steam page coming soon",
+    logo: { src: "/brand/steam-logo.svg", alt: "Steam", w: 293, h: 89, cls: "h-7" },
+  },
+  {
+    href: SITE.discordUrl,
+    label: "Join us on",
+    soon: "Discord server coming soon",
+    logo: { src: "/brand/discord-symbol-white.svg", alt: "", w: 127, h: 96, cls: "h-6" },
+    word: "Discord",
+  },
+];
+---
+<SiteLayout>
+  <main class="stage relative isolate h-[100svh] overflow-hidden bg-[#0a5f7a]">
+    <!-- The water: an in-engine loop of the key-art shot (the real shark and Burst-flocked school),
+         recorded with MarketingShowcase.RecordClip and crossfaded end-to-start. The still key art shows
+         until the video plays, and stays for visitors who prefer reduced motion. -->
+    <picture class="absolute inset-0 -z-30">
+      <source media="(max-aspect-ratio: 3/4)" srcset="/media/keyart_portrait.jpg" />
+      <source media="(max-width: 1100px)" srcset="/media/keyart_1280.jpg" />
+      <img src="/media/keyart_2560.jpg" alt="" class="h-full w-full object-cover object-[50%_40%]" fetchpriority="high" />
+    </picture>
+    <video
+      data-loop
+      class="loop absolute inset-0 -z-20 h-full w-full object-cover object-[50%_40%]"
+      aria-hidden="true"
+      muted
+      loop
+      playsinline
+      preload="auto"
+    ></video>
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-[45%] bg-gradient-to-t from-[#03243a]/80 via-[#03243a]/25 to-transparent" aria-hidden="true"></div>
+
+    <div class="flex h-full flex-col items-center justify-end px-5 pb-[clamp(3.5rem,11vh,7rem)]">
+      <h1 class="w-full">
+        <!-- The baked logo shows until the live waterline (src/scripts/waterLogo.ts) is ready. -->
+        <span class="logo relative mx-auto block aspect-[1799/603] w-[min(92vw,820px)]">
+          <img
+            data-logo-still
+            src="/media/logo_1800.png"
+            alt="Reef Run"
+            width="1800"
+            height="603"
+            class="absolute inset-0 h-full w-full transition-opacity duration-300"
+          />
+          <canvas data-logo-water aria-hidden="true" class="absolute inset-0 h-full w-full opacity-0"></canvas>
+        </span>
+      </h1>
+      <div class="badges mt-[clamp(1rem,3.5vh,2rem)] flex flex-wrap justify-center gap-3">
+        {badges.map((b) => (
+          <a
+            href={b.href ?? undefined}
+            target={b.href ? "_blank" : undefined}
+            rel="noopener"
+            aria-disabled={b.href ? undefined : "true"}
+            title={b.href ? undefined : b.soon}
+            class="badge group flex h-[62px] w-[196px] flex-col items-center justify-center gap-1 rounded-[6px] border border-white/35 bg-[#021c2b]/55 text-white backdrop-blur-md transition duration-200 hover:-translate-y-0.5 hover:border-white hover:bg-[#021c2b]/75 aria-disabled:cursor-default"
+          >
+            <span class="text-[10px] font-semibold uppercase leading-none tracking-[0.22em] text-white/75">{b.label}</span>
+            <span class="flex items-center gap-2">
+              <img src={b.logo.src} alt={b.logo.alt} width={b.logo.w} height={b.logo.h} class={`${b.logo.cls} w-auto`} />
+              {b.word && <span class="text-[1.35rem] font-bold leading-none tracking-tight">{b.word}</span>}
+            </span>
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <p class="absolute inset-x-0 bottom-2.5 px-4 text-center text-[10px] leading-snug text-white/45">
+      © {year} {SITE.studio} · Steam and the Steam logo are trademarks of Valve Corporation · Discord is a trademark of Discord Inc.
+    </p>
+  </main>
+</SiteLayout>
+
+<script>
+  import { startWaterLogo } from "../scripts/waterLogo";
+
+  // The logo's waterline ripples; with reduced motion it is drawn once, still.
+  const still = document.querySelector<HTMLElement>("[data-logo-still]");
+  const water = document.querySelector<HTMLCanvasElement>("canvas[data-logo-water]");
+  if (still && water) {
+    startWaterLogo(water, still, !window.matchMedia("(prefers-reduced-motion: reduce)").matches).catch(() => {});
+  }
+
+  // Reduced motion keeps the still.
+  //
+  // The loop is rendered at 4K and encoded three ways; each browser gets the best codec it decodes:
+  // AV1 (Chrome, Edge, Firefox, recent Apple chips), then HEVC (Safari), then H.264 (everything).
+  // Desktop files are 2560x1440 (H.264: 1920x1080), phone files a 1080x1920 portrait cut.
+  const CODECS: [string, string][] = [
+    ["av1", 'video/mp4; codecs="av01.0.12M.08"'],
+    ["hevc", 'video/mp4; codecs="hvc1.1.6.L150.B0"'],
+    ["h264", 'video/mp4; codecs="avc1.640032"'],
+  ];
+  const video = document.querySelector<HTMLVideoElement>("video[data-loop]");
+  if (video && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const kind = window.matchMedia("(max-aspect-ratio: 3/4)").matches ? "portrait" : "desktop";
+    const codec = CODECS.find(([, type]) => video.canPlayType(type) === "probably")?.[0] ?? "h264";
+    const src = `/media/loop_${kind}_${codec}.mp4`;
+    video.addEventListener("playing", () => video.classList.add("is-playing"), { once: true });
+    // The key art is the loop's 6.0 s mark (same shot, same shark position), so starting there lets the
+    // still underneath hand over to the video without the shark jumping.
+    video.addEventListener("loadedmetadata", () => (video.currentTime = 6), { once: true });
+    video.src = src;
+    video.play().catch(() => {});
+  }
+</script>
+
+<style>
+  /* The video fades in over the still once it is actually moving. */
+  .loop {
+    opacity: 0;
+    transition: opacity 1.2s ease;
+  }
+  .loop.is-playing {
+    opacity: 1;
+  }
+
+  /* Entrance: the logo surfaces, then the badges. */
+  .logo { animation: surface 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .badges { animation: fade 0.9s 0.55s ease-out both; }
+  @keyframes surface {
+    from { opacity: 0; transform: translateY(18px) scale(0.97); filter: blur(6px); }
+    to { opacity: 1; transform: none; filter: none; }
+  }
+  @keyframes fade {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .logo, .badges { animation: none; }
+  }
+</style>
