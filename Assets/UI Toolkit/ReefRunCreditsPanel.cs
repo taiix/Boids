@@ -1,4 +1,5 @@
 using FishGame;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace ReefRun
@@ -30,7 +31,8 @@ namespace ReefRun
             head.AddToClassList("mm-settings-head");
             var title = new Label("CREDITS");
             title.AddToClassList("mm-settings-title");
-            var close = new Button(Close) { name = "credits-close", text = "✕" };
+            var close = new Button(Close) { name = "credits-close" };
+            close.Add(new ReefGlyph(ReefGlyph.Kind.Cross, new Color(1f, 0.72f, 0.3f), 14));
             close.AddToClassList("mm-close-btn");
             head.Add(title);
             head.Add(close);
@@ -51,7 +53,7 @@ namespace ReefRun
                 {
                     var l = new Label(line);
                     l.style.whiteSpace = WhiteSpace.Normal;
-                    l.style.fontSize = 14;
+                    l.style.fontSize = 18;
                     l.style.marginBottom = 5;
                     if (string.IsNullOrEmpty(heading)) { l.style.marginTop = 10; l.style.opacity = 0.7f; }
                     scroll.Add(l);
@@ -59,6 +61,8 @@ namespace ReefRun
             }
 
             root.Add(_overlay);
+            // Controller: B (or A on the cross) closes; up / down scrolls the list.
+            UiPad.Register(_overlay, Close, () => close, priority: 10);
         }
 
         public void Open()

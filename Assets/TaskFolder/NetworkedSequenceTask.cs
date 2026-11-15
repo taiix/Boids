@@ -114,7 +114,7 @@ namespace FishGame
         bool _localInRange;
         float _localDistance = float.MaxValue;
         readonly List<Direction> _inputBuffer = new List<Direction>();
-        InputAction _interact, _dir, _submit, _delete, _reset;
+        InputAction _reset;   // F3, testing only; everything else is GameInput's
         FishPlayer _parkedFish; // the local body we parked (controls off) while it's part of the task
         float _messageUntil;    // an end-of-task message stays up until then
         Color _statusColor;     // the label's own colour, restored after a green/red message
@@ -135,23 +135,6 @@ namespace FishGame
         // ======================================================================= client input
         void Awake()
         {
-            _interact = new InputAction("TaskJoin", InputActionType.Button);
-            _interact.AddBinding("<Keyboard>/e");
-            _interact.AddBinding("<Gamepad>/buttonNorth");
-
-            _dir = new InputAction("TaskDir", InputActionType.Value, "Vector2");
-            _dir.AddCompositeBinding("2DVector").With("Up", "<Keyboard>/w").With("Down", "<Keyboard>/s").With("Left", "<Keyboard>/a").With("Right", "<Keyboard>/d");
-            _dir.AddCompositeBinding("2DVector").With("Up", "<Keyboard>/upArrow").With("Down", "<Keyboard>/downArrow").With("Left", "<Keyboard>/leftArrow").With("Right", "<Keyboard>/rightArrow");
-            _dir.performed += OnDir;
-
-            _submit = new InputAction("TaskSubmit", InputActionType.Button);
-            _submit.AddBinding("<Keyboard>/enter"); _submit.AddBinding("<Keyboard>/numpadEnter");
-            _submit.performed += _ => TrySubmit();
-
-            _delete = new InputAction("TaskDelete", InputActionType.Button);
-            _delete.AddBinding("<Keyboard>/backspace");
-            _delete.performed += _ => TryDelete();
-
             _reset = new InputAction("TaskReset", InputActionType.Button);
             _reset.AddBinding("<Keyboard>/f3");
 
@@ -162,14 +145,14 @@ namespace FishGame
 
         void OnEnable()
         {
-            _interact.Enable(); _dir.Enable(); _submit.Enable(); _delete.Enable(); _reset.Enable();
+            _reset.Enable();
             TerrainNetSync.SeabedChanged += QueueRest;
             _restPending = true;
         }
 
         void OnDisable()
         {
-            _interact.Disable(); _dir.Disable(); _submit.Disable(); _delete.Disable(); _reset.Disable();
+            _reset.Disable();
             TerrainNetSync.SeabedChanged -= QueueRest;
             Park(null); // never leave the local fish stuck
         }
@@ -192,7 +175,7 @@ namespace FishGame
             if (_localInRange && !wasInRange) Debug.Log($"[Task] {name}: in range ({_localDistance:0.0} m) - E to join");
 
             // E joins; while waiting for a partner, E again leaves (and we can swim away).
-            if (_phase == Phase.Idle && !_consumed && lf != null && !PauseMenu.IsOpen && _interact.WasPressedThisFrame())
+            if (_phase == Phase.Idle && !_consumed && lf != null && !PauseMenu.IsOpen && GameInput.Interact.WasPressedThisFrame())
             {
                 if (joined) lf.CmdLeaveSequenceTask(netId);
                 else if (_localInRange) lf.CmdJoinSequenceTask(netId);
@@ -200,6 +183,11 @@ namespace FishGame
 
             // Parked from joining until the task is done (or we leave / it resets): WASD are arrows then.
             Park(joined && !_consumed && _phase != Phase.Done ? lf : null);
+
+            // Entering the sequence: arrows (WASD / arrow keys / d-pad or stick), submit, delete.
+            if (GameInput.PuzzleArrowPressed(out Vector2 arrow)) OnDir(arrow);
+            if (GameInput.PuzzleSubmit.WasPressedThisFrame()) TrySubmit();
+            if (GameInput.PuzzleDelete.WasPressedThisFrame()) TryDelete();
 
             // F3 (testing): put a finished task back so it can be played again.
             if (allowTestReset && _consumed && lf != null && !PauseMenu.IsOpen && _reset.WasPressedThisFrame())
@@ -279,10 +267,9 @@ namespace FishGame
             if (body != null) body.SetTaskLocked(true);
         }
 
-        void OnDir(InputAction.CallbackContext ctx)
+        void OnDir(Vector2 v)
         {
             if (_phase != Phase.Input || !IAmInputter || PauseMenu.IsOpen) return;
-            Vector2 v = ctx.ReadValue<Vector2>();
             Direction d;
             if (v == Vector2.up) d = Direction.Up;
             else if (v == Vector2.down) d = Direction.Down;
@@ -349,8 +336,8 @@ namespace FishGame
                     HidePanel();
                     if (holding) break;
                     if (_consumed) SetStatus(null);
-                    else if (IAmJoined) SetStatus($"{_joined}/2 players ready — waiting for a partner   •   E to leave");
-                    else if (_localInRange) SetStatus($"Reef puzzle — press E to join   ({_joined}/2 players ready)");
+                    else if (IAmJoined) SetStatus($"{_joined}/2 players ready — waiting for a partner   •   {InputGlyphs.Name(GameInput.Interact)} to leave");
+                    else if (_localInRange) SetStatus($"Reef puzzle — press {InputGlyphs.Name(GameInput.Interact)} to join   ({_joined}/2 players ready)");
                     else SetStatus(null);
                     break;
                 case Phase.Show:
@@ -359,7 +346,7 @@ namespace FishGame
                     else { HidePanel(); SetStatus(null); }
                     break;
                 case Phase.Input:
-                    if (IAmInputter) { ShowPanel(); SetStatus($"Enter what your partner says   (0/{CurrentLen})   •   Backspace delete   •   Enter submit"); }
+                    if (IAmInputter) { ShowPanel(); SetStatus($"Enter what your partner says   (0/{CurrentLen})   •   {InputGlyphs.Name(GameInput.PuzzleDelete)} delete   •   {InputGlyphs.Name(GameInput.PuzzleSubmit)} submit"); }
                     else if (IAmSeer) { HidePanel(); SetStatus("Your partner is entering it…"); }
                     else SetStatus(null);
                     break;
@@ -374,8 +361,8 @@ namespace FishGame
         {
             if (statusLabel == null) return;
             SetStatus(_inputBuffer.Count >= CurrentLen
-                ? "All entered — press ENTER to submit   •   Backspace delete"
-                : $"Enter what your partner says   ({_inputBuffer.Count}/{CurrentLen})   •   Backspace delete   •   Enter submit");
+                ? $"All entered — press {InputGlyphs.Name(GameInput.PuzzleSubmit)} to submit   •   {InputGlyphs.Name(GameInput.PuzzleDelete)} delete"
+                : $"Enter what your partner says   ({_inputBuffer.Count}/{CurrentLen})   •   {InputGlyphs.Name(GameInput.PuzzleDelete)} delete   •   {InputGlyphs.Name(GameInput.PuzzleSubmit)} submit");
         }
 
         [TargetRpc]

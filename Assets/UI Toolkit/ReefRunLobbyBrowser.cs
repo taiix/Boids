@@ -1,3 +1,4 @@
+using FishGame;
 using Steamworks;
 using System;
 using System.Collections.Generic;
@@ -54,14 +55,15 @@ namespace ReefRun
 
             var head = new VisualElement();
             head.AddToClassList("mm-settings-head");
-            var title = new Label("JOIN A DIVE");
+            var title = new Label("JOIN A GAME");
             title.AddToClassList("mm-settings-title");
             head.Add(title);
             var headRight = new VisualElement { style = { flexDirection = FlexDirection.Row } };
             _refreshBtn = new Button(Refresh) { name = "browser-refresh", text = "REFRESH" };
             _refreshBtn.AddToClassList("mm-close-btn");
             _refreshBtn.style.marginRight = 8;
-            var close = new Button(Close) { name = "browser-close", text = "✕" };
+            var close = new Button(Close) { name = "browser-close" };
+            close.Add(new ReefGlyph(ReefGlyph.Kind.Cross, new Color(1f, 0.72f, 0.3f), 14));
             close.AddToClassList("mm-close-btn");
             headRight.Add(_refreshBtn);
             headRight.Add(close);
@@ -81,6 +83,8 @@ namespace ReefRun
             card.Add(foot);
 
             root.Add(_overlay);
+            // Controller: move down the lobbies, A joins, B closes.
+            UiPad.Register(_overlay, Close, () => _refreshBtn, priority: 10);
 
             // Keep the list fresh while it's open (lobbies fill up and start).
             _autoRefresh = _overlay.schedule.Execute(() => { if (IsOpen && !_joining) Refresh(); })
@@ -281,7 +285,7 @@ namespace ReefRun
             bool isPublic = SteamMatchmaking.GetLobbyData(e.lobby, SteamLobby.PublicKey) == "1";
             string clock = int.TryParse(SteamMatchmaking.GetLobbyData(e.lobby, ReefRunLobbyController.ClockKey), out int s) && s > 0
                 ? $"{s / 60}:{s % 60:00}" : "10:00";
-            var sub = new Label($"{(isPublic ? "Public" : "Friends only")} · {clock} clock");
+            var sub = new Label($"{(isPublic ? "Public" : "Friends only")}, {clock} clock");
             sub.AddToClassList("mm-chip-status");
             text.Add(sub);
             row.Add(text);

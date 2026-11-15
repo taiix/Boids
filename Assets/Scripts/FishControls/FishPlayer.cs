@@ -54,7 +54,6 @@ public class FishPlayer : NetworkBehaviour
     [Tooltip("Extra reach the host allows a remote player's bite: that player sees the pellet (and the " +
              "host sees their fish) a moment late, so an exact check would miss bites that looked fine.")]
     [SerializeField] float remoteEatSlack = 1.5f;
-    private InputAction _eatAction;
 
     private CreatureVision _vision;
 
@@ -101,7 +100,6 @@ public class FishPlayer : NetworkBehaviour
     private double _swallowAt;          // shared clock; set by the host, everyone gets it with the catch
     private bool _inJaws;               // every machine: caught and still struggling (not yet swallowed)
     private float _lastStrugglePress;   // server: presses are capped at ~20 a second
-    private InputAction _struggleAction;
     private const float MinStruggleGap = 0.05f;
     private float _nextSeabedCheck;
     private float _underSince = -1f;   // when the body was first found under the seabed (-1: it isn't)
@@ -387,15 +385,6 @@ public class FishPlayer : NetworkBehaviour
         if (orbit == null && Camera.main != null) orbit = Camera.main.GetComponent<FishOrbitCamera>();
         if (orbit != null) orbit.SetTarget(transform);
 
-        // Eat action: press E near a food pellet to eat it.
-        if (_eatAction == null)
-        {
-            _eatAction = new InputAction("Eat", InputActionType.Button);
-            _eatAction.AddBinding("<Keyboard>/e");
-            _eatAction.AddBinding("<Gamepad>/buttonWest");
-            _eatAction.Enable();
-        }
-
         // Health / hunger / round clock for whoever we are (fish or shark).
         MatchHud.Show();
         GameFeel.Ensure();
@@ -419,6 +408,9 @@ public class FishPlayer : NetworkBehaviour
         if (isServer && _heldBy != 0) ServerStruggleTick();
         if (!isLocalPlayer && !_offlineLocal) return;
 
+        // Which controls this body has right now: picks the controller's action set (swim / shark / puzzle arrows).
+        GameInput.ReportLocalBody(IsSharkBody, _taskLocked);
+
         if (_controlsLive && Time.time >= _nextSeabedCheck)
         {
             _nextSeabedCheck = Time.time + 0.1f;
@@ -428,14 +420,7 @@ public class FishPlayer : NetworkBehaviour
         // In the jaws: mash to break free.
         if (_inJaws && !_offlineLocal)
         {
-            if (_struggleAction == null)
-            {
-                _struggleAction = new InputAction("BreakFree", InputActionType.Button);
-                _struggleAction.AddBinding("<Keyboard>/space");
-                _struggleAction.AddBinding("<Gamepad>/buttonSouth");
-                _struggleAction.Enable();
-            }
-            if (_struggleAction.WasPressedThisFrame() && !PauseMenu.IsOpen && CanBreakFree)
+            if (GameInput.Ascend.WasPressedThisFrame() && !PauseMenu.IsOpen && CanBreakFree)
             {
                 LastStrugglePress = Time.unscaledTime;
                 CmdStruggle();
@@ -458,10 +443,10 @@ public class FishPlayer : NetworkBehaviour
         // task, where E joins it (or bites the turtle's rope) instead.
         bool taskOwnsE = NetworkedSequenceTask.LocalNearAnyTask || TangledTurtle.LocalAtRope;
         if (_controlsLive && !IsSharkBody && !taskOwnsE && PelletInReach() != null)
-            MatchHud.ShowPrompt("Press E to eat");
+            MatchHud.ShowPrompt($"Press {GameInput.Interact.Token} to eat");
 
         // E eats — unless we're next to a task, where E joins it instead (the task handles that press).
-        if (_controlsLive && _eatAction != null && _eatAction.WasPressedThisFrame() && !taskOwnsE)
+        if (_controlsLive && GameInput.Interact.WasPressedThisFrame() && !taskOwnsE)
         {
             var bite = PelletInReach(_offlineLocal ? 0f : remoteEatSlack);
             if (bite != null)
@@ -1198,8 +1183,6 @@ public class FishPlayer : NetworkBehaviour
     {
         base.OnStopLocalPlayer();
 
-        if (_eatAction != null) { _eatAction.Disable(); _eatAction.Dispose(); _eatAction = null; }
-        if (_struggleAction != null) { _struggleAction.Disable(); _struggleAction.Dispose(); _struggleAction = null; }
         if (TryGetComponent(out SharkAbilities shark))
         {
             shark.CaughtFlockFish -= OnCaughtFlockFish;

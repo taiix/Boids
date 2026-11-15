@@ -102,6 +102,9 @@ namespace ReefRun
 
             PopulateDropdowns();
             ApplySavedToControls(); // populate controls from PlayerPrefs
+
+            // Controller: move between the controls, A presses / toggles, left-right moves a slider, B closes.
+            if (_overlay != null) UiPad.Register(_overlay, Close, () => _masterSlider, priority: 10);
         }
 
         void PopulateDropdowns()

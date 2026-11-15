@@ -1,34 +1,56 @@
-/* REEF RUN — pause menu (built in code by PauseMenu). Same look as the main menu nav. */
+/* REEF RUN — pause menu (built in code by PauseMenu). The main menu's skeleton over a dimmed game:
+   the title top-left, RESUME as the one orange block out of the left edge, the rest as words on a navy strip. */
 :root {
     --navy: #051729;
     --orange: #ffb84d;
     --teal-l: #2cc3c4;
     --text: #eef6f7;
     --dim: #8fb0bb;
-    --line: rgba(143, 176, 187, 0.18);
 }
 
-.pause { position: absolute; left: 0; top: 0; right: 0; bottom: 0; align-items: center; justify-content: center;
-         background-color: rgba(3, 12, 22, 0.8); color: var(--text); -unity-font-definition: url("../../Fonts/Barlow-Regular.ttf");
+.pause { position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+         background-color: rgba(3, 12, 22, 0.8); color: var(--text); font-size: 18px;
+         -unity-font-definition: url("../../Fonts/Barlow-Regular.ttf");
          opacity: 0; transition: opacity 0.18s ease; }
 .pause--show { opacity: 1; }
+/* this reset outranks a single class, so Label rules that set a margin or padding carry the .pause prefix */
 .pause Label { padding: 0; margin: 0; }
 
-.pause-eyebrow { font-size: 16px; letter-spacing: 6px; color: var(--orange); -unity-font-definition: url("../../Fonts/BarlowCondensed-Bold.ttf"); }
-.pause-logo { flex-direction: row; margin-top: 2px; margin-bottom: 8px; }
-.pause-logo-word { font-size: 96px; letter-spacing: -1px; -unity-font-definition: url("../../Fonts/BarlowCondensed-ExtraBoldItalic.ttf"); }
-.pause-logo-word--run { color: var(--teal-l); margin-left: 18px; }
-.pause .pause-note { font-size: 16px; color: var(--dim); margin-bottom: 26px; }
+/* ReefSlab block (ReefSlab.cs) */
+.slab { --slab-color: #051729; --slab-lean: 0.21; --slab-left: 1; --slab-right: 1; --slab-notch: 0; }
 
-.pause-btn { width: 360px; height: 62px; margin: 0 0 12px 0; border-radius: 12px; border-width: 1px; border-color: var(--line);
-             background-color: rgba(5, 23, 41, 0.9); color: rgba(238, 246, 247, 0.9); font-size: 26px; letter-spacing: 3px;
-             -unity-font-definition: url("../../Fonts/BarlowCondensed-ExtraBold.ttf");
-             transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, scale 0.12s ease; }
-.pause-btn:hover, .pause-btn:focus { background-color: var(--orange); border-color: var(--orange); color: var(--navy); scale: 1.03 1.03; }
-.pause-btn:active { scale: 0.98 0.98; }
-.pause-btn--primary { background-color: var(--orange); border-color: var(--orange); color: var(--navy); }
-.pause-btn:disabled { opacity: 0.4; scale: 1 1; }
-.pause-btn:disabled:hover { background-color: rgba(5, 23, 41, 0.9); border-color: var(--line); color: rgba(238, 246, 247, 0.9); }
-.pause .pause-hint { font-size: 13px; color: var(--dim); margin: -6px 0 14px 0; }
-.pause .pause-foot { font-size: 13px; letter-spacing: 2px; color: rgba(143, 176, 187, 0.6); margin-top: 18px;
-              -unity-font-definition: url("../../Fonts/BarlowCondensed-Bold.ttf"); }
+.pause .key { min-width: 34px; height: 34px; padding: 0 10px; margin-left: 22px; border-radius: 8px; background-color: var(--navy);
+              color: var(--orange); font-size: 18px; -unity-text-align: middle-center;
+              -unity-font-definition: url("../../Fonts/BarlowCondensed-ExtraBold.ttf"); }
+
+/* title (top left) */
+.pause-title { position: absolute; left: 72px; top: 36px; }
+.pause-word { font-size: 190px; letter-spacing: -2px; text-shadow: 0 8px 40px rgba(0, 0, 0, 0.55);
+              -unity-font-definition: url("../../Fonts/BarlowCondensed-ExtraBoldItalic.ttf"); }
+.pause .pause-note { font-size: 22px; color: #cfe3e8; margin-top: -10px; }
+
+/* nav (bottom left). It starts past the screen edge so the hover lunge never opens a gap there */
+.pause-nav { position: absolute; left: -40px; bottom: 52px; align-items: flex-start; }
+
+/* RESUME (the four states are listed so Unity's default button tints never show through) */
+.pause .pause-nav .pause-primary, .pause .pause-nav .pause-primary:hover, .pause .pause-nav .pause-primary:active, .pause .pause-nav .pause-primary:focus {
+    background-color: rgba(0, 0, 0, 0); border-width: 0; border-radius: 0; margin: 0; padding: 0;
+    flex-direction: row; transition: translate 0.14s ease-out-cubic; }
+.pause .pause-nav .pause-primary:hover, .pause .pause-nav .pause-primary:focus { translate: 14px 0; }
+.pause .pause-nav .pause-primary:active { translate: 6px 0; }
+.pause-primary-slab { --slab-color: #ffb84d; --slab-left: 0; --slab-notch: 30; padding: 6px 86px 6px 112px; flex-direction: row; align-items: center; }
+.pause-primary:hover .pause-primary-slab, .pause-primary:focus .pause-primary-slab { --slab-color: #ffd08a; }
+.pause-primary-label { font-size: 84px; letter-spacing: 1px; color: var(--navy); -unity-font-definition: url("../../Fonts/BarlowCondensed-ExtraBold.ttf"); }
+
+/* everything else: plain words on one navy strip */
+.pause-more { --slab-left: 0; flex-direction: row; align-items: center; height: 66px; margin-top: 6px; padding: 0 44px 0 94px; }
+.pause .pause-nav .pause-btn, .pause .pause-nav .pause-btn:hover, .pause .pause-nav .pause-btn:active, .pause .pause-nav .pause-btn:focus {
+    background-color: rgba(0, 0, 0, 0); border-width: 0; border-radius: 0; margin: 0; padding: 0 18px; height: 66px;
+    color: var(--text); font-size: 30px; letter-spacing: 2px; -unity-font-definition: url("../../Fonts/BarlowCondensed-ExtraBoldItalic.ttf");
+    transition: color 0.1s ease; }
+.pause .pause-nav .pause-more .pause-btn:hover, .pause .pause-nav .pause-more .pause-btn:focus { color: var(--orange); }
+.pause .pause-nav .pause-more .pause-btn:active { color: #ffd08a; }
+.pause .pause-nav .pause-more .pause-btn:disabled { opacity: 0.4; color: var(--text); }
+
+/* why BACK TO LOBBY is greyed out */
+.pause .pause-hint { font-size: 18px; color: var(--dim); margin: 12px 0 0 112px; }

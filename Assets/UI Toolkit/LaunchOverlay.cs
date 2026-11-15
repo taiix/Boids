@@ -114,7 +114,7 @@ namespace ReefRun
 
         void ShowDepth(Label label, VisualElement bar, float f)
         {
-            if (label != null) label.text = $"{Mathf.RoundToInt(f * SeabedDepth)} M";
+            if (label != null) label.text = $"{Mathf.RoundToInt(f * 100f)}%";   // how far along the load is
             if (bar != null) bar.style.width = Length.Percent(f * 100f);
         }
 

@@ -67,7 +67,6 @@ namespace FishGame
         /// <summary>The fish the shark is focused on (or null). SharkAbilities reads this.</summary>
         public GameObject LockedTarget { get; private set; }
 
-        InputAction _lockAction, _cycleAction;
         Collider[] _body;   // the shark's own colliders, so fish hidden behind its body aren't picked
         readonly Highlight _fx = new Highlight();
         readonly List<GameObject> _candidates = new List<GameObject>();
@@ -109,28 +108,16 @@ namespace FishGame
         {
             if (aimCam == null) aimCam = GetComponentInChildren<Camera>(true);
             _body = GetComponents<Collider>();
-
-            _lockAction = new InputAction("LockTarget", InputActionType.Button);
-            _lockAction.AddBinding("<Keyboard>/f");
-            _lockAction.AddBinding("<Gamepad>/buttonEast");
-
-            _cycleAction = new InputAction("CycleTarget", InputActionType.Button);
-            _cycleAction.AddBinding("<Keyboard>/tab");
-            _cycleAction.AddBinding("<Gamepad>/rightShoulder");
         }
 
         void OnEnable()
         {
-            _lockAction.Enable();
-            _cycleAction.Enable();
             ProximityVoice.SharkHeard += OnHeard;
             MatchManager.TaskDone += OnTaskDone;
         }
 
         void OnDisable()
         {
-            _lockAction.Disable();
-            _cycleAction.Disable();
             ProximityVoice.SharkHeard -= OnHeard;
             MatchManager.TaskDone -= OnTaskDone;
             ClearLock();
@@ -151,13 +138,13 @@ namespace FishGame
             // Drop the lock if the fish was eaten, destroyed, or got away.
             if (LockedTarget != null && !StillValid(LockedTarget)) ClearLock();
 
-            if (_lockAction.WasPressedThisFrame())
+            if (GameInput.LockTarget.WasPressedThisFrame())
             {
                 if (LockedTarget != null) ClearLock();
                 else LockNearestToCentre();
             }
 
-            if (_cycleAction.WasPressedThisFrame())
+            if (GameInput.CycleTarget.WasPressedThisFrame())
             {
                 if (LockedTarget != null) CycleTarget();
                 else LockNearestToCentre();

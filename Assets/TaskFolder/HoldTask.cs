@@ -13,31 +13,20 @@ namespace FishGame
         [Tooltip("Seconds of continuous holding to complete.")]
         [SerializeField] float holdSeconds = 3f;
 
-        InputAction _hold;
         float _progress;
-
-        void Awake()
-        {
-            _hold = new InputAction("HoldTask", InputActionType.Button);
-            _hold.AddBinding("<Keyboard>/e");
-            _hold.AddBinding("<Gamepad>/buttonNorth");
-        }
-
-        void OnEnable() => _hold.Enable();
-        void OnDisable() => _hold.Disable();
 
         public override void Begin(TaskInteractor interactor)
         {
             if (IsActive) return;
             IsActive = true;
             _progress = 0f;
-            Debug.Log($"[HoldTask] '{name}' started — hold E for {holdSeconds:0}s to complete.");
+            Debug.Log($"[HoldTask] '{name}' started — hold {InputGlyphs.Name(GameInput.Interact)} for {holdSeconds:0}s to complete.");
         }
 
         void Update()
         {
             if (!IsActive) return;
-            if (_hold.IsPressed())
+            if (GameInput.Interact.IsPressed())
             {
                 _progress += Time.deltaTime;
                 if (_progress >= holdSeconds) CompleteTask();

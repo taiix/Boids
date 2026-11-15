@@ -30,25 +30,16 @@ namespace FishGame
 
         static readonly List<Tag> s_tags = new List<Tag>();
         static readonly List<(Object task, string label)> s_options = new List<(Object, string)>();
-        static InputAction s_tagAction;
 
         public static IReadOnlyList<Tag> Active => s_tags;
 
         /// <summary>Every frame, on this machine: tag on the key, drop tags that ran out or whose task is done.</summary>
         public static void Tick(FishPlayer me, Camera cam)
         {
-            if (s_tagAction == null)
-            {
-                s_tagAction = new InputAction("TagTask", InputActionType.Button);
-                s_tagAction.AddBinding("<Mouse>/middleButton");
-                s_tagAction.AddBinding("<Keyboard>/g");
-                s_tagAction.Enable();
-            }
-
             // A fish in the water, playing - not the shark, not someone out of the round.
             bool fish = me != null && !me.IsSharkBody && !me.IsOut;
             if (!fish) { s_tags.Clear(); return; }
-            if (cam != null && !me.IsHeld && !PauseMenu.IsOpen && !RoundScreen.ShowingResults && s_tagAction.WasPressedThisFrame())
+            if (cam != null && !me.IsHeld && !PauseMenu.IsOpen && !RoundScreen.ShowingResults && GameInput.TagTask.WasPressedThisFrame())
                 TagLookedAt(cam);
             s_tags.RemoveAll(t => Time.time > t.until || !Where(t.task, out _));
         }

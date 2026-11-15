@@ -127,7 +127,7 @@ public class MoveObjectsTask : TaskBase
     {
         if (display == null || !isWorkedOn) return;
         display.SetStatus(count >= sequenceLength
-            ? "All boxes filled — press ENTER to check"
+            ? $"All boxes filled — press {InputGlyphs.Name(GameInput.PuzzleSubmit)} to check"
             : $"Repeat the sequence  ({count}/{sequenceLength})");
     }
 

@@ -98,7 +98,6 @@ namespace FishGame
         float _thrashUntil, _bubbleDebt;
 
         // ---- every machine: this machine's own fish ----
-        InputAction _bite;
         int _sentRope = -1;
         static int s_atRopeFrame = -10;
 
@@ -125,9 +124,6 @@ namespace FishGame
 
         void Awake()
         {
-            _bite = new InputAction("TurtleBite", InputActionType.Button);
-            _bite.AddBinding("<Keyboard>/e");
-            _bite.AddBinding("<Gamepad>/buttonWest");
             if (model != null)
             {
                 _modelRest = model.localRotation;
@@ -136,11 +132,10 @@ namespace FishGame
             _swimmer = GetComponent<TurtleSwimmer>();
         }
 
-        void OnEnable() { All.Add(this); _bite.Enable(); }
-        void OnDisable() { All.Remove(this); _bite.Disable(); }
+        void OnEnable() { All.Add(this); }
+        void OnDisable() { All.Remove(this); }
         void OnDestroy()
         {
-            _bite.Dispose();
             if (_leftovers != null) Destroy(_leftovers.gameObject);
         }
 
@@ -504,7 +499,7 @@ namespace FishGame
             bool fish = me != null && !IsShark(me) && !Gone(me);
             int rope = fish && _built && !_freed ? NearestKnot(me.transform.position) : -1;
             if (rope >= 0) s_atRopeFrame = Time.frameCount;
-            bool holding = rope >= 0 && !PauseMenu.IsOpen && _bite.IsPressed();
+            bool holding = rope >= 0 && !PauseMenu.IsOpen && GameInput.Interact.IsPressed();
 
             int want = holding ? rope : -1;
             if (want != _sentRope && me != null)
@@ -525,7 +520,7 @@ namespace FishGame
                 string word = WordOf(rope);
                 bool together = (_biting & (1 << PartnerOf(rope))) != 0;
                 string line = !holding
-                    ? $"Knot: <b>{word}</b> — hold E to bite.  Bite it together with the other {word} knot!"
+                    ? $"Knot: <b>{word}</b> — hold {InputGlyphs.Name(GameInput.Interact)} to bite.  Bite it together with the other {word} knot!"
                     : together
                         ? $"Biting the <b>{word}</b> knot together — keep going!"
                         : $"<color=#ff7a66>The net pulls tighter!</color>  The other <b>{word}</b> knot has to be bitten at the same time.";
