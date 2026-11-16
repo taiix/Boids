@@ -97,7 +97,7 @@ namespace FishGame
 
         void OnGUI()
         {
-            if (_revealedSharks.Count == 0) return;
+            if (_revealedSharks.Count == 0 || MatchHud.RoundOver) return;
             var cam = WaterFx.ViewCamera; // Camera.main is null for a networked player (its camera isn't tagged)
             var me = Local();
             if (cam == null || me == null) return;

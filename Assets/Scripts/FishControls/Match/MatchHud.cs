@@ -202,6 +202,9 @@ namespace FishGame
 
         // A piece of the layout by name. One that's been removed (or renamed) in the UI Builder just doesn't show:
         // a stand-in off screen takes its place, with a warning saying which.
+        /// <summary>The round has ended (the results are up): the in-round HUD, markers and labels all go.</summary>
+        public static bool RoundOver => RoundScreen.ShowingResults || (MatchManager.Instance != null && MatchManager.Instance.IsOver);
+
         T Find<T>(string name) where T : VisualElement, new()
         {
             var e = _root.Q<T>(name);
@@ -214,8 +217,10 @@ namespace FishGame
         {
             if (!_built) { Build(); if (!_built) return; }
 
-            // the pause menu takes the screen; the HUD steps aside
-            _root.style.display = PauseMenu.IsOpen ? DisplayStyle.None : DisplayStyle.Flex;
+            // the pause menu takes the screen, and once the round is over the results do: the HUD steps aside
+            bool gameOver = RoundOver;
+            _root.style.display = PauseMenu.IsOpen || gameOver ? DisplayStyle.None : DisplayStyle.Flex;
+            if (gameOver) return;
 
             UpdateClock();
             UpdateEvent();

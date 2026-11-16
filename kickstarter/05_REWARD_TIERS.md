@@ -1,4 +1,39 @@
-# 05 — Reward Tiers (v2, 2026-10-20)
+# 05 — Reward Tiers (v3, 2026-11-16)
+
+> **v3 (2026-11-16) supersedes the v2 table below**, following `reports/Reef Run Kickstarter page research.md`:
+> - **Packs are cheaper per seat than any single copy, and say so on the card.** Springfield Hotel's packs took 42% of
+>   its backers. The Boo Croo's 4-pack cost more per seat than a single copy and took 6%.
+> - **A 2-pack replaces the €29 Founding Diver.** Springfield's 2-pack outsold its 4-pack, 187 to 107.
+> - **Early-bird limit 300 → 120.** The Boo Croo sold 182 of 250 with 416 backers, so 300 would never sell out.
+> - **€199 limit 25 → 10.** The Boo Croo's top tier sold 2 of 15.
+>
+> | # | Tier | € | Limit | You get | Mix (assumed) | Delivery |
+> |---|---|---|---|---|---|---|
+> | 1 | Ripple | 5 | — | Supporters credit · Discord role · 4K wallpapers. *No game.* | 2% | Jun 2027 |
+> | 2 | **Early Diver** | **12** | **120** | Steam key (beta + full game) · Supporters credit | 18% | Beta Jul 2027 |
+> | 3 | Diver | 15 | — | Same as Early Diver | 37% | Beta Jul 2027 |
+> | 4 | **Dive Buddies** | **26** (€13/seat) | — | 2 Steam keys · 2 Supporters credits | 16% | Beta Jul 2027 |
+> | 5 | **Pod of Four** ⭐ | **44** (€11/seat) | — | 4 Steam keys · beta for all 4 · 4 Supporters credits · **Pod Stripes** matching fish pattern (pack tiers only) | 18% | Beta Jul 2027 · pattern at release |
+> | 6 | Founding Pod | 99 | — | Pod of Four + 4 Founder cosmetic sets ("Founder Fin" + "Old Scar") + 4 Founders credits + Making-of PDF | 8% | Keys Jul 2027 · rest Dec 2027 |
+> | 7 | Name the Trawler | 199 | **10** | Steam key + Founder cosmetics + Founders credit + PDF + your name on the trawler's hull | 1% | Dec 2027 |
+>
+> **Model results (`03_funding_model.xlsx`, rebuilt):**
+> - goal still **€14,000**;
+> - blended average pledge **€29.80** (v2: €37.56);
+> - **470 backers** needed (v2: 373);
+> - 903 Steam keys owed at goal, under the 2,500 cap;
+> - Realistic goal €56,000 (was €55,500), so the top stretch goal moves to €56,000.
+>
+> Labor: +8 h for the Pod Stripes pattern. Pre-launch target: about **1,410 Kickstarter followers** (60% of
+> backers from followers at 20% conversion; v2 said 1,120).
+>
+> **One gap to decide:** with the €29 tier gone, a solo backer can only get the Founder cosmetics at €199. The
+> research's other option was a small step-up of a few euros over €15 (Springfield's best seller was +$4), e.g. a
+> €19 "Founding Diver". It isn't added.
+
+---
+
+*The v2 text below is kept for its reasoning. Its prices are superseded.*
 
 **Why v2:**
 - The v1 game tiers (€8/€10) were priced below nearly every successful comparable.

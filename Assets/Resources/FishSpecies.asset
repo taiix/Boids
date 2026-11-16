@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 93714946f1d1bb545a8855d142dda268, type: 3}
+  m_Name: FishSpecies
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.FishSpecies
+  species:
+  - name: Clownfish
+    schoolPrefab: {fileID: 6394044885714724643, guid: 6863ae4e3dc0ba741a59f66c3b4b9154, type: 3}
+    swimMesh: {fileID: 4300000, guid: 33e73b92e6ffec649b283864dd76ae0b, type: 2}
+    swimMaterial: {fileID: 2100000, guid: 8d364500d14808a498815d80a5ec3dcc, type: 2}
+    playable: 1
+    playerSize: 0.95
+    speedScale: 0.9
+    spacingScale: 0.85
+  - name: YellowTang
+    schoolPrefab: {fileID: 8878572744190387995, guid: 328a99911553508439145192d17fe5d6, type: 3}
+    swimMesh: {fileID: 4300000, guid: ba770267f39010e45a5ea4a6cbc5cc23, type: 2}
+    swimMaterial: {fileID: 2100000, guid: 6b65b6bb787e80f418679bab5fd7d722, type: 2}
+    playable: 1
+    playerSize: 1.05
+    speedScale: 1
+    spacingScale: 1
+  - name: Angelfish
+    schoolPrefab: {fileID: 5514298016079109619, guid: 36fd33efff82bec4d83c6dfe12b8a465, type: 3}
+    swimMesh: {fileID: 4300000, guid: f4eebe7f382f28d49b84862c85be43ee, type: 2}
+    swimMaterial: {fileID: 2100000, guid: 8ccee8b777ae142438b787d4dcda7661, type: 2}
+    playable: 1
+    playerSize: 1.05
+    speedScale: 0.95
+    spacingScale: 1.05
+  - name: MoorishIdol
+    schoolPrefab: {fileID: 9192577382735297514, guid: efaebe08b45def54c86dab8020701436, type: 3}
+    swimMesh: {fileID: 4300000, guid: f3908cccc84d01e44bb608b6663431b0, type: 2}
+    swimMaterial: {fileID: 2100000, guid: d9d395cb498e9d846a9b0c7e581d04f2, type: 2}
+    playable: 0
+    playerSize: 1
+    speedScale: 0.85
+    spacingScale: 1.1
+  - name: Mackerel
+    schoolPrefab: {fileID: 4267709730773629450, guid: 702c5081ed8e9d049bf1f33fa6ee954c, type: 3}
+    swimMesh: {fileID: 4300000, guid: ef5c4f3ac3f103a4291b0d3a38feaf28, type: 2}
+    swimMaterial: {fileID: 2100000, guid: 3a9a4caf8c52d1d4bb180576a355d4d5, type: 2}
+    playable: 0
+    playerSize: 1
+    speedScale: 1.3
+    spacingScale: 1.2
+  - name: Butterflyfish
+    schoolPrefab: {fileID: 9159197664315560195, guid: 7b975d4d8e923e0499dc01f3981052f7, type: 3}
+    swimMesh: {fileID: 4300000, guid: bc86233c04d24ba469cbaa81078969b2, type: 2}
+    swimMaterial: {fileID: 2100000, guid: 95f7454b3ab780e47bce482407d9fe40, type: 2}
+    playable: 0
+    playerSize: 1
+    speedScale: 0.8
+    spacingScale: 0.9
+  - name: PinkFish
+    schoolPrefab: {fileID: 1318662798089844, guid: 06a4036ceebb544e494c30d599b9d2c1, type: 3}
+    swimMesh: {fileID: 0}
+    swimMaterial: {fileID: 0}
+    playable: 0
+    playerSize: 1
+    speedScale: 1
+    spacingScale: 1
+  schoolCycle: 01000000020000000000000003000000040000000500000001000000020000000000000006000000010000000200000000000000i

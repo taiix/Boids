@@ -53,6 +53,9 @@ namespace FishGame
         [Header("Hearing fish talk")]
         [Tooltip("Colour of the ripples where a voice came from, and the tint on a fish heard close by.")]
         [SerializeField] Color heardColor = new Color(0.65f, 0.92f, 1f);
+        [Tooltip("Brightness of the tint on a fish heard talking (or caught by the sonar). Kept well under the " +
+                 "lock's: at that strength a fish close to the shark blew out to white through bloom.")]
+        [SerializeField] float heardTintStrength = 0.7f;
         [Tooltip("How long a fish heard close by stays tinted and lockable (seconds).")]
         [SerializeField] float heardSeconds = 2f;
         [Tooltip("How long one ripple lasts on screen (seconds).")]
@@ -272,7 +275,7 @@ namespace FishGame
             _fx.Remove(f);
             if (f == LockedTarget) _fx.Apply(f, glowColor, tintStrength, solidTint);
             else if (_revealed.Contains(f)) _fx.Apply(f, revealColor, tintStrength, solidTint);
-            else if (_heard.ContainsKey(f)) _fx.Apply(f, heardColor, tintStrength, solidTint);
+            else if (_heard.ContainsKey(f)) _fx.Apply(f, heardColor, heardTintStrength, solidTint);
         }
 
         // ---- hearing ----
@@ -386,6 +389,7 @@ namespace FishGame
 
         void OnGUI()
         {
+            if (MatchHud.RoundOver) return;   // the results are up: no more in-round markers
             var cam = Cam;
             if (cam != null && _ripples.Count > 0) DrawRipples(cam);
             if (cam != null && _tasks.Count > 0) DrawTasks(cam);

@@ -2,6 +2,22 @@
 
 Ordered by what unblocks the most. ☐ = open.
 
+## v3 (2026-11-16): the campaign page and repriced tiers
+
+- ☑ **The full campaign page is built** as a local preview: `page/index.html`. Serve the repo root (the
+  `kickstarter-page` launch entry) to see the images. Tick "Editor notes" on the page to see which file to upload
+  where. The Steam link is the `STEAM_URL` constant at the bottom of the page.
+- ☑ **Research:** `reports/Reef Run Kickstarter page research.md`.
+- ☑ **Tiers repriced** (05 v3):
+  - €5 / €12 early bird (limit 120) / €15 / **€26 Dive Buddies** / **€44 Pod of Four** / €99 / €199 (limit 10);
+  - average pledge €29.80, so **470 backers** are needed for €14,000;
+  - model, trackers, visuals and copy sheet are all rebuilt.
+- ☐ Decide whether to add a ~€19 solo step-up with the Founder cosmetics (05 v3, "One gap to decide").
+- ☐ **Pre-launch target rises to about 1,410 Kickstarter followers** (was 1,120).
+- ☐ The private Kickstarter draft still shows the v2 tiers; update it when you next work in the editor.
+- ☐ **Steam logo rule:** add the Steam banners only after your Steam app exists. Valve forbids the logo before a
+  distribution agreement.
+
 ## v2 (2026-10-20): what changed and what it needs from you
 
 - **The campaign is rebuilt** from the Full Charge playbook and 18 successful comparables (14, 15, 16).

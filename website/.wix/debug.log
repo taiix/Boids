@@ -1,0 +1,20 @@
+----- CLI crash report at 2026-10-21T16:13:32.894Z
+Error Trace
+FailedToIdentifyProgramFlow: FailedToIdentifyProgramFlow
+    at _Command.<anonymous> (C:\Users\Stanislav\AppData\Local\npm-cache\_npx\592cf8f628905b64\node_modules\@wix\cli\src\program.ts:97:15)
+    at _Command.emit (node:events:519:28)
+    at _Command._parseCommand (C:\Users\Stanislav\AppData\Local\npm-cache\_npx\592cf8f628905b64\node_modules\node_modules\commander\lib\command.js:1607:14)
+    at _Command.parseAsync (C:\Users\Stanislav\AppData\Local\npm-cache\_npx\592cf8f628905b64\node_modules\node_modules\commander\lib\command.js:1104:16)
+    at <anonymous> (C:\Users\Stanislav\AppData\Local\npm-cache\_npx\592cf8f628905b64\node_modules\@wix\cli\src\index.tsx:119:39)
+Error Info
+{}
+----- CLI crash report at 2026-10-21T16:13:40.879Z
+Error Trace
+FailedToIdentifyProgramFlow: FailedToIdentifyProgramFlow
+    at _Command.<anonymous> (C:\Users\Stanislav\AppData\Local\npm-cache\_npx\592cf8f628905b64\node_modules\@wix\cli\src\program.ts:97:15)
+    at _Command.emit (node:events:519:28)
+    at _Command._parseCommand (C:\Users\Stanislav\AppData\Local\npm-cache\_npx\592cf8f628905b64\node_modules\node_modules\commander\lib\command.js:1607:14)
+    at _Command.parseAsync (C:\Users\Stanislav\AppData\Local\npm-cache\_npx\592cf8f628905b64\node_modules\node_modules\commander\lib\command.js:1104:16)
+    at <anonymous> (C:\Users\Stanislav\AppData\Local\npm-cache\_npx\592cf8f628905b64\node_modules\@wix\cli\src\index.tsx:119:39)
+Error Info
+{}

@@ -151,7 +151,10 @@ public class SteamLobby : MonoBehaviour
                 JoinFailed?.Invoke("That dive already started.");
                 return;
             }
-            LaunchOverlay.Instance?.Play();
+            // Only from the lobby screen: "starting" stays "1" for the whole match, and any later lobby
+            // update (a player leaving changes the member count) would otherwise replay the overlay over
+            // the game, where nothing ever fades it out again.
+            if (lobbyUi != null) LaunchOverlay.Instance?.Play();
             return;
         }
 

@@ -319,7 +319,6 @@ namespace ReefRun
 
             var mic = new ReefGlyph(ReefGlyph.Kind.Mic, MicIdle, 22);
             mic.AddToClassList("pc-mic");
-            mic.tooltip = "Lights up while they talk";
             info.Add(mic);
             _talk[p.steamId] = (card, mic);
 
@@ -495,7 +494,6 @@ namespace ReefRun
         {
             var tile = new Button();
             tile.AddToClassList("inv");
-            tile.tooltip = "Invite to lobby";
             bool sent = _invited.Contains(id);
             tile.Add(new ReefGlyph(sent ? ReefGlyph.Kind.Check : ReefGlyph.Kind.Plus, Orange, sent ? 18 : 20));
             if (sent)

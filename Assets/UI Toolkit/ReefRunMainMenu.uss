@@ -243,3 +243,20 @@
                                      -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBold.ttf"); }
 .mm-settings-overlay .mm-chip-join:hover { background-color: #ffd08a; }
 .mm-settings-overlay .mm-lb-foot { font-size: 15px; color: var(--dim); margin-top: 12px; }
+
+/* ---------- controller: the control the pad is on (UiPad adds .pad-focus and swells it) ---------- */
+.mm-settings-overlay .mm-close-btn.pad-focus { background-color: #1aa8ad; }
+.mm-settings-overlay .mm-link-btn.pad-focus { color: #ffd08a; }
+.mm-settings-overlay .mm-chip-join.pad-focus { background-color: #ffd08a; }
+.mm-lb-row.pad-focus { background-color: rgba(143, 176, 187, 0.26); }
+.mm-slider.pad-focus .unity-base-slider__dragger { background-color: #ffb84d; }
+.mm-dropdown.pad-focus .unity-base-popup-field__input { background-color: rgba(143, 176, 187, 0.26); }
+
+/* ---------- buttons from the approved UI kit: selected = lighter with a thin frame, pressed = darker and a touch smaller ---------- */
+.mm-host:hover .mm-host-slab, .mm-host:focus .mm-host-slab, .mm-host.pad-focus .mm-host-slab { --slab-outline: #ffb84d; --slab-outline-width: 4; }
+.mm-ui .mm-nav .mm-host:active { scale: 0.97 0.97; }
+.mm-host:active .mm-host-slab { --slab-color: #d9952f; --slab-outline: rgba(0, 0, 0, 0); }
+.mm-apply:hover .mm-apply-slab, .mm-apply:focus .mm-apply-slab, .mm-apply.pad-focus .mm-apply-slab { --slab-outline: #ffb84d; }
+.mm-settings-overlay .mm-apply:active { scale: 0.97 0.97; }
+.mm-apply:active .mm-apply-slab { --slab-color: #d9952f; --slab-outline: rgba(0, 0, 0, 0); }
+.mm-ui .mm-nav .mm-more .mm-more-btn.pad-focus { color: var(--orange); }

@@ -58,8 +58,13 @@ public class Boid : MonoBehaviour
         }
         if (sepCount > 0) steer += Vector3.ClampMagnitude(separation, 1f) * manager.separationWeight;
 
-        Vector3 toGoal = manager.goalPos - pos;
-        if (toGoal.sqrMagnitude > 1e-4f) steer += toGoal.normalized * manager.goalWeight;
+        // Same school-level steering as the flock: migrate with the school (one shared direction), and
+        // drift back toward it only once outside its natural radius.
+        steer += manager.MigrationDir * manager.goalWeight;
+        Vector3 toSchool = manager.SchoolCenter - pos;
+        float ds = toSchool.magnitude, sr = manager.SchoolRadius;
+        if (ds > sr)
+            steer += toSchool / ds * (manager.schoolPull * Mathf.Min((ds - sr) / sr + (neighbours == 0 ? 1f : 0f), 2f));
 
         // Flee predators with the school.
         bool fleeing = false;

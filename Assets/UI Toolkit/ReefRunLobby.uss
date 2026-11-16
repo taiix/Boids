@@ -216,3 +216,22 @@ Label { padding: 0; margin: 0; }
 .foot-dim { font-size: 15px; color: var(--dim); }
 .foot-link { font-size: 15px; color: var(--orange); -unity-font-definition: url("Fonts/Barlow-SemiBold.ttf"); }
 .foot-link:hover { color: #ffd08a; }
+
+/* ---------- controller: the control the pad is on (UiPad adds .pad-focus and swells it) ---------- */
+.leave.pad-focus .leave-slab { --slab-color: #0c4450; }
+.leave.pad-focus .leave-label { color: var(--orange); }
+.btn-teal.pad-focus .btn-slab { --slab-color: #1aa8ad; }
+.btn-ghost.pad-focus .btn-label { color: var(--orange); }
+.btn-orange.pad-focus .btn-slab { --slab-color: #ffd08a; }
+.stage .seg-btn.pad-focus { color: var(--orange); }
+.stage .inv.pad-focus { background-color: #1aa8ad; }
+.open.pad-focus { background-color: rgba(5, 23, 41, 0.8); }
+.open.pad-focus .open-t1 { color: var(--orange); }
+.foot-link.pad-focus { color: #ffd08a; }
+
+/* ---------- buttons from the approved UI kit: selected = lighter with a thin frame, pressed = darker and a touch smaller ---------- */
+.btn-teal:hover .btn-slab, .btn-teal.pad-focus .btn-slab { --slab-color: #2cc3c4; --slab-outline: #ffb84d; }
+.btn-teal:active .btn-slab { --slab-color: #0c4450; --slab-outline: rgba(0, 0, 0, 0); }
+.btn-orange:hover .btn-slab, .btn-orange.pad-focus .btn-slab { --slab-outline: #ffb84d; }
+.btn-orange:active .btn-slab { --slab-color: #d9952f; --slab-outline: rgba(0, 0, 0, 0); }
+.stage .btn-teal:active, .stage .btn-orange:active { scale: 0.97 0.97; }

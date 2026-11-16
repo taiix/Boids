@@ -35,12 +35,14 @@ number in `03_funding_model.xlsx` on the day you submit.
 | Tier | Price | Limit | Items to itemise | Estimated delivery |
 |---|---|---|---|---|
 | Ripple | €5 | — | Supporters credit; Discord role; wallpaper pack | Jun 2027 |
-| Early Diver | €12 | 300 | Steam key (beta + game); Supporters credit | Jul 2027 |
+| Early Diver | €12 | 120 | Steam key (beta + game); Supporters credit | Jul 2027 |
 | Diver | €15 | — | Steam key (beta + game); Supporters credit | Jul 2027 |
-| Founding Diver | €29 | — | Steam key; Founder cosmetics; Founders credit; Making-of PDF | Dec 2027 |
-| Pod of Four | €49 | — | 4 × Steam key; 4 × Supporters credit | Jul 2027 |
-| Founding Pod | €99 | — | 4 × Steam key; 4 × Founder cosmetics; 4 × Founders credit; Making-of PDF | Dec 2027 |
-| Name the Trawler | €199 | 25 | Founding Diver items + trawler name | Dec 2027 |
+| Dive Buddies | €26 | — | 2 × Steam key; 2 × Supporters credit | Jul 2027 |
+| Pod of Four | €44 | — | 4 × Steam key; 4 × Supporters credit; Pod Stripes pattern | Jul 2027 (pattern Dec 2027) |
+| Founding Pod | €99 | — | 4 × Steam key; Pod Stripes; 4 × Founder cosmetics; 4 × Founders credit; Making-of PDF | Dec 2027 |
+| Name the Trawler | €199 | 10 | Steam key; Founder cosmetics; Founders credit; Making-of PDF; trawler name | Dec 2027 |
+
+*v3 tiers (2026-11-16). The private Kickstarter draft still has v2; update it to match.*
 
 Reward images: `assets/visuals/rewards_3x2/reward_*.jpg` (3:2, no overlaid text, as the editor asks). Shipping: **no shipping**. Add-ons: none.
 **Blocker:** the Steam-key tiers can't go live until REEF RUN has its own Steam app (12 B2).

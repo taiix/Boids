@@ -103,6 +103,9 @@ namespace FishGame
                 foreach (var c in GetComponentsInChildren<Collider>())
                     if (c.enabled) { c.enabled = false; _collidersOff.Add(c); }
 
+            // A school fish swims by shader; bring its authored rig back for the struggle clip.
+            if (TryGetComponent(out FishSwimRig swimRig)) swimRig.UseRig(true);
+
             // Play the prey's in-mouth clip. Kill root motion so the swim/eat clip can't drag
             // the fish out of the mouth while it's parented there.
             if (animator != null)
@@ -152,6 +155,7 @@ namespace FishGame
                 foreach (var b in disableOnEaten)
                     if (b != null) b.enabled = true;
             if (TryGetComponent<Rigidbody>(out var rb)) rb.interpolation = _interpolationBefore;
+            if (TryGetComponent(out FishSwimRig swimRig)) swimRig.UseRig(false);
         }
 
         bool HasParameter(int hash)

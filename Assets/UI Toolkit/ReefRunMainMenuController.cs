@@ -250,9 +250,10 @@ namespace ReefRun
             var btn = _root.Q<Button>(name);
             if (btn == null) return;
             btn.clicked += cb;
-            btn.RegisterCallback<PointerEnterEvent>(_ => SetHint(hint));
-            btn.RegisterCallback<FocusInEvent>(_ => SetHint(hint));
-            btn.RegisterCallback<PointerLeaveEvent>(_ => SetHint(HostHint));
+            // No description under the buttons on hover / select any more: the line there is only used for
+            // a failed join (OnJoinFailed), and clears when you move on.
+            btn.RegisterCallback<PointerEnterEvent>(_ => SetHint(""));
+            btn.RegisterCallback<FocusInEvent>(_ => SetHint(""));
         }
 
         void SetHint(string text) { if (_hint != null) _hint.text = text; }

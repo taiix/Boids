@@ -58,8 +58,33 @@ namespace FishGame
             public ParticleSystem bubbles;
         }
 
+        [Header("Force field")]
+        [Tooltip("Bodies closer than this to a wall (metres) light up the glass's hex lattice.")]
+        [SerializeField] float pokeReach = 12f;
+        [Tooltip("A body hitting a wall at least this fast (m/s) sends a shockwave ring across the glass.")]
+        [SerializeField] float impactSpeed = 3f;
+
         readonly List<Wall> _walls = new List<Wall>();
         static readonly int HasSdf = Shader.PropertyToID("_HasSdf");
+
+        // Must match MAX_HEX_POKES in FrostedGlass.shader.
+        const int MaxPokes = 16;
+        static readonly int HexPokes = Shader.PropertyToID("_HexPokes");
+        static readonly int HexPokeCount = Shader.PropertyToID("_HexPokeCount");
+        readonly Vector4[] _pokes = new Vector4[MaxPokes];
+
+        // Must match MAX_HEX_IMPACTS in FrostedGlass.shader.
+        const int MaxImpacts = 8;
+        static readonly int HexImpacts = Shader.PropertyToID("_HexImpacts");
+        static readonly int HexImpactCount = Shader.PropertyToID("_HexImpactCount");
+        static readonly int HexNow = Shader.PropertyToID("_HexNow");
+        readonly Vector4[] _impacts = new Vector4[MaxImpacts];
+        int _nextImpact;
+
+        struct Approach { public float gap; public float lastHit; }
+        readonly Dictionary<VegetationPusher, Approach> _approach = new Dictionary<VegetationPusher, Approach>();
+        readonly List<VegetationPusher> _gone = new List<VegetationPusher>();
+        readonly Dictionary<VegetationPusher, Collider> _bodyColliders = new Dictionary<VegetationPusher, Collider>();
 
         public int Count => _walls.Count;
 
@@ -70,11 +95,161 @@ namespace FishGame
         {
             Instance = this;
             Collect();
+            for (int i = 0; i < MaxImpacts; i++) _impacts[i] = new Vector4(0f, 0f, 0f, -1000f); // long expired
         }
 
         void OnDestroy()
         {
             if (Instance == this) Instance = null;
+            Shader.SetGlobalFloat(HexPokeCount, 0f);
+            Shader.SetGlobalFloat(HexImpactCount, 0f);
+        }
+
+        /// <summary>Send a shockwave ring across the glass from <paramref name="at"/> (a point on or near a
+        /// wall). Bodies hitting the walls do this on their own.</summary>
+        public void Impact(Vector3 at)
+        {
+            _impacts[_nextImpact] = new Vector4(at.x, at.y, at.z, Time.time);
+            _nextImpact = (_nextImpact + 1) % MaxImpacts;
+        }
+
+        // Tell the glass which bodies are close to it, so its force-field lattice lights up around them.
+        // Players, the shark and wildlife all carry a VegetationPusher; the school fish don't.
+        void PushPokes()
+        {
+            int n = 0;
+            var bodies = VegetationPusher.All;
+            for (int i = 0; i < bodies.Count && n < MaxPokes; i++)
+            {
+                var b = bodies[i];
+                if (b == null || !b.isActiveAndEnabled) continue;
+                Vector3 p = b.transform.position;
+                Collider body = BodyCollider(b);
+                float extent = body != null ? body.bounds.extents.magnitude : b.Radius;
+                if (!NearAWall(p, pokeReach + extent, out Vector3 atGlass, out float gap, out Vector3 toBody))
+                {
+                    _approach.Remove(b);
+                    continue;
+                }
+
+                // Measure from the part of the body nearest the glass (the shark's nose, not its middle),
+                // so the glow sits where it actually touches.
+                Vector3 poke = atGlass;
+                if (body != null)
+                {
+                    Vector3 c = body.ClosestPoint(atGlass);
+                    gap = Mathf.Max(0f, Vector3.Dot(c - atGlass, toBody));
+                    poke = c;
+                }
+                else
+                {
+                    gap = Mathf.Max(0f, gap - b.Radius);
+                    poke = atGlass + toBody * gap;
+                }
+                if (gap > pokeReach) { _approach.Remove(b); continue; }
+
+                _pokes[n++] = new Vector4(poke.x, poke.y, poke.z, b.Radius);
+                DetectImpact(b, gap, poke - toBody * gap);
+            }
+            for (int i = n; i < MaxPokes; i++) _pokes[i] = Vector4.zero;
+            Shader.SetGlobalVectorArray(HexPokes, _pokes);
+            Shader.SetGlobalFloat(HexPokeCount, n);
+
+            _gone.Clear();
+            foreach (var kv in _approach) if (kv.Key == null) _gone.Add(kv.Key);
+            foreach (var kv in _bodyColliders) if (kv.Key == null) _gone.Add(kv.Key);
+            foreach (var g in _gone) { _approach.Remove(g); _bodyColliders.Remove(g); }
+
+            Shader.SetGlobalVectorArray(HexImpacts, _impacts);
+            Shader.SetGlobalFloat(HexImpactCount, MaxImpacts);
+            Shader.SetGlobalFloat(HexNow, Time.time);
+        }
+
+        // A body that reaches the wall while closing on it fast counts as a hit.
+        void DetectImpact(VegetationPusher b, float gap, Vector3 atGlass)
+        {
+            float dt = Mathf.Max(Time.deltaTime, 1e-4f);
+            if (_approach.TryGetValue(b, out var a))
+            {
+                float closing = (a.gap - gap) / dt;
+                bool touching = gap <= 0.75f;
+                if (touching && closing >= impactSpeed && Time.time - a.lastHit > 0.6f)
+                {
+                    Impact(atGlass);
+                    a.lastHit = Time.time;
+                }
+            }
+            else a.lastHit = -10f;
+            a.gap = gap;
+            _approach[b] = a;
+        }
+
+        // The solid collider a body is measured by: its own, or the first non-trigger one under it.
+        Collider BodyCollider(VegetationPusher b)
+        {
+            if (_bodyColliders.TryGetValue(b, out var c)) return c;
+            c = null;
+            foreach (var col in b.GetComponentsInChildren<Collider>())
+            {
+                if (col.isTrigger) continue;
+                if (col is MeshCollider mc && !mc.convex) continue; // ClosestPoint needs a convex shape
+                c = col;
+                break;
+            }
+            _bodyColliders[b] = c;
+            return c;
+        }
+
+        // Where a body is relative to the glass it is nearest: the closest point on the pane's face, how far
+        // the body's centre is from that face, and the face's normal pointing at the body.
+        bool NearAWall(Vector3 p, float reach, out Vector3 atGlass, out float gap, out Vector3 toBody)
+        {
+            atGlass = p;
+            gap = float.MaxValue;
+            toBody = Vector3.forward;
+            bool found = false;
+            foreach (var w in _walls)
+            {
+                Transform t = w.pane;
+                Vector3 d = p - t.position;
+                Vector3 n = t.forward;
+                float across = Vector3.Dot(d, n);
+                float glassHalf = Mathf.Abs(t.lossyScale.z) * 0.5f;
+                float g = Mathf.Abs(across) - glassHalf;
+                if (g > reach || g >= gap) continue;
+                if (Mathf.Abs(Vector3.Dot(d, t.right)) > Mathf.Abs(t.lossyScale.x) * 0.5f + reach) continue;
+                if (Mathf.Abs(Vector3.Dot(d, t.up)) > Mathf.Abs(t.lossyScale.y) * 0.5f + reach) continue;
+                gap = g;
+                toBody = n * Mathf.Sign(across);
+                atGlass = p - n * (across - Mathf.Sign(across) * glassHalf);
+                found = true;
+            }
+            return found;
+        }
+
+        /// <summary>
+        /// <paramref name="point"/>, moved back if it has crossed any wall from the side
+        /// <paramref name="reference"/> is on, or come closer to the glass than <paramref name="margin"/>.
+        /// Used by the camera, so it can never end up on the far side of the glass from its fish. A wall that
+        /// has lifted out of the way only blocks where its pane still is.
+        /// </summary>
+        public Vector3 KeepOnSide(Vector3 reference, Vector3 point, float margin)
+        {
+            foreach (var w in _walls)
+            {
+                Transform t = w.pane;
+                Vector3 n = t.forward;
+                float glassHalf = Mathf.Abs(t.lossyScale.z) * 0.5f;
+                Vector3 dp = point - t.position;
+                if (Mathf.Abs(Vector3.Dot(dp, t.right)) > Mathf.Abs(t.lossyScale.x) * 0.5f + margin) continue;
+                if (Mathf.Abs(Vector3.Dot(dp, t.up)) > Mathf.Abs(t.lossyScale.y) * 0.5f + margin) continue;
+
+                float side = Mathf.Sign(Vector3.Dot(reference - t.position, n));
+                float keep = glassHalf + margin;
+                float at = Vector3.Dot(dp, n) * side;          // + = on the reference's side
+                if (at < keep) point += n * (side * (keep - at));
+            }
+            return point;
         }
 
         void Collect()
@@ -138,6 +313,7 @@ namespace FishGame
                 Show(_walls[i], k);
                 UpdateBubbles(_walls[i], k);
             }
+            PushPokes();
         }
 
         void Show(Wall w, float k)

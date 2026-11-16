@@ -153,3 +153,9 @@
 .rs-root .rs-nav .rs-buttons .rs-btn:hover, .rs-root .rs-nav .rs-buttons .rs-btn:focus { color: var(--orange); }
 .rs-root .rs-nav .rs-buttons .rs-btn:active { color: #ffd08a; }
 .rs-root .rs-wait { font-size: 18px; color: var(--dim); margin: 12px 0 0 112px; }
+
+/* ---------- buttons from the approved UI kit: selected = lighter with a thin frame, pressed = darker and a touch smaller ---------- */
+.rs-btn-primary:hover .rs-primary-slab, .rs-btn-primary:focus .rs-primary-slab, .rs-btn-primary.pad-focus .rs-primary-slab { --slab-outline: #ffb84d; --slab-outline-width: 4; }
+.rs-root .rs-nav .rs-btn-primary:active { scale: 0.97 0.97; }
+.rs-btn-primary:active .rs-primary-slab { --slab-color: #d9952f; --slab-outline: rgba(0, 0, 0, 0); }
+.rs-root .rs-nav .rs-buttons .rs-btn.pad-focus { color: var(--orange); }

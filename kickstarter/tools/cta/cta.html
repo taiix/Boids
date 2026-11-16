@@ -1,0 +1,56 @@
+﻿<!doctype html>
+<!-- Call-to-action banners for the Kickstarter story. Rendered to PNG by make_cta.ps1 (headless Chrome).
+     The Steam logo and the Discord symbol are the official files, unaltered (same ones the website uses).
+     ?v=steam | steam_top | discord | badge_steam | badge_discord -->
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: H; src: url("../../../Marketing/SteamCapsules/source/fonts/BarlowCondensed-ExtraBoldItalic.ttf"); }
+  @font-face { font-family: B; src: url("../../../Marketing/SteamCapsules/source/fonts/Barlow-SemiBold.ttf"); }
+  html, body { margin: 0; background: transparent; }
+  .banner {
+    position: relative; width: 1360px; height: 380px; overflow: hidden; color: #eef6f7;
+    display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; padding: 0 72px;
+    background: #062c40;
+  }
+  .banner::before {
+    content: ""; position: absolute; inset: 0;
+    background: url("../../../Marketing/SteamCapsules/master/master_keyart_3840x2160.png") 50% 34% / cover;
+  }
+  .banner::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, rgba(6,44,64,.90) 0%, rgba(6,44,64,.72) 55%, rgba(6,44,64,.50) 100%);
+  }
+  .banner > * { position: relative; z-index: 1; }
+  .kicker { font: 32px/1 B; letter-spacing: .16em; text-transform: uppercase; color: #2cc3c4; }
+  h1 { font: 104px/0.95 H; margin: 12px 0 14px; text-transform: uppercase; letter-spacing: .01em; text-shadow: 0 4px 14px rgba(0,0,0,.45); }
+  p { font: 40px/1.2 B; margin: 0; color: #e3f0f3; max-width: 760px; }
+  .badge {
+    width: 392px; height: 124px; border-radius: 12px; border: 2px solid rgba(255,255,255,.55);
+    background: rgba(2,28,43,.72); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35); flex: none;
+  }
+  .badge small { font: 20px/1 B; letter-spacing: .22em; text-transform: uppercase; color: rgba(255,255,255,.8); }
+  .badge .row { display: flex; align-items: center; gap: 16px; }
+  .badge img.steam { height: 56px; }
+  .badge img.discord { height: 46px; }
+  .badge b { font: 44px/1 B; letter-spacing: -.01em; }
+  .solo { width: 392px; padding: 14px; color: #eef6f7; }
+  .solo .badge { background: #062c40; box-shadow: none; }
+</style>
+<body>
+<script>
+  const v = new URLSearchParams(location.search).get("v") || "steam";
+  const steam = `<div class="badge"><small>Wishlist on</small><div class="row"><img class="steam" src="../../assets/brand/steam-logo.svg"></div></div>`;
+  const discord = `<div class="badge"><small>Join us on</small><div class="row"><img class="discord" src="../../assets/brand/discord-symbol-white.svg"><b>Discord</b></div></div>`;
+  const banner = (kicker, h, p, badge) =>
+    `<div class="banner"><div><div class="kicker">${kicker}</div><h1>${h}</h1><p>${p}</p></div>${badge}</div>`;
+  const T = {
+    steam_top: banner("Coming to PC", "Wishlist Reef Run", "Free, and it helps Steam show us to more players.", steam),
+    steam: banner("Not ready to pledge?", "A wishlist helps too", "Free, and it tells Steam this game matters.", steam),
+    discord: banner("Need three more fish?", "Find your pod", "Playtests and group finding on our Discord.", discord),
+    badge_steam: `<div class="solo">${steam}</div>`,
+    badge_discord: `<div class="solo">${discord}</div>`,
+  };
+  document.body.innerHTML = T[v];
+</script>
+</body>

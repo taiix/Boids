@@ -99,14 +99,8 @@
                     <ui:VisualElement class="rr">
                         <ui:Label text="E" class="key"/>
                         <ui:VisualElement class="rr-text">
-                            <ui:Label text="Reef puzzles take time off the clock" class="rr-title"/>
-                            <ui:Label text="Two fish: one reads the arrows, the other enters them. Talk it out." class="rr-desc"/>
-                            <ui:VisualElement class="arrows">
-                                <ui:VisualElement class="arrow"><ui:VisualElement class="arrow-img" style="rotate: 180deg;"/></ui:VisualElement>
-                                <ui:VisualElement class="arrow"><ui:VisualElement class="arrow-img" style="rotate: -90deg;"/></ui:VisualElement>
-                                <ui:VisualElement class="arrow"><ui:VisualElement class="arrow-img" style="rotate: 90deg;"/></ui:VisualElement>
-                                <ui:VisualElement class="arrow"><ui:VisualElement class="arrow-img" style="rotate: 180deg;"/></ui:VisualElement>
-                            </ui:VisualElement>
+                            <ui:Label text="Tasks and puzzles take time off the clock" class="rr-title"/>
+                            <ui:Label text="They are scattered around the map. Complete one and the timer drops." class="rr-desc"/>
                         </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:VisualElement>
@@ -132,6 +126,13 @@
                         <ui:VisualElement class="rr-text">
                             <ui:Label text="Lunge" class="rr-title"/>
                             <ui:Label text="Big fast dash. Catches a fish in range." class="rr-desc"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="rr">
+                        <ui:Label text="R" class="key"/>
+                        <ui:VisualElement class="rr-text">
+                            <ui:Label text="Sonar" class="rr-title"/>
+                            <ui:Label text="A pulse that reveals nearby fish that are moving. Still fish stay hidden." class="rr-desc"/>
                         </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:VisualElement class="rr">

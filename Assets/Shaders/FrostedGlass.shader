@@ -29,6 +29,44 @@ Shader "HDRP/Frosted Glass"
         _ContactBlend        ("Contact Blend", Range(0,1)) = 1
         _ContactNormalMerge  ("Contact Normal Merge", Range(0,1)) = 0.8
         _DetailFadeDistance  ("Detail Fade Distance (m, 0 = off)", Float) = 0
+
+        [Header(Hex Force Field)]
+        [Toggle(_HEX_FIELD)] _HexField ("Hex Force Field (replaces the frost)", Float) = 0
+        [HDR] _HexColor      ("Line Color", Color) = (0.45, 1.1, 1.4, 1)
+        _HexSize             ("Cell Size (m)", Float) = 2.5
+        _HexLineWidth        ("Line Width (cell fraction)", Range(0.005,0.2)) = 0.035
+        _HexBaseAlpha        ("Film Opacity", Range(0,0.5)) = 0.05
+        _HexIdle             ("Lines At Rest", Range(0,1)) = 0.04
+        _HexPulseStrength    ("Pulse Strength", Range(0,2)) = 0.35
+        _HexPulseSpeed       ("Pulse Rise Speed (m/s)", Float) = 5
+        _HexPulseSpacing     ("Pulse Spacing (m)", Float) = 45
+        _HexPulseWidth       ("Pulse Width (m)", Float) = 5
+        _HexProximity        ("Proximity Reach (m)", Float) = 7
+        _HexProximityStrength("Proximity Strength", Range(0,4)) = 1.6
+        _HexFadeDistance     ("Line Fade Distance (m)", Float) = 70
+
+        [Header(Hex Motion and Shape)]
+        _HexDrift            ("Drift (cells per second, xy)", Vector) = (0.04, 0.1, 0, 0)
+        _HexWiggle           ("Wiggle (cells)", Range(0,0.5)) = 0.12
+        _HexWiggleSpeed      ("Wiggle Speed", Float) = 0.8
+        _HexRoundness        ("Shape (0 hexagon, 1 bubble)", Range(0,1)) = 0.3
+        _HexMorph            ("Shape Breathing", Range(0,1)) = 0.6
+        _HexFineScale        ("Fine Lattice Density", Float) = 3
+        _HexFineStrength     ("Fine Lattice Strength", Range(0,1)) = 0.35
+
+        [Header(Hex Interaction)]
+        _HexMerge            ("Cell Merge Near Bodies", Range(0,1)) = 0.8
+        _HexBulge            ("Bulge Near Bodies (cells)", Range(0,2)) = 0.6
+        _HexRipple           ("Ripple Strength", Range(0,2)) = 0.6
+        _HexRippleSpeed      ("Ripple Speed (m/s)", Float) = 4
+        _HexRippleLength     ("Ripple Wavelength (m)", Float) = 3
+        _HexShock            ("Impact Strength", Range(0,4)) = 2
+        _HexShockSpeed       ("Impact Ring Speed (m/s)", Float) = 14
+        _HexShockLife        ("Impact Ring Life (s)", Float) = 1.6
+
+        [Header(Hex Seams)]
+        _HexSeam             ("Seam Glow Where It Meets Things", Range(0,4)) = 1.5
+        _HexSeamWidth        ("Seam Width (m)", Float) = 1.5
     }
 
     SubShader
@@ -43,26 +81,7 @@ Shader "HDRP/Frosted Glass"
             "Queue"          = "Transparent"
         }
 
-        Pass
-        {
-            Name "ForwardOnly"
-            Tags { "LightMode" = "ForwardOnly" }
-
-            Blend SrcAlpha OneMinusSrcAlpha
-            ZWrite Off
-            ZTest LEqual
-            Cull Off
-
-            HLSLPROGRAM
-            #pragma target 4.5
-            // Note: "d3d11" here covers both DX11 and DX12 players - "d3d12" is not a valid token
-            // for only_renderers and Unity warns if you add it.
-            #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
-            #pragma multi_compile_instancing
-            #pragma shader_feature_local _PROCEDURAL_FROST
-            #pragma vertex Vert
-            #pragma fragment Frag
-
+        HLSLINCLUDE
             #include "Packages/com.unity.render-pipelines.high-definition/Runtime/RenderPipeline/ShaderPass/ShaderPass.cs.hlsl"
             #define SHADERPASS SHADERPASS_FORWARD_UNLIT
 
@@ -96,6 +115,18 @@ Shader "HDRP/Frosted Glass"
             float  _CornerRadius;
             float  _PaneNetworkOn;
 
+            // Bodies near the walls (players, shark, wildlife), set globally by ArenaWalls.
+            // xyz is the world position, w the body radius.
+            #define MAX_HEX_POKES 16
+            float4 _HexPokes[MAX_HEX_POKES];
+            float  _HexPokeCount;
+
+            // Recent hits on the walls, also set by ArenaWalls: xyz where, w when (in _HexNow time).
+            #define MAX_HEX_IMPACTS 8
+            float4 _HexImpacts[MAX_HEX_IMPACTS];
+            float  _HexImpactCount;
+            float  _HexNow;
+
             CBUFFER_START(UnityPerMaterial)
                 float4 _Tint;
                 float4 _RimColor;
@@ -117,6 +148,36 @@ Shader "HDRP/Frosted Glass"
                 float  _ContactNormalMerge;
                 float  _DetailFadeDistance;
                 float  _ProceduralFrost;
+                float4 _HexColor;
+                float  _HexField;
+                float  _HexSize;
+                float  _HexLineWidth;
+                float  _HexBaseAlpha;
+                float  _HexIdle;
+                float  _HexPulseStrength;
+                float  _HexPulseSpeed;
+                float  _HexPulseSpacing;
+                float  _HexPulseWidth;
+                float  _HexProximity;
+                float  _HexProximityStrength;
+                float  _HexFadeDistance;
+                float4 _HexDrift;
+                float  _HexWiggle;
+                float  _HexWiggleSpeed;
+                float  _HexRoundness;
+                float  _HexMorph;
+                float  _HexFineScale;
+                float  _HexFineStrength;
+                float  _HexMerge;
+                float  _HexBulge;
+                float  _HexRipple;
+                float  _HexRippleSpeed;
+                float  _HexRippleLength;
+                float  _HexShock;
+                float  _HexShockSpeed;
+                float  _HexShockLife;
+                float  _HexSeam;
+                float  _HexSeamWidth;
             CBUFFER_END
 
             struct Attributes
@@ -293,6 +354,251 @@ Shader "HDRP/Frosted Glass"
                 return best;
             }
 
+            // Nearest cell of a hex lattice whose cells are 1 unit flat-to-flat: xy is the offset
+            // from the cell centre, zw the cell id.
+            float4 HexCell(float2 p)
+            {
+                const float2 s = float2(1.0, 1.7320508);
+                float4 c = floor(float4(p, p - float2(0.5, 1.0)) / s.xyxy) + 0.5;
+                float4 h = float4(p - c.xy * s, p - (c.zw + 0.5) * s);
+                return dot(h.xy, h.xy) < dot(h.zw, h.zw) ? float4(h.xy, c.xy) : float4(h.zw, c.zw + 0.5);
+            }
+
+            // The pane's thickness axis in world space (its local Z), and half its thickness.
+            float3 PaneAxis()
+            {
+                float4x4 m = GetObjectToWorldMatrix();
+                return normalize(float3(m._m02, m._m12, m._m22));
+            }
+
+            // Distance to the border of a cell whose shape sits between a hexagon (round = 0) and a
+            // circle (round = 1). 0 on the border, positive inside, negative in the gaps circles leave.
+            float CellEdge(float2 l, float roundness)
+            {
+                float2 a = abs(l);
+                float hex = max(dot(a, float2(0.5, 0.8660254)), a.x);
+                return 0.5 - lerp(hex, length(l), roundness);
+            }
+
+            // Anti-aliased outline of a cell border, faded out before the lattice gets finer than a few
+            // pixels, where it would only shimmer.
+            float CellLine(float edge, float width, float2 p)
+            {
+                float fw = max(fwidth(edge), 1e-5);
+                float lineMask = 1.0 - smoothstep(width, width + fw * 1.5, abs(edge));
+                float cellPixels = 1.0 / max(length(float2(ddx(p.x), ddy(p.x))), 1e-5);
+                return lineMask * saturate((cellPixels - 6.0) / 12.0);
+            }
+
+            // The force-field look: an almost clear film over two drifting, wobbling lattices of cells
+            // that breathe between hexagons and bubbles. Bodies close to the wall push it out like a
+            // membrane, merge the cells around them into one glowing patch and send ripples out; a
+            // body hitting the wall fast sends a bright shockwave ring across it.
+            float4 HexField(float3 positionAWS, float3 flatN, float3 N, float3 V, float glassEye, float behind, float contact)
+            {
+                // Built from the pane's own thickness axis, not the face normal: the front and back faces
+                // (and the seam pass) then all draw the very same lattice, moving the same way.
+                float3 T, B;
+                SurfaceFrame(PaneAxis(), T, B);
+                float size = max(_HexSize, 0.05);
+                float2 p = float2(dot(positionAWS, T), dot(positionAWS, B)) / size;
+                float t = _TimeParameters.x;
+
+                // --- seams: wherever the wall meets something, rocks or a body pushing through ---
+                // `contact` covers the scenery (baked field or screen search); the depth gap behind this
+                // pixel, turned into a distance from the pane, catches anything else, moving or not.
+                float dynGap = behind * max(abs(dot(flatN, V)), 0.25);
+                float seam = max(contact, 1.0 - saturate(dynGap / max(_HexSeamWidth, 0.05)));
+                float seamCore = seam * seam * seam;
+
+                // --- bodies near the wall: bulge, merge glow, ripples ---
+                float2 push = 0.0;
+                float near = 0.0;
+                float ripple = 0.0;
+                int count = (int)_HexPokeCount;
+                for (int i = 0; i < count; i++)
+                {
+                    float3 body = _HexPokes[i].xyz;
+                    float2 q = float2(dot(body, T), dot(body, B)) / size;
+                    float2 away = p - q;
+                    float r = length(away);                                   // in cells, along the wall
+                    float d = length(float3(away * size, dot(body - positionAWS, flatN)));  // metres
+                    float reach = _HexProximity + _HexPokes[i].w;
+                    float k = smoothstep(reach, 0.0, d);
+                    near = max(near, k);
+
+                    // Pushed out from under the body, strongest a cell or two from it.
+                    push += away / max(r, 1e-3) * (k * k * _HexBulge * saturate(r));
+
+                    // Rings running out from the body across the wall.
+                    float wave = sin((d - t * _HexRippleSpeed) * TWO_PI / max(_HexRippleLength, 0.1));
+                    ripple += pow(saturate(wave), 6.0) * smoothstep(reach * 2.2, reach * 0.3, d);
+                }
+                near *= _HexProximityStrength;
+                ripple *= _HexRipple;
+
+                // --- impacts: a ring that runs out from where something hit the wall ---
+                float shock = 0.0;
+                int impacts = (int)_HexImpactCount;
+                for (int j = 0; j < impacts; j++)
+                {
+                    float age = _HexNow - _HexImpacts[j].w;
+                    if (age < 0.0 || age > _HexShockLife) continue;
+                    float3 at = _HexImpacts[j].xyz;
+                    float2 q = float2(dot(at, T), dot(at, B)) / size;
+                    float2 away = p - q;
+                    float d = length(away) * size;
+                    float front = age * _HexShockSpeed;
+                    float fade = 1.0 - age / max(_HexShockLife, 0.01);
+                    float ringK = exp(-pow((d - front) / 1.2, 2.0)) * fade * fade;
+                    shock += ringK;
+                    push += away / max(length(away), 1e-3) * ringK * 0.35;
+                    // a flash where it hit
+                    shock += exp(-d * d * 0.15) * pow(fade, 6.0);
+                }
+                shock *= _HexShock;
+
+                // --- the lattice moves: drift, a slow wobble, and whatever the bodies push ---
+                float ws = t * _HexWiggleSpeed;
+                float2 wobble = float2(sin(p.y * 0.9 + ws) + 0.5 * sin(p.y * 2.3 - ws * 1.7 + p.x * 0.7),
+                                       sin(p.x * 0.8 - ws * 1.2) + 0.5 * sin(p.x * 2.1 + ws * 1.4 - p.y * 0.6));
+                float2 pa = p + _HexDrift.xy * t + wobble * (_HexWiggle * (1.0 + seam * 2.0)) + push;
+
+                float4 cellA = HexCell(pa);
+                float hashA = Hash21(cellA.zw);
+                // Every cell breathes between a hexagon and a bubble at its own pace; near a body they
+                // swell round.
+                float roundness = saturate(_HexRoundness + _HexMorph * 0.5 * sin(t * 0.7 + hashA * 6.2832) + near * 0.4);
+                float edgeA = CellEdge(cellA.xy, roundness);
+                float lineA = CellLine(edgeA, _HexLineWidth, pa);
+
+                // A finer lattice turned 30 degrees and drifting the other way, laid over the first.
+                float2 pb = pa * max(_HexFineScale, 1.0);
+                pb = float2(pb.x * 0.8660254 - pb.y * 0.5, pb.x * 0.5 + pb.y * 0.8660254) - _HexDrift.yx * t * 1.7;
+                float4 cellB = HexCell(pb);
+                float lineB = CellLine(CellEdge(cellB.xy, 1.0 - roundness), _HexLineWidth * 1.4, pb);
+
+                float distFade = saturate(1.0 - glassEye / max(_HexFadeDistance, 1.0));
+                lineA *= distFade;
+                lineB *= distFade;
+
+                float twinkle = 0.75 + 0.25 * sin(t * 1.7 + hashA * 40.0);
+
+                // Bands of energy rising up the walls; same height everywhere, so they stay in step
+                // across the corners.
+                float band = frac((positionAWS.y - t * _HexPulseSpeed) / max(_HexPulseSpacing, 0.1));
+                float halfW = 0.5 * _HexPulseWidth / max(_HexPulseSpacing, 0.1);
+                float pulse = smoothstep(halfW, 0.0, abs(band - 0.5)) * _HexPulseStrength;
+
+                // Close to a body the borders dissolve, so its cells merge into one glowing patch whose
+                // outline is the brightest part.
+                float merge = saturate(max(near, seam * 0.8) * _HexMerge);
+                float rim = saturate(near * 2.0) * (1.0 - merge);
+                float energy = ripple + shock;
+
+                float lineGlow = lineA * (_HexIdle * twinkle + pulse + near * (1.0 - merge) + rim + energy)
+                               * (1.0 - merge * 0.85);
+                float fineGlow = lineB * _HexFineStrength * (_HexIdle * 0.6 + pulse * 0.5 + near + energy * 0.6);
+                float fill = merge * merge * 0.35 * (0.7 + 0.3 * sin(t * 3.0 + hashA * 6.2832))
+                           + energy * 0.06 * distFade;
+
+                // The seam itself: a soft glow that washes over whatever the wall meets, so the two read
+                // as one surface, with a bright line where they actually cross.
+                float seamGlow = (seam * seam * 0.15 + seamCore * 0.3) * _HexSeam * (0.85 + 0.15 * twinkle);
+                lineGlow += lineA * seam * 0.6 * _HexSeam;
+
+                float fresnel = pow(saturate(1.0 - saturate(dot(N, V))), _RimPower) * _RimStrength;
+                float glow = lineGlow + fineGlow + fill + seamGlow;
+
+                // The film and rim dissolve into the scenery the way the frost does; the light stays, so
+                // the join glows instead of just stopping.
+                float filmFade = 1.0 - seam * _ContactBlend;
+                float film = (_HexBaseAlpha + fresnel) * filmFade;
+                float coverage = max(saturate(film + glow), 1e-3);
+
+                // The blend multiplies colour by alpha, so divide the light out by it: the lines then add
+                // their full (HDR, bloom-feeding) brightness while the film only tints what is behind.
+                float3 rgb = (_HexColor.rgb * glow + _RimColor.rgb * fresnel * filmFade) / coverage
+                           + _Tint.rgb * _TintStrength;
+
+                return float4(rgb, coverage * _Opacity);
+            }
+
+
+            // Seam pass: the glass can only light pixels where the glass itself is visible, but where the
+            // wall meets the seabed, a rock or a body, that surface usually hides the glass right at the
+            // join. This pass covers the whole pane regardless of depth, finds the surface under each pixel,
+            // and if it lies within the seam width of the glass, lights it with the same glow and lattice,
+            // so the wall and what it touches blend into one another.
+            float4 FragSeam(Varyings input) : SV_Target
+            {
+                UNITY_SETUP_INSTANCE_ID(input);
+                UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+            #ifndef _HEX_FIELD
+                clip(-1.0);
+                return 0;
+            #else
+                float deviceDepth = LoadCameraDepth(uint2(input.positionCS.xy));
+            #if UNITY_REVERSED_Z
+                clip(deviceDepth - 1e-7);                  // nothing drawn there: open water
+            #else
+                clip(0.9999999 - deviceDepth);
+            #endif
+                float3 sceneRWS = ScenePositionAt(input.positionCS.xy);
+
+                float4x4 m = GetObjectToWorldMatrix();
+                float3 origin = float3(m._m03, m._m13, m._m23);
+                float3 ax = float3(m._m00, m._m10, m._m20);
+                float3 ay = float3(m._m01, m._m11, m._m21);
+                float3 az = float3(m._m02, m._m12, m._m22);
+                float3 n = normalize(az);
+                float halfT = length(az) * 0.5;
+
+                float3 rel = sceneRWS - origin;
+                float across = dot(rel, n);
+                float camAcross = dot(GetCurrentViewPosition() - origin, n);
+                // Only the camera's side: past the glass, the surface shows through it and the main pass
+                // already lights it.
+                clip(across * sign(camAcross) + halfT * 0.5);
+
+                float width = max(_HexSeamWidth, 0.05) * 1.5;
+                float gap = max(abs(across) - halfT, 0.0);
+                float k = 1.0 - saturate(gap / width);
+                k *= k;
+
+                // Only beside the pane itself, fading out past its ends and top.
+                float u = abs(dot(rel, normalize(ax))) - length(ax) * 0.5;
+                float v = abs(dot(rel, normalize(ay))) - length(ay) * 0.5;
+                k *= saturate(1.0 - max(u, v) / width);
+                clip(k - 1e-3);
+
+                // The same lattice as the glass, carried on across the surface it meets.
+                float3 posA = GetAbsolutePositionWS(sceneRWS);
+                float3 T, B;
+                SurfaceFrame(n, T, B);
+                float size = max(_HexSize, 0.05);
+                // Fold the lattice off the glass onto the surface: distance out from the pane carries on
+                // as distance down it, so the cells bend round the join instead of smearing into stripes.
+                float2 p = float2(dot(posA, T), dot(posA, B) - gap) / size;
+                float t = _TimeParameters.x;
+                float ws = t * _HexWiggleSpeed;
+                float2 wobble = float2(sin(p.y * 0.9 + ws) + 0.5 * sin(p.y * 2.3 - ws * 1.7 + p.x * 0.7),
+                                       sin(p.x * 0.8 - ws * 1.2) + 0.5 * sin(p.x * 2.1 + ws * 1.4 - p.y * 0.6));
+                float2 pa = p + _HexDrift.xy * t + wobble * (_HexWiggle * 3.0);
+                float4 cell = HexCell(pa);
+                float lineMask = CellLine(CellEdge(cell.xy, _HexRoundness), _HexLineWidth * 1.5, pa);
+
+                float eye = length(sceneRWS - GetCurrentViewPosition());
+                float distFade = saturate(1.0 - eye / max(_HexFadeDistance, 1.0));
+                float core = exp(-gap * gap * 8.0);
+                float shimmer = 0.85 + 0.15 * sin(t * 2.0 + Hash21(cell.zw) * 6.2832);
+
+                float glow = (k * 0.1 + lineMask * k * 0.45 + core * 0.18) * _HexSeam * shimmer
+                           * lerp(0.35, 1.0, distFade);
+                return float4(_HexColor.rgb * glow, 0.0);
+            #endif
+            }
+
             Varyings Vert(Attributes input)
             {
                 Varyings output;
@@ -314,7 +620,8 @@ Shader "HDRP/Frosted Glass"
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
                 // Double sided: flip the normal so the inside face refracts and rims correctly.
-                float3 N = normalize(input.normalWS) * (isFrontFace ? 1.0 : -1.0);
+                float3 flatN = normalize(input.normalWS);
+                float3 N = flatN * (isFrontFace ? 1.0 : -1.0);
                 float3 V = GetWorldSpaceNormalizeViewDir(input.positionRWS);
                 float3 positionAWS = GetAbsolutePositionWS(input.positionRWS);
 
@@ -376,6 +683,10 @@ Shader "HDRP/Frosted Glass"
                 // rim all run continuously across the join instead of stopping dead at it.
                 N = normalize(lerp(N, sceneN, contact * _ContactNormalMerge));
 
+            #ifdef _HEX_FIELD
+                return HexField(positionAWS, flatN, N, V, glassEye, behind, contact);
+            #endif
+
                 // Refraction offset: deviation of the frosted normal from the flat one, in view space.
                 float3 frostN = FrostNormal(positionAWS, N);
                 float3 devVS  = mul((float3x3)UNITY_MATRIX_V, frostN - N);
@@ -436,6 +747,50 @@ Shader "HDRP/Frosted Glass"
 
                 return float4(glass, saturate(alpha));
             }
+        ENDHLSL
+
+        Pass
+        {
+            Name "ForwardOnly"
+            Tags { "LightMode" = "ForwardOnly" }
+
+            Blend SrcAlpha OneMinusSrcAlpha
+            ZWrite Off
+            ZTest LEqual
+            Cull Off
+
+            HLSLPROGRAM
+            #pragma target 4.5
+            // Note: "d3d11" here covers both DX11 and DX12 players - "d3d12" is not a valid token
+            // for only_renderers and Unity warns if you add it.
+            #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
+            #pragma multi_compile_instancing
+            #pragma shader_feature_local _PROCEDURAL_FROST
+            #pragma shader_feature_local _HEX_FIELD
+            #pragma vertex Vert
+            #pragma fragment Frag
+
+            ENDHLSL
+        }
+
+        // Lights whatever the wall meets (see FragSeam). Additive, and ignores depth on purpose.
+        Pass
+        {
+            Name "SeamGlow"
+            Tags { "LightMode" = "SRPDefaultUnlit" }
+
+            Blend One One
+            ZWrite Off
+            ZTest Always
+            Cull Back
+
+            HLSLPROGRAM
+            #pragma target 4.5
+            #pragma only_renderers d3d11 playstation xboxone xboxseries vulkan metal switch
+            #pragma multi_compile_instancing
+            #pragma shader_feature_local _HEX_FIELD
+            #pragma vertex Vert
+            #pragma fragment FragSeam
             ENDHLSL
         }
     }

@@ -421,12 +421,12 @@ def built_vs_funded():
 # ------------------------------------------------------------------ 8. reward cards 1200x675
 def reward_cards():
     tiers = [("RIPPLE", 5, None, ["Name in Supporters credits", "Backer Discord role", "4K wallpaper pack"], "shadow"),
-             ("EARLY DIVER", 12, "LIMITED · 300", ["1 Steam key (beta + full game)", "Supporters credit"], "hide"),
+             ("EARLY DIVER", 12, "LIMITED · 120", ["1 Steam key (beta + full game)", "Supporters credit"], "hide"),
              ("DIVER", 15, None, ["1 Steam key (beta + full game)", "Supporters credit"], "hide"),
-             ("POD OF FOUR", 49, "FOR YOUR GROUP", ["4 Steam keys (beta + full game)", "4 names in Supporters credits"], "turtle"),
-             ("FOUNDING DIVER", 29, None, ["1 Steam key (beta + full game)", "Founder cosmetics: fish + shark", "Founders credit + Making-of PDF"], "hero"),
-             ("FOUNDING POD", 99, None, ["4 Steam keys", "4 Founder cosmetic sets", "4 Founders credits + Making-of PDF"], "catch"),
-             ("NAME THE TRAWLER", 199, "LIMITED · 25", ["Founding Diver rewards", "Your name on the trawler's hull", "(moderated, rotates per round)"], "trawler")]
+             ("DIVE BUDDIES", 26, "€13 A SEAT", ["2 Steam keys (beta + full game)", "2 names in Supporters credits"], "hero"),
+             ("POD OF FOUR", 44, "€11 A SEAT · FOR YOUR GROUP", ["4 Steam keys (beta + full game)", "Pod Stripes: matching fish pattern", "4 names in Supporters credits"], "turtle"),
+             ("FOUNDING POD", 99, None, ["Pod of Four + 4 Founder cosmetic sets", "4 Founders credits", "Making-of PDF"], "catch"),
+             ("NAME THE TRAWLER", 199, "LIMITED · 10", ["Steam key + Founder cosmetics + PDF", "Your name on the trawler's hull", "(moderated, rotates per round)"], "trawler")]
     W, Hh = 1200, 675
     for name, price, badge, lines, shot in tiers:
         im = shade(cover(SHOTS[shot], W, Hh), DEEP, 0.62).convert("RGBA")

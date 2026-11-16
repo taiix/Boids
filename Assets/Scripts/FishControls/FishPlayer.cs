@@ -38,6 +38,14 @@ public class FishPlayer : NetworkBehaviour
     // Server: each connection's name, kept across new bodies (F8 swaps) and rounds.
     private static readonly Dictionary<int, string> s_Names = new Dictionary<int, string>();
 
+    /// <summary>Which fish this player is: 1 + an index into <see cref="FishSpecies"/>, or 0 for the original
+    /// model (sharks, and anything spawned before a species was picked). Chosen at random by the server when
+    /// the body spawns, then kept for that connection until the next game.</summary>
+    [SyncVar(hook = nameof(OnSpeciesChanged))] public byte Species;
+
+    // Server: each connection's species, kept across new bodies like the name; cleared for a new game.
+    private static readonly Dictionary<int, byte> s_Species = new Dictionary<int, byte>();
+
     // Every body in the scene (players and their copies), for the round, the spectator and the shark.
     private static readonly List<FishPlayer> s_All = new List<FishPlayer>();
     public static IReadOnlyList<FishPlayer> All => s_All;
@@ -223,6 +231,14 @@ public class FishPlayer : NetworkBehaviour
         if (TryGetComponent(out SharkAbilities _) && !TryGetComponent(out SharkCondition _)) gameObject.AddComponent<SharkCondition>();
         if (!TryGetComponent(out BodyJuice _)) gameObject.AddComponent<BodyJuice>();
 
+        // Offline (a fish placed in a sandbox scene, no network): be a random species straight away, before
+        // anything measures the body. Networked bodies get theirs from the server (OnStartServer/OnStartClient).
+        if (!NetworkServer.active && !NetworkClient.active && !IsSharkBody && FishSpecies.Instance != null)
+        {
+            int pick = FishSpecies.Instance.PickPlayerSpecies(null);
+            if (pick >= 0) FishSpecies.ApplyToPlayer(transform, pick);
+        }
+
         // Cache now, before OnStartLocalPlayer can unparent the camera.
         _vision = GetComponentInChildren<CreatureVision>(true);
         if (_vision == null && camera != null) _vision = camera.GetComponent<CreatureVision>();
@@ -263,7 +279,36 @@ public class FishPlayer : NetworkBehaviour
             }
             PlayerName = name;
         }
+        ServerPickSpecies();
         if (MatchManager.Instance != null) MatchManager.Instance.ServerTrackPlayer(this);
+    }
+
+    // A random fish for this player (the one fewest others are wearing), kept for the connection so a new
+    // body or the next round doesn't change it. Set here so it ships in the spawn payload, before any client
+    // builds the body.
+    [Server]
+    private void ServerPickSpecies()
+    {
+        var lib = FishSpecies.Instance;
+        if (IsSharkBody || lib == null) return;
+        int conn = connectionToClient != null ? connectionToClient.connectionId : int.MinValue;
+        if (!s_Species.TryGetValue(conn, out byte species) || lib.Get(species - 1) == null)
+        {
+            var taken = new List<int>();
+            foreach (var kv in s_Species)
+                if (kv.Key != conn && NetworkServer.connections.ContainsKey(kv.Key)) taken.Add(kv.Value - 1);
+            int pick = lib.PickPlayerSpecies(taken);
+            if (pick < 0) return;
+            species = (byte)(pick + 1);
+            if (connectionToClient != null) s_Species[conn] = species;
+        }
+        Species = species;
+        FishSpecies.ApplyToPlayer(transform, species - 1);
+    }
+
+    private void OnSpeciesChanged(byte oldSpecies, byte newSpecies)
+    {
+        if (!IsSharkBody) FishSpecies.ApplyToPlayer(transform, newSpecies - 1);
     }
 
     // Our Steam name, for the results screen; the server makes one up when there's no Steam (editor tests).
@@ -286,7 +331,11 @@ public class FishPlayer : NetworkBehaviour
     }
 
     /// <summary>Server: forget the previous round's "live" state (new game scene / new host).</summary>
-    public static void ServerResetRound() => s_RoundLive = false;
+    public static void ServerResetRound()
+    {
+        s_RoundLive = false;
+        s_Species.Clear(); // a new game: everyone draws a new fish
+    }
 
     /// <summary>
     /// Server: make every player's round live once all connections have a body whose client reported
@@ -316,6 +365,8 @@ public class FishPlayer : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
+        // The spawn payload carried the species; dress the body before anything measures it (Start).
+        if (!IsSharkBody) FishSpecies.ApplyToPlayer(transform, Species - 1);
         if (camera != null) camera.SetActive(false);
         SetLocallyControlled(false);
     }

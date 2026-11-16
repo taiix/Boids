@@ -24,7 +24,7 @@
                     <ui:Button name="credits-btn" text="CREDITS" class="mm-more-btn"/>
                     <ui:Button name="quit-btn" text="QUIT" class="mm-more-btn"/>
                 </rr:ReefSlab>
-                <ui:Label name="nav-hint" text="Open a lobby for up to 4 players" class="mm-hint"/>
+                <ui:Label name="nav-hint" text="" class="mm-hint"/>
             </ui:VisualElement>
 
             <rr:ReefSlab name="player-card" class="mm-slab mm-player">

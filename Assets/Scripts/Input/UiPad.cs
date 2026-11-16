@@ -37,6 +37,10 @@ namespace FishGame
         static readonly List<VisualElement> s_candidates = new List<VisualElement>();
         static int s_order;
         static VisualElement s_ring;
+        static VisualElement s_grown;   // the control currently swollen under the ring
+        static float s_grow;            // 0..1, how far its swell has got
+        /// <summary>On the control the controller is on, so a style sheet can recolour it (":focus" also matches a mouse click).</summary>
+        public const string FocusClass = "pad-focus";
         static Scope s_top;
         static Vector2 s_heldDir;
         static float s_nextRepeat;
@@ -51,6 +55,7 @@ namespace FishGame
             s_hooked.Clear();
             s_mine.Clear();
             s_ring = null;
+            s_grown = null;
             s_top = null;
             s_heldDir = Vector2.zero;
         }
@@ -91,6 +96,17 @@ namespace FishGame
             if (s_mine.Count > 0 && Time.frameCount > s_mineFrame + 1) s_mine.Clear();
             s_top = Top();
             if (s_top == null) { s_heldDir = Vector2.zero; return; }
+
+            // The launch / loading overlay is up: the screen under it can't be seen, so it can't be used
+            // either. Let go of whatever was selected, so nothing gets pressed blind.
+            if (ReefRun.LaunchOverlay.IsPlaying)
+            {
+                (s_top.root.panel.focusController.focusedElement as VisualElement)?.Blur();
+                Hook(s_top.root.panel);   // keeps UI Toolkit's own gamepad navigation filtered out meanwhile
+                s_top = null;
+                s_heldDir = Vector2.zero;
+                return;
+            }
 
             var panel = s_top.root.panel;
             Hook(panel);
@@ -363,7 +379,35 @@ namespace FishGame
                 if (focused != null && s_top.root.Contains(focused) && IsShown(focused)) target = ControlOf(focused);
             }
 
+            // The selected control swells a little and takes the "pad-focus" class (the sheets recolour it).
+            if (target != s_grown)
+            {
+                if (s_grown != null)
+                {
+                    s_grown.style.scale = StyleKeyword.Null;
+                    s_grown.RemoveFromClassList(FocusClass);
+                }
+                s_grown = target;
+                s_grow = 0f;
+                target?.AddToClassList(FocusClass);
+            }
+
             if (target == null)
+            {
+                if (s_ring != null) s_ring.style.display = DisplayStyle.None;
+                return;
+            }
+
+            s_grow = Mathf.MoveTowards(s_grow, 1f, Time.unscaledDeltaTime / 0.12f);
+            // Buttons grow the most; a wide slider or dropdown row only a touch, or it would spill off its panel.
+            float grow = target is Button || target.ClassListContains(PressableClass) ? 0.07f : 0.025f;
+            float eased = 1f - (1f - s_grow) * (1f - s_grow);
+            float pulse = 1f + 0.012f * Mathf.Sin(Time.unscaledTime * 5f) * s_grow;
+            float k = (1f + grow * eased) * pulse;
+            target.style.scale = new Scale(new Vector3(k, k, 1f));
+
+            // A slab button frames itself along its own leaning edge (--slab-outline on .pad-focus): no box round it.
+            if (target.Q<ReefRun.ReefSlab>() != null)
             {
                 if (s_ring != null) s_ring.style.display = DisplayStyle.None;
                 return;
@@ -373,6 +417,7 @@ namespace FishGame
             {
                 s_ring = new VisualElement { name = "pad-focus-ring", pickingMode = PickingMode.Ignore };
                 s_ring.style.position = Position.Absolute;
+                s_ring.style.backgroundColor = new Color(RingColor.r, RingColor.g, RingColor.b, 0.14f);   // a wash of the ring's colour over it
                 s_ring.style.borderTopWidth = s_ring.style.borderBottomWidth = s_ring.style.borderLeftWidth = s_ring.style.borderRightWidth = 3;
                 s_ring.style.borderTopColor = s_ring.style.borderBottomColor = s_ring.style.borderLeftColor = s_ring.style.borderRightColor = RingColor;
                 s_ring.style.borderTopLeftRadius = s_ring.style.borderTopRightRadius = s_ring.style.borderBottomLeftRadius = s_ring.style.borderBottomRightRadius = 6;

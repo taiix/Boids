@@ -324,6 +324,7 @@ namespace FishGame
             Vector3 desiredPos = pivot + backDir * _currentDistance;
             if (!_tpPosValid) { _tpPos = transform.position; _tpPosValid = true; }
             _tpPos = Vector3.SmoothDamp(_tpPos, desiredPos, ref _posVelocity, followSmoothTime);
+            _tpPos = KeepInsideWalls(_tpPos);
 
             // Look at the fish. Guard against a near-zero direction when zoomed in tight, which
             // would make the rotation jitter — fall back to the orbit direction instead.
@@ -344,13 +345,32 @@ namespace FishGame
             else
             {
                 float e = _fpBlend * _fpBlend * (3f - 2f * _fpBlend);
-                transform.SetPositionAndRotation(Vector3.Lerp(_tpPos, SafeEyePoint(), e), Quaternion.Slerp(tpRot, camRot, e));
+                transform.SetPositionAndRotation(KeepInsideWalls(Vector3.Lerp(_tpPos, SafeEyePoint(), e)),
+                                                 Quaternion.Slerp(tpRot, camRot, e));
             }
 
             // Our own body would fill the view from inside it: hide it (shadow kept) once we're mostly in.
             bool inside = firstPerson && _fpBlend > 0.5f;
             HideBody(inside ? target : null);
             SetNearClip(inside);
+        }
+
+        // The arena glass is thin, and the spring arm only clamps where the camera is heading, not where
+        // the smoothed follow has it right now; turning along a wall could leave the lagging camera, or the
+        // corners of its near clip plane, on the far side. Pin it to its fish's side with room for the
+        // whole near plane.
+        Vector3 KeepInsideWalls(Vector3 pos)
+        {
+            var walls = ArenaWalls.Instance;
+            if (walls == null || target == null) return pos;
+            float margin = collisionRadius;
+            if (_camera != null || TryGetComponent(out _camera))
+            {
+                float near = _camera.nearClipPlane;
+                float h = near * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                margin = Mathf.Max(margin, Mathf.Sqrt(near * near + h * h * (1f + _camera.aspect * _camera.aspect)));
+            }
+            return walls.KeepOnSide(target.position, pos, margin + 0.05f);
         }
 
         // ---------------------------------------------------------------- first person

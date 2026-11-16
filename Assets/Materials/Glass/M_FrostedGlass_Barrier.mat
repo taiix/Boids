@@ -12,6 +12,7 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
+  - _HEX_FIELD
   - _PROCEDURAL_FROST
   m_InvalidKeywords: []
   m_LightmapFlags: 4
@@ -39,6 +40,18 @@ Material:
     - _DistanceBlurRange: 25
     - _Distortion: 0.25
     - _FrostTiling: 0.35
+    - _HexBaseAlpha: 0.05
+    - _HexFadeDistance: 70
+    - _HexField: 1
+    - _HexIdle: 0.04
+    - _HexLineWidth: 0.035
+    - _HexProximity: 7
+    - _HexProximityStrength: 1.6
+    - _HexPulseSpacing: 45
+    - _HexPulseSpeed: 5
+    - _HexPulseStrength: 0.35
+    - _HexPulseWidth: 5
+    - _HexSize: 2.5
     - _IntersectionFade: 3
     - _Milkiness: 0.101
     - _NormalStrength: 4
@@ -48,6 +61,7 @@ Material:
     - _RimStrength: 0.08
     - _TintStrength: 0.358
     m_Colors:
+    - _HexColor: {r: 0.45, g: 1.1, b: 1.4, a: 1}
     - _RimColor: {r: 0.8, g: 0.95, b: 1, a: 1}
     - _Tint: {r: 0.18729973, g: 0.58374864, b: 0.6509434, a: 1}
   m_BuildTextureStacks: []
