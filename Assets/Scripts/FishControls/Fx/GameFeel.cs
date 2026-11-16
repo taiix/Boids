@@ -220,15 +220,14 @@ namespace FishGame
 
         void UpdateRumble(float shake)
         {
-            var pad = Gamepad.current;
-            if (pad == null) { _rumbling = false; return; }
+            if (!GameInput.HasPad) { _rumbling = false; return; }
             if (shake < 0.01f)
             {
                 if (_rumbling) StopRumble();
                 return;
             }
             // The big motor carries the weight of a hit; the small one its sharp edge.
-            pad.SetMotorSpeeds(Mathf.Clamp01(shake * 1.2f), Mathf.Clamp01(shake * 0.7f));
+            GameInput.Rumble(Mathf.Clamp01(shake * 1.2f), Mathf.Clamp01(shake * 0.7f));
             _rumbling = true;
         }
 
@@ -236,7 +235,7 @@ namespace FishGame
         {
             if (!_rumbling) return;
             _rumbling = false;
-            Gamepad.current?.ResetHaptics();
+            GameInput.Rumble(0f, 0f);
         }
 
         // ---------------------------------------------------------------- FOV

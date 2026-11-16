@@ -156,7 +156,7 @@ labor = [
     ("Settings & accessibility (push-to-talk, colour-blind glows, captions for alerts)", 60, 70, 80, "Voice is core — push-to-talk/open-mic choice is mandatory for comfort."),
     ("Balance tuning from playtests", 80, 120, 160, "Shark vs fish win-rate targets."),
     ("Playtest operations (weekends, surveys, Discord)", 80, 100, 120, "Runs from validation through beta."),
-    ("Backer rewards: credits, Founder cosmetics (2) + selection UI, trawler names", 60, 60, 60, "Rewards in 05 that need game work."),
+    ("Backer rewards: credits, Founder cosmetics (2) + Pod Stripes pattern + selection UI, trawler names", 68, 68, 68, "Rewards in 05 that need game work. +8 h for the Pod Stripes pattern (v3)."),
     ("Making-of digital book (PDF)", 20, 20, 20, "Founder-tier reward; in-engine screenshots + text."),
     ("Campaign + store + community management (pre-launch through campaign end)", 200, 240, 280, "Clips, posts, updates, comments, outreach."),
     ("Release management + 1 month post-launch patches", 80, 80, 80, "Builds, hotfixes."),
@@ -230,15 +230,17 @@ hdr = ["Tier", "Price (EUR)", "Limit", "Mix (share of backers)", "Steam keys inc
 ws.append(hdr)
 style_header(ws, 1, len(hdr))
 tiers = [
-    # v2 (2026-10-20): priced like the 18 successful comparables in 14_WHAT_SUCCESSFUL_CAMPAIGNS_DO.md — single copy
-    # €12–20 with a limited early bird as the top seller, deluxe €25–40, group packs. Mix shares are ASSUMPTIONS.
-    ("Ripple (thank you)", 5, None, 0.07, 0, 0.0, "Name in in-game Supporters credits; backer Discord role; 4K wallpaper pack (from master key art).", "Friends & well-wishers", "Jun 2027", "Very low", "None material."),
-    ("Early Diver (limited)", 12, 300, 0.18, 1, 0.0, "1 Steam key for Reef Run (backer beta, then full game); name in Supporters credits.", "Early S1/S3 backers", "Beta: Jul 2027", "Low", "Below the planned €12.99 retail → plan a Steam launch discount for parity (Steam key rules)."),
-    ("Diver", 15, None, 0.20, 1, 0.0, "Same as Early Diver.", "S1/S3", "Beta: Jul 2027", "Low", "Beta-key cap 2,500 (Steam)."),
-    ("Founding Diver", 29, None, 0.22, 1, 0.0, "Diver + Founder cosmetics (fish 'Founder Fin' pattern + shark 'Old Scar' skin) + Founders credits section + Making-of PDF.", "S3, S2", "Key Jul 2027 · cosmetics at 1.0", "Medium", "Cosmetics need a selection UI + network sync (in Labor)."),
-    ("Pod of Four", 49, None, 0.20, 4, 0.0, "4 Steam keys (for your group) + beta access for all 4 + 4 names in Supporters credits.", "S1 friend groups", "Beta: Jul 2027", "Low", "Uses 4 beta keys each → watch the 2,500 cap."),
-    ("Founding Pod", 99, None, 0.10, 4, 0.0, "Pod of Four + Founder cosmetics ×4 + 4 Founders credits + Making-of PDF.", "Committed groups, S3", "Keys Jul 2027 · cosmetics at 1.0", "Medium", "Same as Founding Diver."),
-    ("Name the Trawler (limited)", 199, 25, 0.03, 1, 2.0, "Founding Diver + your name (moderated) painted on the trawler that sweeps the reef — one name shown per round, rotating.", "Superfans", "At 1.0", "Medium", "Moderation of names; ~0.5 h each (in Labor)."),
+    # v3 (2026-11-16), from reports/Reef Run Kickstarter page research.md: packs are cheaper per seat than any single
+    # copy and print the per-seat price (Springfield Hotel's packs took 42% of backers; The Boo Croo's dearer 4-pack took
+    # 6%); a 2-pack replaces the €29 Founding Diver; the early-bird limit drops to what can sell out (Boo Croo sold 182 of
+    # 250); the €199 tier is capped at 10 (Boo Croo's top tier sold 2 of 15). Mix shares are ASSUMPTIONS.
+    ("Ripple (thank you)", 5, None, 0.02, 0, 0.0, "Name in in-game Supporters credits; backer Discord role; 4K wallpaper pack (from master key art).", "Friends & well-wishers", "Jun 2027", "Very low", "Boo Croo's $5 tier: 7 of 416 backers."),
+    ("Early Diver (limited)", 12, 120, 0.18, 1, 0.0, "1 Steam key for Reef Run (backer beta, then full game); name in Supporters credits.", "Early S1/S3 backers", "Beta: Jul 2027", "Low", "Below the planned €12.99 retail → plan a Steam launch discount for parity (Steam key rules)."),
+    ("Diver", 15, None, 0.37, 1, 0.0, "Same as Early Diver.", "S1/S3", "Beta: Jul 2027", "Low", "Beta-key cap 2,500 (Steam)."),
+    ("Dive Buddies (2 keys)", 26, None, 0.16, 2, 0.0, "2 Steam keys (beta + full game) for you and a friend; 2 names in Supporters credits. €13 a seat.", "Pairs, S1", "Beta: Jul 2027", "Low", "Springfield's 2-pack outsold its 4-pack (187 vs 107)."),
+    ("Pod of Four", 44, None, 0.18, 4, 0.0, "4 Steam keys (for your group) + beta access for all 4 + 4 names in Supporters credits + 'Pod Stripes' matching fish pattern (pack tiers only). €11 a seat.", "S1 friend groups", "Beta: Jul 2027 · pattern at 1.0", "Low", "Uses 4 beta keys each → watch the 2,500 cap."),
+    ("Founding Pod", 99, None, 0.08, 4, 0.0, "Pod of Four (incl. Pod Stripes) + Founder cosmetics ×4 (fish 'Founder Fin' pattern + shark 'Old Scar' skin) + 4 Founders credits + Making-of PDF.", "Committed groups, S3", "Keys Jul 2027 · cosmetics at 1.0", "Medium", "Cosmetics need a selection UI + network sync (in Labor)."),
+    ("Name the Trawler (limited)", 199, 10, 0.01, 1, 2.0, "1 Steam key + Founder cosmetics + Founders credit + Making-of PDF + your name (moderated) painted on the trawler that sweeps the reef — one name shown per round, rotating.", "Superfans", "At 1.0", "Medium", "Plan on 2–5 sold. Moderation of names; ~0.5 h each (in Labor)."),
 ]
 first = 2
 for r, t in enumerate(tiers, start=first):

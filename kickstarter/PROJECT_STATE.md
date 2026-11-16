@@ -18,6 +18,15 @@ Last updated: 2026-10-17 (Netherlands update). Status: **package prepared for an
 | 9 Dashboard | `11_CAMPAIGN_DASHBOARD.md`, `11_campaign_dashboard.xlsx` | Forecasts, triggers T1–T8, contingency plans. 539 formulas, 0 errors. |
 | 10 Audit | `12_LAUNCH_READINESS_AUDIT.md` | Weighted scorecard, 5 blockers. |
 
+## v3 (2026-11-16)
+
+- **Campaign page:** `page/index.html`, a local preview of every Kickstarter field with all images in place.
+- **New research:** 4 research threads → `reports/Reef Run Kickstarter page research.md` (notes in
+  `research_notes/`).
+- **Tiers repriced** (05 v3): packs are cheaper per seat, a 2-pack replaces €29, and the limits are 120 and 10.
+- **Model results:** goal €14,000; average pledge €29.80; 470 backers; Realistic goal €56,000.
+- **New assets:** Steam/Discord CTA banners from `tools/cta/make_cta.ps1`, with the official logos in `assets/brand/`.
+
 ## v2 (2026-10-20)
 
 - **Research:**

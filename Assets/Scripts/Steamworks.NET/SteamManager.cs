@@ -50,6 +50,10 @@ public class SteamManager : MonoBehaviour
         }
     }
 
+    /// <summary>Steam is up - without creating a SteamManager if there isn't one yet (unlike <see cref="Initialized"/>).
+    /// For code that runs from the first frame, before Bootstrap has loaded the real one.</summary>
+    public static bool IsReady => s_instance != null && s_instance.m_bInitialized;
+
     protected SteamAPIWarningMessageHook_t m_SteamAPIWarningMessageHook;
 
     [AOT.MonoPInvokeCallback(typeof(SteamAPIWarningMessageHook_t))]
@@ -189,6 +193,7 @@ public class SteamManager : MonoBehaviour
             return;
         }
 
+        FishGame.SteamInputService.Shutdown();   // Steam Input has to go first
         SteamAPI.Shutdown();
     }
 
@@ -208,6 +213,7 @@ public class SteamManager : MonoBehaviour
 			return false;
 		}
 	}
+	public static bool IsReady => false;
 #endif // !DISABLESTEAMWORKS
 
     #region Custom Code

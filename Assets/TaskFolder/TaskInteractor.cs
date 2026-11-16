@@ -19,7 +19,6 @@ namespace FishGame
         public InteractorRole Role => role;
 
         readonly List<TaskStation> _nearby = new List<TaskStation>();
-        InputAction _interact;
 
         // Offline objects (e.g. the shark in IslandTest) have no NetworkIdentity → treat as local.
         bool IsLocal
@@ -30,16 +29,6 @@ namespace FishGame
                 return ni == null || ni.isLocalPlayer;
             }
         }
-
-        void Awake()
-        {
-            _interact = new InputAction("Interact", InputActionType.Button);
-            _interact.AddBinding("<Keyboard>/e");
-            _interact.AddBinding("<Gamepad>/buttonNorth");
-        }
-
-        void OnEnable() => _interact.Enable();
-        void OnDisable() => _interact.Disable();
 
         public void EnterStation(TaskStation s) { if (s != null && !_nearby.Contains(s)) _nearby.Add(s); }
         public void ExitStation(TaskStation s) { _nearby.Remove(s); }
@@ -65,8 +54,8 @@ namespace FishGame
             if (!IsLocal) return;
             var s = Nearest();
             if (s == null) return;
-            MatchHud.ShowPrompt($"Press E to {s.PromptLabel}");   // drawn by the HUD, with a key tile
-            if (_interact.WasPressedThisFrame())
+            MatchHud.ShowPrompt($"Press {GameInput.Interact.Token} to {s.PromptLabel}");   // drawn by the HUD, with a key tile
+            if (GameInput.Interact.WasPressedThisFrame())
                 s.Interact(this);
         }
 

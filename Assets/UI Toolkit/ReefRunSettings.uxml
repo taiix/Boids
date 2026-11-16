@@ -1,10 +1,12 @@
-<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:rr="ReefRun" editor-extension-mode="False">
     <Style src="project://database/Assets/UI%20Toolkit/ReefRunMainMenu.uss?fileID=7433441132597879392&amp;guid=5ad911a4c18773b4286870dda3da6375&amp;type=3#ReefRunMainMenu"/>
     <ui:VisualElement name="settings-overlay" class="mm-settings-overlay" style="display: none;">
         <ui:VisualElement class="mm-settings-card mm-glass">
             <ui:VisualElement class="mm-settings-head">
                 <ui:Label text="SETTINGS" class="mm-settings-title"/>
-                <ui:Button name="settings-close" text="✕" class="mm-close-btn"/>
+                <ui:Button name="settings-close" class="mm-close-btn">
+                    <rr:ReefGlyph kind="Cross" style="width: 14px; height: 14px;"/>
+                </ui:Button>
             </ui:VisualElement>
             <ui:VisualElement class="mm-settings-cols">
                 <!-- ============ left: audio + display ============ -->
@@ -87,7 +89,11 @@
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="mm-settings-foot">
-                <ui:Button name="settings-apply" text="Apply" class="mm-btn mm-btn-aqua"/>
+                <ui:Button name="settings-apply" class="mm-apply">
+                    <rr:ReefSlab picking-mode="Ignore" class="mm-slab mm-apply-slab">
+                        <ui:Label text="APPLY" picking-mode="Ignore" class="mm-apply-label"/>
+                    </rr:ReefSlab>
+                </ui:Button>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

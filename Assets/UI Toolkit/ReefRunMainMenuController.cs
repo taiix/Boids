@@ -1,3 +1,4 @@
+using FishGame;
 using Steamworks;
 using System.Collections;
 using System.Collections.Generic;
@@ -40,7 +41,7 @@ namespace ReefRun
         VisualElement _veil;
         readonly Dictionary<CSteamID, VisualElement> _chipAvatars = new();
 
-        const string HostHint = "Open a lobby for up to 4 divers";
+        const string HostHint = "Open a lobby for up to 4 players";
 
         void OnEnable()
         {
@@ -111,7 +112,10 @@ namespace ReefRun
             Wire("settings-btn", OpenSettings, "Audio and display");
             _credits = new ReefRunCreditsPanel(_root);
             Wire("credits-btn", () => _credits.Open(), "Who made the music and sounds");
-            Wire("quit-btn", OnQuit, "Back to the surface");
+            Wire("quit-btn", OnQuit, "Leave the reef");
+
+            // Controller: d-pad / stick between the buttons (starting on HOST), A presses.
+            UiPad.Register(_root, null, () => _root.Q<Button>("play-btn"));
 
             RefreshFriends();
             _refresh = _root.schedule.Execute(RefreshFriends).Every((long)(FriendsRefreshSeconds * 1000f));
@@ -246,9 +250,10 @@ namespace ReefRun
             var btn = _root.Q<Button>(name);
             if (btn == null) return;
             btn.clicked += cb;
-            btn.RegisterCallback<PointerEnterEvent>(_ => SetHint(hint));
-            btn.RegisterCallback<FocusInEvent>(_ => SetHint(hint));
-            btn.RegisterCallback<PointerLeaveEvent>(_ => SetHint(HostHint));
+            // No description under the buttons on hover / select any more: the line there is only used for
+            // a failed join (OnJoinFailed), and clears when you move on.
+            btn.RegisterCallback<PointerEnterEvent>(_ => SetHint(""));
+            btn.RegisterCallback<FocusInEvent>(_ => SetHint(""));
         }
 
         void SetHint(string text) { if (_hint != null) _hint.text = text; }

@@ -38,6 +38,14 @@ public class FishPlayer : NetworkBehaviour
     // Server: each connection's name, kept across new bodies (F8 swaps) and rounds.
     private static readonly Dictionary<int, string> s_Names = new Dictionary<int, string>();
 
+    /// <summary>Which fish this player is: 1 + an index into <see cref="FishSpecies"/>, or 0 for the original
+    /// model (sharks, and anything spawned before a species was picked). Chosen at random by the server when
+    /// the body spawns, then kept for that connection until the next game.</summary>
+    [SyncVar(hook = nameof(OnSpeciesChanged))] public byte Species;
+
+    // Server: each connection's species, kept across new bodies like the name; cleared for a new game.
+    private static readonly Dictionary<int, byte> s_Species = new Dictionary<int, byte>();
+
     // Every body in the scene (players and their copies), for the round, the spectator and the shark.
     private static readonly List<FishPlayer> s_All = new List<FishPlayer>();
     public static IReadOnlyList<FishPlayer> All => s_All;
@@ -54,7 +62,6 @@ public class FishPlayer : NetworkBehaviour
     [Tooltip("Extra reach the host allows a remote player's bite: that player sees the pellet (and the " +
              "host sees their fish) a moment late, so an exact check would miss bites that looked fine.")]
     [SerializeField] float remoteEatSlack = 1.5f;
-    private InputAction _eatAction;
 
     private CreatureVision _vision;
 
@@ -101,7 +108,6 @@ public class FishPlayer : NetworkBehaviour
     private double _swallowAt;          // shared clock; set by the host, everyone gets it with the catch
     private bool _inJaws;               // every machine: caught and still struggling (not yet swallowed)
     private float _lastStrugglePress;   // server: presses are capped at ~20 a second
-    private InputAction _struggleAction;
     private const float MinStruggleGap = 0.05f;
     private float _nextSeabedCheck;
     private float _underSince = -1f;   // when the body was first found under the seabed (-1: it isn't)
@@ -225,6 +231,14 @@ public class FishPlayer : NetworkBehaviour
         if (TryGetComponent(out SharkAbilities _) && !TryGetComponent(out SharkCondition _)) gameObject.AddComponent<SharkCondition>();
         if (!TryGetComponent(out BodyJuice _)) gameObject.AddComponent<BodyJuice>();
 
+        // Offline (a fish placed in a sandbox scene, no network): be a random species straight away, before
+        // anything measures the body. Networked bodies get theirs from the server (OnStartServer/OnStartClient).
+        if (!NetworkServer.active && !NetworkClient.active && !IsSharkBody && FishSpecies.Instance != null)
+        {
+            int pick = FishSpecies.Instance.PickPlayerSpecies(null);
+            if (pick >= 0) FishSpecies.ApplyToPlayer(transform, pick);
+        }
+
         // Cache now, before OnStartLocalPlayer can unparent the camera.
         _vision = GetComponentInChildren<CreatureVision>(true);
         if (_vision == null && camera != null) _vision = camera.GetComponent<CreatureVision>();
@@ -265,7 +279,36 @@ public class FishPlayer : NetworkBehaviour
             }
             PlayerName = name;
         }
+        ServerPickSpecies();
         if (MatchManager.Instance != null) MatchManager.Instance.ServerTrackPlayer(this);
+    }
+
+    // A random fish for this player (the one fewest others are wearing), kept for the connection so a new
+    // body or the next round doesn't change it. Set here so it ships in the spawn payload, before any client
+    // builds the body.
+    [Server]
+    private void ServerPickSpecies()
+    {
+        var lib = FishSpecies.Instance;
+        if (IsSharkBody || lib == null) return;
+        int conn = connectionToClient != null ? connectionToClient.connectionId : int.MinValue;
+        if (!s_Species.TryGetValue(conn, out byte species) || lib.Get(species - 1) == null)
+        {
+            var taken = new List<int>();
+            foreach (var kv in s_Species)
+                if (kv.Key != conn && NetworkServer.connections.ContainsKey(kv.Key)) taken.Add(kv.Value - 1);
+            int pick = lib.PickPlayerSpecies(taken);
+            if (pick < 0) return;
+            species = (byte)(pick + 1);
+            if (connectionToClient != null) s_Species[conn] = species;
+        }
+        Species = species;
+        FishSpecies.ApplyToPlayer(transform, species - 1);
+    }
+
+    private void OnSpeciesChanged(byte oldSpecies, byte newSpecies)
+    {
+        if (!IsSharkBody) FishSpecies.ApplyToPlayer(transform, newSpecies - 1);
     }
 
     // Our Steam name, for the results screen; the server makes one up when there's no Steam (editor tests).
@@ -288,7 +331,11 @@ public class FishPlayer : NetworkBehaviour
     }
 
     /// <summary>Server: forget the previous round's "live" state (new game scene / new host).</summary>
-    public static void ServerResetRound() => s_RoundLive = false;
+    public static void ServerResetRound()
+    {
+        s_RoundLive = false;
+        s_Species.Clear(); // a new game: everyone draws a new fish
+    }
 
     /// <summary>
     /// Server: make every player's round live once all connections have a body whose client reported
@@ -318,6 +365,8 @@ public class FishPlayer : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
+        // The spawn payload carried the species; dress the body before anything measures it (Start).
+        if (!IsSharkBody) FishSpecies.ApplyToPlayer(transform, Species - 1);
         if (camera != null) camera.SetActive(false);
         SetLocallyControlled(false);
     }
@@ -387,15 +436,6 @@ public class FishPlayer : NetworkBehaviour
         if (orbit == null && Camera.main != null) orbit = Camera.main.GetComponent<FishOrbitCamera>();
         if (orbit != null) orbit.SetTarget(transform);
 
-        // Eat action: press E near a food pellet to eat it.
-        if (_eatAction == null)
-        {
-            _eatAction = new InputAction("Eat", InputActionType.Button);
-            _eatAction.AddBinding("<Keyboard>/e");
-            _eatAction.AddBinding("<Gamepad>/buttonWest");
-            _eatAction.Enable();
-        }
-
         // Health / hunger / round clock for whoever we are (fish or shark).
         MatchHud.Show();
         GameFeel.Ensure();
@@ -419,6 +459,9 @@ public class FishPlayer : NetworkBehaviour
         if (isServer && _heldBy != 0) ServerStruggleTick();
         if (!isLocalPlayer && !_offlineLocal) return;
 
+        // Which controls this body has right now: picks the controller's action set (swim / shark / puzzle arrows).
+        GameInput.ReportLocalBody(IsSharkBody, _taskLocked);
+
         if (_controlsLive && Time.time >= _nextSeabedCheck)
         {
             _nextSeabedCheck = Time.time + 0.1f;
@@ -428,14 +471,7 @@ public class FishPlayer : NetworkBehaviour
         // In the jaws: mash to break free.
         if (_inJaws && !_offlineLocal)
         {
-            if (_struggleAction == null)
-            {
-                _struggleAction = new InputAction("BreakFree", InputActionType.Button);
-                _struggleAction.AddBinding("<Keyboard>/space");
-                _struggleAction.AddBinding("<Gamepad>/buttonSouth");
-                _struggleAction.Enable();
-            }
-            if (_struggleAction.WasPressedThisFrame() && !PauseMenu.IsOpen && CanBreakFree)
+            if (GameInput.Ascend.WasPressedThisFrame() && !PauseMenu.IsOpen && CanBreakFree)
             {
                 LastStrugglePress = Time.unscaledTime;
                 CmdStruggle();
@@ -458,10 +494,10 @@ public class FishPlayer : NetworkBehaviour
         // task, where E joins it (or bites the turtle's rope) instead.
         bool taskOwnsE = NetworkedSequenceTask.LocalNearAnyTask || TangledTurtle.LocalAtRope;
         if (_controlsLive && !IsSharkBody && !taskOwnsE && PelletInReach() != null)
-            MatchHud.ShowPrompt("Press E to eat");
+            MatchHud.ShowPrompt($"Press {GameInput.Interact.Token} to eat");
 
         // E eats — unless we're next to a task, where E joins it instead (the task handles that press).
-        if (_controlsLive && _eatAction != null && _eatAction.WasPressedThisFrame() && !taskOwnsE)
+        if (_controlsLive && GameInput.Interact.WasPressedThisFrame() && !taskOwnsE)
         {
             var bite = PelletInReach(_offlineLocal ? 0f : remoteEatSlack);
             if (bite != null)
@@ -1198,8 +1234,6 @@ public class FishPlayer : NetworkBehaviour
     {
         base.OnStopLocalPlayer();
 
-        if (_eatAction != null) { _eatAction.Disable(); _eatAction.Dispose(); _eatAction = null; }
-        if (_struggleAction != null) { _struggleAction.Disable(); _struggleAction.Dispose(); _struggleAction = null; }
         if (TryGetComponent(out SharkAbilities shark))
         {
             shark.CaughtFlockFish -= OnCaughtFlockFish;

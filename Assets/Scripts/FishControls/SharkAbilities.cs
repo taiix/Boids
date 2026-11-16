@@ -149,9 +149,6 @@ namespace FishGame
         /// The Mirror layer has the host hurt it; with no subscriber it's hurt here (single-player / test).</summary>
         public event Action<Edible> GrazedPrey;
 
-        InputAction _attackAction;
-        InputAction _lungeAction;
-        InputAction _sonarAction;
         float _sonarCd;
 
         float _attackCd;
@@ -196,31 +193,6 @@ namespace FishGame
             _devourId = Animator.StringToHash(devourTrigger);
             _holdingId = Animator.StringToHash(holdingBool);
 
-            _attackAction = new InputAction("Attack", InputActionType.Button);
-            _attackAction.AddBinding("<Mouse>/leftButton");
-            _attackAction.AddBinding("<Gamepad>/rightTrigger");
-
-            _lungeAction = new InputAction("Lunge", InputActionType.Button);
-            _lungeAction.AddBinding("<Keyboard>/q");
-            _lungeAction.AddBinding("<Gamepad>/leftTrigger");
-
-            _sonarAction = new InputAction("Sonar", InputActionType.Button);
-            _sonarAction.AddBinding("<Keyboard>/r");
-            _sonarAction.AddBinding("<Gamepad>/buttonNorth");
-        }
-
-        void OnEnable()
-        {
-            _attackAction.Enable();
-            _lungeAction.Enable();
-            _sonarAction.Enable();
-        }
-
-        void OnDisable()
-        {
-            _attackAction.Disable();
-            _lungeAction.Disable();
-            _sonarAction.Disable();
         }
 
         void Update()
@@ -245,13 +217,13 @@ namespace FishGame
             }
 
             // The pulse doesn't move the shark, so it goes out even mid-dash.
-            if (SonarReady && _sonarAction.WasPressedThisFrame() && !PauseMenu.IsOpen)
+            if (SonarReady && GameInput.Sonar.WasPressedThisFrame() && !PauseMenu.IsOpen)
                 DoSonar();
 
             // Presses are remembered for a moment (the input buffer), so one made mid-dash or a hair before the
             // cooldown ends still fires as soon as it can. Don't let a new ability interrupt an in-progress dash.
-            if (_attackAction.WasPressedThisFrame()) _attackPressed = Time.unscaledTime;
-            if (_lungeAction.WasPressedThisFrame()) _lungePressed = Time.unscaledTime;
+            if (GameInput.Attack.WasPressedThisFrame()) _attackPressed = Time.unscaledTime;
+            if (GameInput.Lunge.WasPressedThisFrame()) _lungePressed = Time.unscaledTime;
             bool wantAttack = Time.unscaledTime - _attackPressed <= inputBuffer;
             bool wantLunge = Time.unscaledTime - _lungePressed <= inputBuffer;
             if (!motor.IsDashing && !PauseMenu.IsOpen)

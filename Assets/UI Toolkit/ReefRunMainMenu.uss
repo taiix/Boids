@@ -2,8 +2,11 @@
    REEF RUN — main menu ("inside the mouth")
    The background is the live 3D menu scene (MenuSharkCruise: the
    camera rides in the shark's mouth while it swims the reef), so the
-   stage is transparent. The top/bottom shades are baked gradient
-   textures set from ReefRunMainMenuController.
+   stage is transparent and the menu keeps to the left edge to leave
+   that view clear. The top/bottom shades are baked gradient textures
+   set from ReefRunMainMenuController.
+   Look: opaque blocks whose edges lean like the italic logo (ReefSlab),
+   one loud action (HOST), no outlined panels.
    Palette = the game's own UI (see ReefRunLobby.uss).
    ============================================================ */
 
@@ -32,25 +35,46 @@
 .mm-ui { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
 .mm-ui Label { padding: 0; margin: 0; }
 
-/* ---------- centre block ---------- */
-.mm-center { position: absolute; left: 0; right: 0; top: 110px; align-items: center; }
-.mm-eyebrow { font-size: 17px; letter-spacing: 6px; color: var(--orange); -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
-.mm-logo { flex-direction: row; margin-top: 2px; }
+/* Label rules that set a margin carry the .mm-ui prefix: the reset above (.mm-ui Label) outranks a
+   single class, and would otherwise cancel them. */
+
+/* ---------- ReefSlab blocks (ReefSlab.cs). Set these on the slab's own classes; keep this rule first ---------- */
+.mm-slab { --slab-color: #051729; --slab-lean: 0.21; --slab-left: 1; --slab-right: 1; --slab-notch: 0; }
+
+/* ---------- logo (top left): two stacked lines, staggered along the italic ---------- */
+.mm-title { position: absolute; left: 72px; top: 36px; }
 .mm-logo-word { font-size: 190px; letter-spacing: -2px; color: var(--text); -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBoldItalic.ttf");
                 text-shadow: 0 8px 40px rgba(0, 0, 0, 0.55); }
-.mm-logo-word--run { color: var(--teal-l); margin-left: 36px; }
-.mm-tagline { font-size: 22px; color: #cfe3e8; margin-top: -4px; }
-.mm-tagline-strong { -unity-font-definition: url("Fonts/Barlow-Bold.ttf"); color: #ffffff; }
+.mm-ui .mm-logo-word--reef { margin-left: 31px; }
+/* Barlow's line box is 1.2x the size and its capitals 0.7x: this pulls RUN up under REEF */
+.mm-ui .mm-logo-word--run { margin-top: -80px; }
+.mm-ui .mm-tagline { font-size: 22px; color: #cfe3e8; margin-top: -10px; max-width: 470px; white-space: normal; }
 
-.mm-nav { flex-direction: row; margin-top: 38px; }
-.mm-nav-btn { height: 70px; min-width: 190px; margin: 0 7px; padding: 0 30px; border-radius: 12px;
-              background-color: rgba(5, 23, 41, 0.86); border-width: 1px; border-color: var(--line);
-              color: rgba(238, 246, 247, 0.88); font-size: 28px; letter-spacing: 3px;
-              -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBold.ttf");
-              transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, scale 0.12s ease; }
-.mm-nav-btn:hover, .mm-nav-btn:focus { background-color: var(--orange); border-color: var(--orange); color: var(--navy); scale: 1.04 1.04; }
-.mm-nav-btn:active { scale: 0.98 0.98; }
-.mm-hint { font-size: 16px; color: var(--dim); margin-top: 16px; }
+/* ---------- nav (bottom left). It starts past the screen edge so the hover lunge never opens a gap there ---------- */
+.mm-nav { position: absolute; left: -40px; bottom: 52px; align-items: flex-start; }
+
+/* HOST: the one loud action - an orange block out of the left edge with a bite taken from its corner.
+   (The four states are listed so Unity's default button tints never show through.) */
+.mm-ui .mm-nav .mm-host, .mm-ui .mm-nav .mm-host:hover, .mm-ui .mm-nav .mm-host:active, .mm-ui .mm-nav .mm-host:focus {
+    background-color: rgba(0, 0, 0, 0); border-width: 0; border-radius: 0; margin: 0; padding: 0;
+    flex-direction: row; transition: translate 0.14s ease-out-cubic; }
+.mm-ui .mm-nav .mm-host:hover, .mm-ui .mm-nav .mm-host:focus { translate: 14px 0; }
+.mm-ui .mm-nav .mm-host:active { translate: 6px 0; }
+.mm-host-slab { --slab-color: #ffb84d; --slab-left: 0; --slab-notch: 30; padding: 6px 86px 6px 112px; }
+.mm-host:hover .mm-host-slab, .mm-host:focus .mm-host-slab { --slab-color: #ffd08a; }
+.mm-host-label { font-size: 84px; letter-spacing: 1px; color: var(--navy); -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBold.ttf"); }
+
+/* everything else: plain words on one navy strip */
+.mm-more { --slab-left: 0; flex-direction: row; align-items: center; height: 66px; margin-top: 6px; padding: 0 44px 0 94px; }
+.mm-ui .mm-nav .mm-more-btn, .mm-ui .mm-nav .mm-more-btn:hover, .mm-ui .mm-nav .mm-more-btn:active, .mm-ui .mm-nav .mm-more-btn:focus {
+    background-color: rgba(0, 0, 0, 0); border-width: 0; border-radius: 0; margin: 0; padding: 0 18px; height: 66px;
+    color: var(--text); font-size: 30px; letter-spacing: 2px; -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBoldItalic.ttf");
+    transition: color 0.1s ease; }
+.mm-ui .mm-nav .mm-more .mm-more-btn:hover, .mm-ui .mm-nav .mm-more .mm-more-btn:focus { color: var(--orange); }
+.mm-ui .mm-nav .mm-more .mm-more-btn:active { color: #ffd08a; }
+
+/* what the hovered item does */
+.mm-ui .mm-hint { font-size: 18px; color: var(--dim); margin: 12px 0 0 112px; }
 
 /* ---------- friends on the reef (bottom-left chips) ---------- */
 .mm-friends { position: absolute; left: 56px; bottom: 48px; flex-direction: row; }
@@ -66,47 +90,28 @@
                 -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBold.ttf"); }
 .mm-chip-join:hover { background-color: #ffc56b; }
 
-/* ---------- player pill (bottom-right) + version ---------- */
-.mm-player-card { position: absolute; right: 56px; bottom: 48px; flex-direction: row; align-items: center; height: 58px;
-                  padding: 0 18px 0 7px; border-radius: 12px; background-color: rgba(5, 23, 41, 0.86);
-                  border-width: 1px; border-color: var(--line); }
-.mm-player-av { width: 44px; height: 44px; border-radius: 9px; margin-right: 12px; -unity-background-scale-mode: scale-and-crop;
+/* ---------- player (a block out of the right edge, level with the nav strip) + version ---------- */
+.mm-player { --slab-right: 0; position: absolute; right: -40px; bottom: 86px; flex-direction: row; align-items: center; height: 66px;
+             padding: 0 72px 0 34px; }
+.mm-player-av { width: 46px; height: 46px; margin-right: 12px; -unity-background-scale-mode: scale-and-crop;
                 background-color: rgba(143, 176, 187, 0.15); }
-.mm-player-name { font-size: 16px; -unity-font-definition: url("Fonts/Barlow-Bold.ttf"); }
-.mm-player-sub { font-size: 12.5px; color: var(--teal-l); }
+.mm-player-name { font-size: 18px; -unity-font-definition: url("Fonts/Barlow-Bold.ttf"); }
+.mm-player-sub { font-size: 15px; color: var(--teal-l); }
 .mm-version { position: absolute; right: 60px; top: 44px; font-size: 15px; letter-spacing: 3px; color: rgba(143, 176, 187, 0.7);
               -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
 
 /* ============================================================
-   SHARED UTILITIES (used by the settings overlay)
+   SHARED CARD (settings overlay, lobby browser, credits)
+   An opaque square navy card over a dimmed screen: no outline, square
+   controls, section headings in orange, APPLY as the orange block.
    ============================================================ */
 
-.mm-glass {
-    background-color: var(--glass);
-    border-width: 1px;
-    border-color: var(--border);
-}
-
-.mm-btn {
-    font-size: 14px;
-    letter-spacing: 0.4px;
-    -unity-font-style: bold;
-    padding: 11px 28px;
-    border-width: 1px;
-    border-radius: 3px;
-    border-color: rgba(0,0,0,0);
-    margin: 0;
-}
-.mm-btn-aqua { background-color: var(--orange); color: #051729; border-color: var(--orange); }
-.mm-btn-aqua:hover { background-color: #ffc56b; }
-
-/* ============================================================
-   SETTINGS OVERLAY
-   ============================================================ */
+.mm-glass { background-color: #051729; border-width: 0; }
 
 .mm-settings-overlay {
     -unity-font-definition: url("Fonts/Barlow-Regular.ttf");
     color: var(--text);
+    font-size: 18px;
     position: absolute;
     left: 0; top: 0; right: 0; bottom: 0;
     background-color: rgba(3,10,16,0.88);
@@ -116,260 +121,142 @@
     transition: opacity 0.22s ease;
 }
 .mm-settings-overlay.show { opacity: 1; }
+/* this reset outranks a single class, so Label rules below that set a margin or padding carry the overlay prefix */
+.mm-settings-overlay Label { padding: 0; margin: 0; }
 
 /* card */
-.mm-settings-card {
-    width: 1000px;
-    flex-direction: column;
-    padding: 28px;
-    border-radius: 4px;
-}
+.mm-settings-card { width: 1040px; flex-direction: column; padding: 30px 44px 34px 44px; border-radius: 0; }
 
 /* header row */
-.mm-settings-head {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 22px;
-}
+.mm-settings-head { flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.mm-settings-title { font-size: 56px; letter-spacing: 1px; color: var(--text);
+                     -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBoldItalic.ttf"); }
 
-.mm-settings-title {
-    font-size: 18px;
-    -unity-font-style: bold;
-    color: var(--text);
-    letter-spacing: 4px;
-}
+/* close (and the browser's REFRESH): a key tile. The four states keep Unity's default button tints out. */
+.mm-settings-overlay .mm-close-btn, .mm-settings-overlay .mm-close-btn:hover, .mm-settings-overlay .mm-close-btn:active, .mm-settings-overlay .mm-close-btn:focus {
+    background-color: var(--teal); border-width: 0; }
+.mm-settings-overlay .mm-close-btn { min-width: 34px; height: 34px; margin: 0; padding: 0 10px; border-radius: 8px; color: var(--orange);
+    font-size: 18px; letter-spacing: 1px; align-items: center; justify-content: center;
+    -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBold.ttf"); }
+.mm-settings-overlay .mm-close-btn:hover { background-color: #1aa8ad; }
 
-.mm-close-btn {
-    background-color: rgba(0,0,0,0);
-    border-width: 1px;
-    border-color: var(--border);
-    border-radius: 3px;
-    color: var(--dim);
-    font-size: 13px;
-    padding: 4px 10px;
-}
-.mm-close-btn:hover { border-color: var(--border-aqua); color: var(--text); }
-
-/* section dividers */
-.mm-section-label {
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: var(--dim);
-    margin-top: 14px;
-    margin-bottom: 8px;
-    border-bottom-width: 1px;
-    border-bottom-color: var(--border);
-    padding-bottom: 6px;
-}
+/* section headings */
+.mm-settings-overlay .mm-section-label { font-size: 22px; letter-spacing: 2px; color: var(--orange); margin: 14px 0 6px 0;
+                                         -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
 
 /* setting row */
-.mm-setting-row {
-    flex-direction: row;
-    align-items: center;
-    min-height: 40px;
-    margin-bottom: 4px;
-}
+.mm-setting-row { flex-direction: row; align-items: center; min-height: 44px; }
+.mm-setting-name { width: 140px; font-size: 18px; color: var(--text); flex-shrink: 0; }
+.mm-setting-val { width: 70px; font-size: 22px; color: var(--dim); -unity-text-align: middle-right; flex-shrink: 0;
+                  -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
 
-.mm-setting-name {
-    width: 110px;
-    font-size: 13px;
-    color: var(--text);
-    flex-shrink: 0;
-}
-
-/* ---- sliders ---- */
-.mm-slider {
-    flex-grow: 1;
-    margin: 0 10px;
-}
-
-.mm-slider .unity-base-slider__drag-container {
-    height: 20px;
-}
-
-.mm-slider .unity-base-slider__tracker {
-    background-color: rgba(99,200,210,0.20);
-    height: 3px;
-    border-width: 0;
-    border-radius: 2px;
-}
-
-.mm-slider .unity-base-slider__dragger {
-    width: 14px;
-    height: 14px;
-    border-radius: 7px;
-    background-color: var(--aqua);
-    border-width: 0;
-}
-.mm-slider .unity-base-slider__dragger:hover { background-color: rgb(95,240,214); }
-
-.mm-setting-val {
-    width: 42px;
-    font-size: 12px;
-    color: var(--dim);
-    -unity-text-align: middle-right;
-    letter-spacing: 0.5px;
-    flex-shrink: 0;
-}
+/* ---- sliders: a square track and a tall square handle, both centred on the row ---- */
+.mm-slider { flex-grow: 1; margin: 0 4px; }
+.mm-slider .unity-base-slider__drag-container { height: 24px; }
+.mm-slider.unity-base-slider--horizontal .unity-base-slider__tracker {
+    position: absolute; left: 0; right: 0; top: 50%; height: 8px; margin-top: -4px;
+    background-color: rgba(143, 176, 187, 0.16); border-width: 0; border-radius: 0; }
+.mm-slider.unity-base-slider--horizontal .unity-base-slider__dragger {
+    position: absolute; top: 50%; width: 12px; height: 24px; margin-top: -12px;
+    background-color: var(--aqua); border-width: 0; border-radius: 0; }
+.mm-slider.unity-base-slider--horizontal .unity-base-slider__dragger:hover { background-color: #5fe0dc; }
+.mm-slider .unity-base-slider__dragger-border { display: none; }
 
 /* ---- dropdowns ---- */
-.mm-dropdown {
-    flex-grow: 1;
-    margin: 0;
-}
-
+.mm-dropdown { flex-grow: 1; margin: 0; }
 .mm-dropdown .unity-base-field__label { display: none; }
-
 .mm-dropdown .unity-dropdown-field__input,
 .mm-dropdown .unity-base-popup-field__input {
-    background-color: rgba(8,40,52,0.8);
-    border-width: 1px;
-    border-color: var(--border);
-    border-radius: 3px;
-    padding: 8px 12px;
-    flex-grow: 1;
-}
+    background-color: rgba(143, 176, 187, 0.16); border-width: 0; border-radius: 0; padding: 0 14px; height: 40px; flex-grow: 1; }
 .mm-dropdown .unity-dropdown-field__input:hover,
-.mm-dropdown .unity-base-popup-field__input:hover { border-color: var(--border-aqua); }
-
+.mm-dropdown .unity-base-popup-field__input:hover { background-color: rgba(143, 176, 187, 0.26); }
 .mm-dropdown .unity-base-dropdown__label,
-.mm-dropdown .unity-base-popup-field__text {
-    color: var(--text);
-    font-size: 13px;
-    flex-grow: 1;
-}
+.mm-dropdown .unity-base-popup-field__text { color: var(--text); font-size: 18px; flex-grow: 1; }
 .mm-dropdown .unity-dropdown-field__arrow,
-.mm-dropdown .unity-base-popup-field__arrow {
-    -unity-background-image-tint-color: var(--dim);
-    width: 12px;
-    height: 12px;
-}
+.mm-dropdown .unity-base-popup-field__arrow { -unity-background-image-tint-color: var(--dim); width: 12px; height: 12px; }
 
-/* ---- toggles (pill switch style) ---- */
-.mm-toggle {
-    flex-grow: 1;
-    justify-content: flex-end;
-    flex-direction: row;
-    margin: 0;
-}
+/* ---- toggles: a square switch ---- */
+.mm-toggle { flex-grow: 1; justify-content: flex-end; flex-direction: row; margin: 0; }
 .mm-toggle .unity-toggle__label { display: none; }
-
 .mm-toggle .unity-toggle__input {
-    flex-grow: 0;
-    flex-shrink: 0;
-    flex-basis: 40px;
-    min-width: 40px;
-    width: 40px;
-    height: 22px;
-    border-radius: 11px;
-    background-color: rgba(99,200,210,0.15);
-    border-width: 1px;
-    border-color: var(--border);
-    align-items: flex-start;
-    justify-content: center;
-    padding: 3px;
-    flex-shrink: 0;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-.mm-toggle .unity-toggle__input:checked {
-    background-color: var(--aqua);
-    border-color: var(--aqua);
-}
-
+    flex-grow: 0; flex-shrink: 0; flex-basis: 48px; min-width: 48px; width: 48px; height: 24px;
+    border-radius: 0; border-width: 0; background-color: rgba(143, 176, 187, 0.16);
+    align-items: flex-start; justify-content: center; padding: 3px;
+    transition: background-color 0.15s ease; }
+.mm-toggle .unity-toggle__input:checked { background-color: var(--teal); }
 .mm-toggle .unity-toggle__checkmark {
-    width: 14px;
-    height: 14px;
-    border-radius: 7px;
-    background-color: var(--dim);
-    background-image: none;
-    border-width: 0;
-    translate: 0 0;
-    transition: translate 0.15s ease, background-color 0.15s ease;
-}
-.mm-toggle .unity-toggle__input:checked .unity-toggle__checkmark {
-    background-color: #06283f;
-    translate: 17px 0;
-}
+    width: 18px; height: 18px; border-radius: 0; border-width: 0; background-color: var(--dim); background-image: none;
+    translate: 0 0; transition: translate 0.15s ease, background-color 0.15s ease; }
+.mm-toggle .unity-toggle__input:checked .unity-toggle__checkmark { background-color: var(--navy); translate: 24px 0; }
 
-/* ---- settings footer ---- */
-.mm-settings-foot {
-    flex-direction: row;
-    justify-content: flex-end;
-    margin-top: 18px;
-    padding-top: 14px;
-    border-top-width: 1px;
-    border-top-color: var(--border);
-}
+/* ---- settings footer: APPLY ---- */
+.mm-settings-foot { flex-direction: row; justify-content: flex-end; margin-top: 22px; }
+.mm-settings-overlay .mm-apply, .mm-settings-overlay .mm-apply:hover, .mm-settings-overlay .mm-apply:active, .mm-settings-overlay .mm-apply:focus {
+    background-color: rgba(0, 0, 0, 0); border-width: 0; }
+.mm-settings-overlay .mm-apply { margin: 0; padding: 0; border-radius: 0; flex-direction: row; }
+.mm-apply-slab { --slab-color: #ffb84d; --slab-notch: 18; height: 58px; padding: 0 44px; justify-content: center; }
+.mm-apply:hover .mm-apply-slab, .mm-apply:focus .mm-apply-slab { --slab-color: #ffd08a; }
+.mm-apply-label { font-size: 30px; letter-spacing: 2px; color: var(--navy); -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBold.ttf"); }
 
 /* ---- two columns: audio + display | microphone ---- */
 .mm-settings-cols { flex-direction: row; }
 .mm-settings-col { flex-grow: 1; flex-basis: 0; flex-direction: column; }
-.mm-settings-col--right { margin-left: 40px; }
+.mm-settings-col--right { margin-left: 48px; }
 
 /* ---- microphone ---- */
 /* the meter and the Sensitivity slider share one scale (-60..0 dB), so the orange marker sits where
    the level has to reach before your voice is sent */
-.mm-meter {
-    flex-grow: 1;
-    height: 10px;
-    margin: 0 10px;
-    border-radius: 5px;
-    background-color: rgba(143, 176, 187, 0.15);
-}
-.mm-meter-fill {
-    position: absolute; left: 0; top: 0; bottom: 0;
-    width: 0%;
-    border-radius: 5px;
-    background-color: rgba(143, 176, 187, 0.6);
-}
+.mm-meter { flex-grow: 1; height: 12px; margin: 0 4px; background-color: rgba(143, 176, 187, 0.16); }
+.mm-meter-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; background-color: rgba(143, 176, 187, 0.6); }
 .mm-meter-fill--loud { background-color: var(--aqua); }
-.mm-meter-mark {
-    position: absolute; top: -5px; bottom: -5px;
-    left: 39%;
-    width: 2px;
-    margin-left: -1px;
-    background-color: var(--orange);
-}
-.mm-mic-status {
-    flex-direction: row;
-    align-items: flex-start;
-    margin-top: 10px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    background-color: rgba(2, 10, 18, 0.55);
-    border-width: 1px;
-    border-color: var(--border);
-}
-.mm-mic-dot { width: 10px; height: 10px; border-radius: 5px; margin: 4px 10px 0 0; flex-shrink: 0; background-color: var(--dim); }
+.mm-meter-mark { position: absolute; top: -6px; bottom: -6px; left: 39%; width: 3px; margin-left: -1px; background-color: var(--orange); }
+.mm-mic-status { flex-direction: row; align-items: flex-start; margin-top: 10px; padding: 10px 14px; background-color: rgba(143, 176, 187, 0.16); }
+.mm-mic-dot { width: 10px; height: 10px; margin: 6px 12px 0 0; flex-shrink: 0; background-color: var(--dim); }
 .mm-mic-dot--ok { background-color: #2cc3c4; }
 .mm-mic-dot--warn { background-color: #e6b333; }
 .mm-mic-dot--bad { background-color: #d94040; }
-.mm-mic-status-text { flex-grow: 1; flex-shrink: 1; font-size: 13px; color: var(--text); white-space: normal; padding: 0; margin: 0; }
-.mm-mic-note { font-size: 12px; color: var(--dim); margin-top: 12px; white-space: normal; padding: 0; }
-.mm-link-btn {
-    align-self: flex-start;
-    margin: 8px 0 0 0;
-    padding: 8px 14px;
-    border-radius: 8px;
-    background-color: rgba(0, 0, 0, 0);
-    border-width: 1px;
-    border-color: var(--border-aqua);
-    color: var(--aqua);
-    font-size: 13px;
-}
-.mm-link-btn:hover { background-color: rgba(44, 195, 196, 0.12); }
+.mm-mic-status-text { flex-grow: 1; flex-shrink: 1; font-size: 18px; color: var(--text); white-space: normal; }
+.mm-settings-overlay .mm-mic-note { font-size: 15px; color: var(--dim); margin-top: 12px; white-space: normal; }
+.mm-settings-overlay .mm-link-btn, .mm-settings-overlay .mm-link-btn:hover, .mm-settings-overlay .mm-link-btn:active, .mm-settings-overlay .mm-link-btn:focus {
+    background-color: rgba(0, 0, 0, 0); border-width: 0; }
+.mm-settings-overlay .mm-link-btn { align-self: flex-start; margin: 8px 0 0 0; padding: 0; color: var(--orange); font-size: 18px;
+                                    -unity-font-definition: url("Fonts/Barlow-SemiBold.ttf"); }
+.mm-settings-overlay .mm-link-btn:hover { color: #ffd08a; }
 
 /* ============================================================
-   LOBBY BROWSER (JOIN) - built by ReefRunLobbyBrowser, reuses the chip avatar/name/JOIN styles
+   LOBBY BROWSER (JOIN) - built by ReefRunLobbyBrowser on the shared card
    ============================================================ */
-.mm-lb-status { font-size: 14px; color: var(--dim); margin-bottom: 12px; white-space: normal; }
-.mm-lb-row { flex-direction: row; align-items: center; height: 62px; padding: 0 12px 0 10px; margin-bottom: 8px; border-radius: 10px;
-             background-color: rgba(2, 10, 18, 0.55); border-width: 1px; border-color: var(--border); }
-.mm-lb-row:hover { border-color: var(--border-aqua); }
-.mm-lb-tag { font-size: 11px; letter-spacing: 1.5px; padding: 1px 6px; margin-left: 8px; border-radius: 4px;
-             background-color: var(--teal); color: #ffffff; -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
-.mm-lb-count { font-size: 20px; letter-spacing: 1px; color: var(--text); margin: 0 6px 0 12px;
-               -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
-.mm-lb-foot { font-size: 12px; color: var(--dim); margin-top: 12px; padding-top: 12px;
-              border-top-width: 1px; border-top-color: var(--border); }
+.mm-settings-overlay .mm-lb-status { font-size: 18px; color: var(--dim); margin-bottom: 12px; white-space: normal; }
+.mm-lb-row { flex-direction: row; align-items: center; height: 66px; padding: 0 12px 0 10px; margin-bottom: 6px;
+             background-color: rgba(143, 176, 187, 0.16); }
+.mm-lb-row:hover { background-color: rgba(143, 176, 187, 0.26); }
+.mm-settings-overlay .mm-chip-av { width: 44px; height: 44px; border-radius: 0; margin-right: 12px; }
+.mm-settings-overlay .mm-chip-name { font-size: 18px; }
+.mm-settings-overlay .mm-chip-status { font-size: 15px; }
+.mm-settings-overlay .mm-lb-tag { font-size: 15px; letter-spacing: 1.5px; padding: 0 6px; margin-left: 8px;
+                                  background-color: var(--teal); color: #ffffff; -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
+.mm-settings-overlay .mm-lb-count { font-size: 30px; color: var(--text); margin: 0 14px 0 12px;
+                                    -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBold.ttf"); }
+.mm-settings-overlay .mm-chip-join, .mm-settings-overlay .mm-chip-join:hover, .mm-settings-overlay .mm-chip-join:active, .mm-settings-overlay .mm-chip-join:focus {
+    background-color: var(--orange); border-width: 0; }
+.mm-settings-overlay .mm-chip-join { height: 38px; margin: 0; padding: 0 16px; border-radius: 0; color: var(--navy); font-size: 22px; letter-spacing: 2px;
+                                     -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBold.ttf"); }
+.mm-settings-overlay .mm-chip-join:hover { background-color: #ffd08a; }
+.mm-settings-overlay .mm-lb-foot { font-size: 15px; color: var(--dim); margin-top: 12px; }
+
+/* ---------- controller: the control the pad is on (UiPad adds .pad-focus and swells it) ---------- */
+.mm-settings-overlay .mm-close-btn.pad-focus { background-color: #1aa8ad; }
+.mm-settings-overlay .mm-link-btn.pad-focus { color: #ffd08a; }
+.mm-settings-overlay .mm-chip-join.pad-focus { background-color: #ffd08a; }
+.mm-lb-row.pad-focus { background-color: rgba(143, 176, 187, 0.26); }
+.mm-slider.pad-focus .unity-base-slider__dragger { background-color: #ffb84d; }
+.mm-dropdown.pad-focus .unity-base-popup-field__input { background-color: rgba(143, 176, 187, 0.26); }
+
+/* ---------- buttons from the approved UI kit: selected = lighter with a thin frame, pressed = darker and a touch smaller ---------- */
+.mm-host:hover .mm-host-slab, .mm-host:focus .mm-host-slab, .mm-host.pad-focus .mm-host-slab { --slab-outline: #ffb84d; --slab-outline-width: 4; }
+.mm-ui .mm-nav .mm-host:active { scale: 0.97 0.97; }
+.mm-host:active .mm-host-slab { --slab-color: #d9952f; --slab-outline: rgba(0, 0, 0, 0); }
+.mm-apply:hover .mm-apply-slab, .mm-apply:focus .mm-apply-slab, .mm-apply.pad-focus .mm-apply-slab { --slab-outline: #ffb84d; }
+.mm-settings-overlay .mm-apply:active { scale: 0.97 0.97; }
+.mm-apply:active .mm-apply-slab { --slab-color: #d9952f; --slab-outline: rgba(0, 0, 0, 0); }
+.mm-ui .mm-nav .mm-more .mm-more-btn.pad-focus { color: var(--orange); }

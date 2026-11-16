@@ -52,6 +52,33 @@ public class BoidsManager : MonoBehaviour
     [Tooltip("Steepest climb/dive angle in degrees. Keeps fish from swimming vertically and flipping over.")]
     [Range(10f, 89f)] public float maxPitch = 55f;
 
+    [Header("School shape")]
+    [Tooltip("Fish only school with neighbours inside this cone (full angle, degrees). Real fish have a blind " +
+             "spot behind them, which lets the front of the school lead instead of being dragged back. " +
+             "360 = see all round. Separation always works all round.")]
+    [Range(90f, 360f)] public float viewAngle = 270f;
+    [Tooltip("Most neighbours a fish pays attention to (nearest cells first). Real schooling fish track a " +
+             "handful (about 7) of its nearest; it also keeps a dense patch from pulling harder than a sparse one.")]
+    [Range(3, 30)] public int maxNeighbours = 12;
+    [Tooltip("Spacing the school spawns at (metres). It starts as one compact school around this object " +
+             "instead of scattered over the whole area, where the fish are too far apart to see each other.")]
+    public float spawnSpacing = 1.6f;
+    [Tooltip("Fish that stray outside the school's natural radius (fish count x spawn spacing) are pulled back " +
+             "toward its centre. Inside that radius there is no pull, so the school is never squashed.")]
+    public float schoolPull = 0.6f;
+
+    [Header("Other schools")]
+    [Tooltip("Fish keep this far from fish of OTHER schools, so schools part around each other instead of " +
+             "swimming through one another.")]
+    public float otherSchoolDist = 2.5f;
+    public float otherSchoolWeight = 2.5f;
+
+    [Header("Level of detail")]
+    [Tooltip("Fish further than this from the camera stop animating (their swim cycle freezes). 0 = always animate.")]
+    public float animationDistance = 60f;
+    [Tooltip("Fish further than this from the camera stop casting shadows. 0 = always cast.")]
+    public float shadowDistance = 40f;
+
     [Header("Obstacle avoidance")]
     public LayerMask obstacleMask = ~0;
     public float avoidDistance = 2.5f;
@@ -92,11 +119,19 @@ public class BoidsManager : MonoBehaviour
     [Tooltip("How hard fish steer up off the seabed.")]
     public float floorWeight = 3.5f;
 
+    [Header("Species")]
+    [Tooltip("Swap this school's fish for a species from Resources/FishSpecies, taken in turn by the school's " +
+             "rank (biggest first), so the reef holds several kinds of fish. Every player ranks the same " +
+             "schools the same way, so everyone sees the same species. Off = always the Prefab above.")]
+    public bool mixSpecies = true;
+    /// <summary>The species index in <see cref="FishGame.FishSpecies"/> this school swims as, or -1 for its own prefab.</summary>
+    public int SpeciesIndex { get; private set; } = -1;
+
     [Header("Network sync")]
     [Tooltip("Seed for the starting layout and the roaming goal (mixed with this school's position, so " +
              "several schools in a scene differ). Every player gets the identical school from it.")]
     public uint spawnSeed = 12345;
-    [Tooltip("Seconds the school's roaming goal takes to glide from one waypoint to the next. Waypoints come " +
+    [Tooltip("Minimum seconds the school's roaming goal takes to glide from one waypoint to the next (it is also slowed so it never outruns the fish). Waypoints come " +
              "from the shared network clock, so every player's school heads for the same spot.")]
     public float goalInterval = 8f;
     [Tooltip("Seconds a correction from the host takes to blend in (clients only).")]
@@ -165,8 +200,39 @@ public class BoidsManager : MonoBehaviour
     NativeArray<float3> _influencers;                  // player positions the flock reacts to
     NativeArray<float3> _predators;                    // shark positions the flock flees from
     NativeArray<float> _speed;                         // current speed per sim slot (written by the job)
+    NativeArray<float3> _center;                       // [0] = school centroid (written by CentroidJob)
+    NativeArray<int> _noSchools;                       // stand-in for the shared arrays when there's one school
     int _count;
     bool _dirty = true;
+
+    /// <summary>Centre of the school (last sim step).</summary>
+    public Vector3 SchoolCenter { get; private set; }
+    /// <summary>The way the whole school is migrating: from its centre toward the roaming goal, fading out as it
+    /// arrives. Every fish
+    /// gets the same direction, so the goal steers the school without squeezing it into a ball.</summary>
+    public Vector3 MigrationDir { get; private set; }
+    /// <summary>Natural radius of the school at its spacing (beyond it, fish are pulled back).</summary>
+    public float SchoolRadius => SchoolRadiusFor(_count > 0 ? _count : fishCount);
+    float SchoolRadiusFor(int n) => math.max(spawnSpacing, spawnSpacing * 0.62f * math.pow(math.max(1, n), 1f / 3f)) * 1.5f;
+
+    // Level of detail: per fish id, cached so the LOD pass never calls GetComponent.
+    Animator[] _anim = System.Array.Empty<Animator>();
+    Renderer[] _rend = System.Array.Empty<Renderer>();   // the renderer drawing it (shader-swim mesh or skinned)
+    byte[] _lod = System.Array.Empty<byte>();      // LodManaged | LodAnimate | LodShadow; 0 = not ours (eaten)
+    const byte LodAnimate = 1, LodShadow = 2, LodManaged = 0x80;
+    AnimatorCullingMode _prefabCulling;
+    UnityEngine.Rendering.ShadowCastingMode _prefabShadows;
+    int _lodCursor;
+    Camera _lodCam;
+    float _lodCamCheck;
+
+    // One shared snapshot of every school's fish (last step's positions), so each school can keep clear of
+    // the others. Built once per frame by whichever school simulates first.
+    static NativeArray<float3> s_otherPos;
+    static NativeArray<int> s_otherSchool;
+    static NativeParallelMultiHashMap<int, int> s_otherGrid;
+    static int s_otherCount, s_otherFrame = -1;
+    static float s_otherCell = 1f;
 
     // Fish ids are stable: a fish's id is its index in allFish for the whole match, and a dead fish
     // just leaves a null there. The sim packs live fish into slots, so map both ways.
@@ -198,27 +264,76 @@ public class BoidsManager : MonoBehaviour
     const int MaxPredators = 16;
 
     private void OnEnable() { if (!All.Contains(this)) All.Add(this); }
-    private void OnDisable() { All.Remove(this); }
+    private void OnDisable()
+    {
+        All.Remove(this);
+        if (All.Count == 0) DisposeShared();
+    }
 
     // Spawns in Awake (not Start) so the school exists before a joining client reports ready: the
     // host's full-state message would otherwise find no fish to apply to.
     private void Awake()
     {
         instance = this;
+        ApplySpeciesMix();
 
         // Seeded, so every player spawns the identical school (fish id i starts at the same spot).
+        // The school starts as one compact ball at its natural spacing, all heading roughly the same way:
+        // scattered over the whole area the fish were ~14 m apart, far outside each other's perception
+        // radius, and drifted as loners until the goal eventually crushed them together.
+        // What a fish is like as authored, so LOD can hand an eaten fish back unchanged.
+        var pa = prefab.GetComponentInChildren<Animator>(true);
+        if (pa != null) _prefabCulling = pa.cullingMode;
+        Renderer ps = prefab.TryGetComponent(out FishGame.FishSwimRig pRig) && pRig.Swim != null
+            ? pRig.Swim : prefab.GetComponentInChildren<SkinnedMeshRenderer>(true);
+        _prefabShadows = ps != null ? ps.shadowCastingMode : UnityEngine.Rendering.ShadowCastingMode.On;
+
         var rng = new Unity.Mathematics.Random(FlockSeed);
+        float3 half = (float3)area * 0.5f;
+        float radius = SchoolRadiusFor(fishCount) / 1.5f;
+        float yaw = rng.NextFloat(0f, 2f * math.PI);
+        float3 heading = new float3(math.sin(yaw), 0f, math.cos(yaw));
         allFish = new GameObject[fishCount];
         for (int i = 0; i < fishCount; i++)
         {
-            float3 offset = rng.NextFloat3(-(float3)area, (float3)area) * 0.5f;
-            allFish[i] = Instantiate(prefab, transform.position + (Vector3)offset, rng.NextQuaternionRotation());
+            float3 offset = rng.NextFloat3Direction() * (radius * math.pow(rng.NextFloat(), 1f / 3f));
+            offset = math.clamp(offset, -half, half);
+            float3 dir = math.normalizesafe(heading + rng.NextFloat3Direction() * 0.25f, heading);
+            allFish[i] = Instantiate(prefab, transform.position + (Vector3)offset, quaternion.LookRotationSafe(dir, math.up()));
 
             // Manager drives flock fish via the job, so the per-fish Boid Update is off here.
             if (allFish[i].TryGetComponent(out Boid boid)) { boid.SetManager(this); boid.enabled = false; }
         }
         _dirty = true;
     }
+
+    // Pick this school's species from its rank among the scene's schools (biggest first, then by position:
+    // the same on every machine) and tune it to the fish: a mackerel school cruises faster and keeps wider
+    // gaps than a school of butterflyfish.
+    void ApplySpeciesMix()
+    {
+        if (!mixSpecies) return;
+        var lib = FishGame.FishSpecies.Instance;
+        if (lib == null) return;
+        int rank = 0;
+        foreach (var o in FindObjectsByType<BoidsManager>(FindObjectsInactive.Include))
+            if (o != this && o.mixSpecies && o.gameObject.scene == gameObject.scene && RanksBefore(o, this)) rank++;
+        int idx = lib.SchoolSpecies(rank);
+        var sp = lib.Get(idx);
+        if (sp == null) return;
+
+        SpeciesIndex = idx;
+        prefab = sp.schoolPrefab;
+        float v = Mathf.Max(0.1f, sp.speedScale), g = Mathf.Max(0.1f, sp.spacingScale);
+        minSpeed *= v;
+        maxSpeed *= v;
+        spawnSpacing *= g;
+        separationDist *= g;
+        neighbourDist *= g;
+    }
+
+    static bool RanksBefore(BoidsManager a, BoidsManager b) =>
+        a.fishCount != b.fishCount ? a.fishCount > b.fishCount : SortsBefore(a, b);
 
     private void Start()
     {
@@ -248,19 +363,71 @@ public class BoidsManager : MonoBehaviour
 
     // Sim runs in LateUpdate (after the animation phase) so the transform-writing job never
     // races the Animator/render. It still parallelizes across all cores via Burst.
+    //
+    // Every school is stepped together: the first school to reach LateUpdate each frame schedules all the
+    // schools' job chains, then waits once. One school at a time (schedule, wait, next), the main thread
+    // ended up running most of each SteerJob itself while the workers were still waking up: 13 schools
+    // took ~4.3 ms of main thread on 2026-11-16.
+    static int s_simFrame = -1;
+    static readonly List<BoidsManager> s_sim = new List<BoidsManager>();
+    static readonly List<JobHandle> s_simHandles = new List<JobHandle>();
+
     private void LateUpdate()
     {
-        if (allFish == null || allFish.Length == 0) return;
+        if (s_simFrame == Time.frameCount) return;
+        s_simFrame = Time.frameCount;
+        SimulateAll();
+    }
+
+    static void SimulateAll()
+    {
+        s_sim.Clear();
+        s_simHandles.Clear();
+        for (int m = 0; m < All.Count; m++)
+        {
+            var mgr = All[m];
+            if (mgr != null && mgr.PrepareSim()) s_sim.Add(mgr);
+        }
+        if (s_sim.Count == 0) return;
+
+        // Every school's fish from the last step, so each one can keep clear of the others.
+        BuildSharedSnapshot();
+
+        try
+        {
+            for (int i = 0; i < s_sim.Count; i++) s_simHandles.Add(s_sim[i].ScheduleSim());
+            JobHandle.ScheduleBatchedJobs();
+        }
+        finally
+        {
+            // Never leave a job in flight, even if scheduling one school threw.
+            for (int i = 0; i < s_simHandles.Count; i++) s_simHandles[i].Complete();
+        }
+
+        for (int i = 0; i < s_sim.Count; i++) s_sim[i].FinishSim();
+    }
+
+    bool PrepareSim()
+    {
+        if (allFish == null || allFish.Length == 0) return false;
         EnsureArrays();
-        if (_count == 0) return;
-
+        if (_count == 0) return false;
         ApplyHostCorrections(Time.deltaTime);
+        return true;
+    }
 
+    JobHandle ScheduleSim()
+    {
         float cellSize = Mathf.Max(0.01f, neighbourDist);
+
+        int mySchool = All.IndexOf(this);
+        bool others = All.Count > 1 && otherSchoolWeight > 0f && s_otherCount > 0;
 
         // Build the spatial grid (Burst, one worker: same insertion order as ever, so neighbours are
         // visited in the same order and the sums come out bit-identical).
         JobHandle gridDep = new BuildGridJob { positions = _posA, grid = _grid, cellSize = cellSize, count = _count }.Schedule();
+        gridDep = JobHandle.CombineDependencies(gridDep,
+            new CentroidJob { positions = _posA, count = _count, center = _center }.Schedule());
 
         // Build this frame's obstacle and seabed casts (Burst, parallel).
         bool avoid = avoidWeight > 0f, floor = keepAboveFloor && floorWeight > 0f;
@@ -313,16 +480,32 @@ public class BoidsManager : MonoBehaviour
             goalWeight = goalWeight, boundaryWeight = boundaryWeight,
             avoidWeight = avoidWeight, avoidDistance = avoidDistance,
             goalPos = goalPos, areaCenter = transform.position, areaHalf = (float3)area * 0.5f,
+            schoolCenter = _center, schoolRadius = SchoolRadiusFor(_count), schoolPull = schoolPull,
+            viewCos = math.cos(math.radians(viewAngle * 0.5f)), maxNeighbours = math.max(1, maxNeighbours),
+            otherOn = others, mySchool = mySchool,
+            otherPos = others ? s_otherPos : _posA, otherSchool = others ? s_otherSchool : _noSchools,
+            otherGrid = others ? s_otherGrid : _grid, otherCell = s_otherCell,
+            otherDist = otherSchoolDist, otherWeight = otherSchoolWeight,
             keepBelow = keepBelowWater, ceiling = _ceiling,
             floorHits = _floorHits, keepAboveFloor = keepAboveFloor, floorCastHeight = floorCastHeight,
             floorMargin = floorMargin, floorClearance = floorClearance, floorWeight = floorWeight,
             outPositions = _posB, outHeadings = _hdgB, speeds = _speed,
         };
-        job.Schedule(_tArray, JobHandle.CombineDependencies(castDep, floorDep, gridDep)).Complete();
+        return job.Schedule(_tArray, JobHandle.CombineDependencies(castDep, floorDep, gridDep));
+    }
 
+    void FinishSim()
+    {
         // Swap read/write buffers (this frame's output becomes next frame's input).
         (_posA, _posB) = (_posB, _posA);
         (_hdgA, _hdgB) = (_hdgB, _hdgA);
+
+        SchoolCenter = _center[0];
+        Vector3 toGoal = goalPos - SchoolCenter;
+        float gd = toGoal.magnitude;
+        MigrationDir = gd > 1e-3f ? toGoal / gd * Mathf.Clamp01(gd / (SchoolRadius * 2f)) : Vector3.zero;
+
+        UpdateLod();
 
         // Snapshot for the player's managed steering (only when someone is blending here).
         if (_influencerTransforms.Count > 0)
@@ -378,6 +561,8 @@ public class BoidsManager : MonoBehaviour
         _influencers = new NativeArray<float3>(MaxInfluencers, Allocator.Persistent);
         _predators = new NativeArray<float3>(MaxPredators, Allocator.Persistent);
         _speed = new NativeArray<float>(math.max(1, n), Allocator.Persistent);
+        _center = new NativeArray<float3>(1, Allocator.Persistent);
+        _noSchools = new NativeArray<int>(1, Allocator.Persistent);
         _tArray = new TransformAccessArray(n);
 
         _ids = new int[n];
@@ -395,6 +580,8 @@ public class BoidsManager : MonoBehaviour
             _ids[k] = i;
             _slot[i] = k;
             k++;
+
+            if ((_lod[i] & LodManaged) == 0) CacheLod(i, f);
         }
         _dirty = false;
     }
@@ -410,6 +597,9 @@ public class BoidsManager : MonoBehaviour
         System.Array.Resize(ref _netHdg, len);
         System.Array.Resize(ref _netPending, len);
         System.Array.Resize(ref _speedById, len);
+        System.Array.Resize(ref _anim, len);
+        System.Array.Resize(ref _rend, len);
+        System.Array.Resize(ref _lod, len);
     }
 
     void DisposeNative()
@@ -427,10 +617,127 @@ public class BoidsManager : MonoBehaviour
         if (_influencers.IsCreated) _influencers.Dispose();
         if (_predators.IsCreated) _predators.Dispose();
         if (_speed.IsCreated) _speed.Dispose();
+        if (_center.IsCreated) _center.Dispose();
+        if (_noSchools.IsCreated) _noSchools.Dispose();
         if (_tArray.isCreated) _tArray.Dispose();
     }
 
     private void OnDestroy() => DisposeNative();
+
+    // ---- Level of detail ----------------------------------------------------------------
+    // The sim is cheap (~0.7 ms per 1000 fish); what each fish really costs is how it's drawn. School fish swim
+    // by shader (FishSwimRig: no Animator, no skinning), so for them this only stops far fish casting
+    // shadows. A prefab that still runs an Animator also stops animating far away, and off-screen. A slice of
+    // the school is re-checked each frame.
+
+    void CacheLod(int id, GameObject f)
+    {
+        if (f.TryGetComponent(out FishGame.FishSwimRig swimRig))
+        {
+            // Shader swim: no Animator to manage (it's parked for the eaten clip); only shadows.
+            _anim[id] = null;
+            _rend[id] = swimRig.Swim;
+        }
+        else
+        {
+            _anim[id] = f.GetComponentInChildren<Animator>();
+            _rend[id] = f.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (_anim[id] != null) _anim[id].cullingMode = AnimatorCullingMode.CullCompletely;
+        }
+        _lod[id] = LodManaged | LodAnimate | LodShadow; // as spawned
+    }
+
+    void RestoreLod(int id)
+    {
+        if (id >= _anim.Length) return;
+        if (_anim[id] != null) { _anim[id].enabled = true; _anim[id].cullingMode = _prefabCulling; }
+        if (_rend[id] != null) _rend[id].shadowCastingMode = _prefabShadows;
+        _anim[id] = null;
+        _rend[id] = null;
+        _lod[id] = 0;
+    }
+
+    void UpdateLod()
+    {
+        if (_count == 0) return;
+        if (_lodCam == null || !_lodCam.isActiveAndEnabled)
+        {
+            if (Time.unscaledTime < _lodCamCheck) return;
+            _lodCamCheck = Time.unscaledTime + 1f;
+            _lodCam = Camera.main;
+            if (_lodCam == null) return;
+        }
+        float3 cam = _lodCam.transform.position;
+        float a2 = animationDistance > 0f ? animationDistance * animationDistance : float.MaxValue;
+        float s2 = shadowDistance > 0f ? shadowDistance * shadowDistance : float.MaxValue;
+        bool shadowsOn = _prefabShadows != UnityEngine.Rendering.ShadowCastingMode.Off;
+
+        int slice = math.min(_count, math.max(64, _count / 6));
+        for (int c = 0; c < slice; c++)
+        {
+            if (++_lodCursor >= _count) _lodCursor = 0;
+            int id = _ids[_lodCursor];
+            if (id >= _lod.Length || (_lod[id] & LodManaged) == 0) continue;
+            float d2 = math.distancesq(_posA[_lodCursor], cam);
+            byte want = (byte)(LodManaged | (d2 < a2 ? LodAnimate : 0) | (d2 < s2 ? LodShadow : 0));
+            byte had = _lod[id];
+            if (want == had) continue;
+            if (((want ^ had) & LodAnimate) != 0 && _anim[id] != null) _anim[id].enabled = (want & LodAnimate) != 0;
+            if (((want ^ had) & LodShadow) != 0 && _rend[id] != null && shadowsOn)
+                _rend[id].shadowCastingMode = (want & LodShadow) != 0 ? _prefabShadows : UnityEngine.Rendering.ShadowCastingMode.Off;
+            _lod[id] = want;
+        }
+    }
+
+    // ---- Shared snapshot of every school (for keeping schools apart) -----------------------
+
+    static void BuildSharedSnapshot()
+    {
+        if (s_otherFrame == Time.frameCount) return;
+        s_otherFrame = Time.frameCount;
+        s_otherCount = 0;
+        if (All.Count < 2) return;
+
+        int total = 0;
+        float cell = 0.5f;
+        for (int m = 0; m < All.Count; m++)
+        {
+            var mgr = All[m];
+            if (mgr == null) continue;
+            cell = math.max(cell, mgr.otherSchoolDist);
+            if (mgr._posA.IsCreated && !mgr._dirty) total += mgr._count;
+        }
+        if (total == 0) return;
+
+        if (!s_otherPos.IsCreated || s_otherPos.Length < total)
+        {
+            DisposeShared();
+            int cap = math.ceilpow2(total);
+            s_otherPos = new NativeArray<float3>(cap, Allocator.Persistent);
+            s_otherSchool = new NativeArray<int>(cap, Allocator.Persistent);
+            s_otherGrid = new NativeParallelMultiHashMap<int, int>(cap, Allocator.Persistent);
+        }
+
+        for (int m = 0; m < All.Count; m++)
+        {
+            var mgr = All[m];
+            if (mgr == null || !mgr._posA.IsCreated || mgr._dirty) continue;
+            NativeArray<float3>.Copy(mgr._posA, 0, s_otherPos, s_otherCount, mgr._count);
+            new FillJob { values = s_otherSchool, start = s_otherCount, count = mgr._count, value = m }.Run();
+            s_otherCount += mgr._count;
+        }
+        s_otherCell = cell;
+        new BuildGridJob { positions = s_otherPos, grid = s_otherGrid, cellSize = cell, count = s_otherCount }.Run();
+    }
+
+    static void DisposeShared()
+    {
+        if (s_otherPos.IsCreated) s_otherPos.Dispose();
+        if (s_otherSchool.IsCreated) s_otherSchool.Dispose();
+        if (s_otherGrid.IsCreated) s_otherGrid.Dispose();
+        s_otherCount = 0;
+        s_otherFrame = -1;
+    }
 
     static int3 CellOf(float3 p, float cellSize) => (int3)math.floor(p / cellSize);
     static int Hash(int3 c) { unchecked { return (c.x * 73856093) ^ (c.y * 19349663) ^ (c.z * 83492791); } }
@@ -466,6 +773,7 @@ public class BoidsManager : MonoBehaviour
         var fish = allFish[index];
         if (fish == null) return null;
         allFish[index] = null;
+        RestoreLod(index); // it's about to be eaten on screen: animate (its in-mouth clip) and cast shadows again
         _dirty = true; // rebuild native arrays / TransformAccessArray next sim step
         return fish;
     }
@@ -603,7 +911,11 @@ public class BoidsManager : MonoBehaviour
     // new heading every time it changes.
     Vector3 GoalAt(double time)
     {
-        double t = time / Mathf.Max(0.5f, goalInterval);
+        // The goal must not outrun the school: waypoints are anywhere in the area, so glide between them
+        // no faster than the fish cruise. A goal racing around at 20 m/s just swung the school in circles.
+        float cruise = Mathf.Max(0.5f, (minSpeed + maxSpeed) * 0.5f);
+        float leg = new Vector2(area.x, area.z).magnitude * 0.4f;   // typical waypoint-to-waypoint distance
+        double t = time / Mathf.Max(0.5f, goalInterval, leg / cruise);
         long step = (long)System.Math.Floor(t);
         float blend = (float)(t - step);
         blend = blend * blend * (3f - 2f * blend); // smoothstep
@@ -687,6 +999,33 @@ public class BoidsManager : MonoBehaviour
     }
 
     [BurstCompile]
+    struct CentroidJob : IJob
+    {
+        [ReadOnly] public NativeArray<float3> positions;
+        public int count;
+        [WriteOnly] public NativeArray<float3> center;
+
+        public void Execute()
+        {
+            float3 sum = 0;
+            for (int i = 0; i < count; i++) sum += positions[i];
+            center[0] = count > 0 ? sum / count : 0;
+        }
+    }
+
+    [BurstCompile]
+    struct FillJob : IJob
+    {
+        public NativeArray<int> values;
+        public int start, count, value;
+
+        public void Execute()
+        {
+            for (int i = 0; i < count; i++) values[start + i] = value;
+        }
+    }
+
+    [BurstCompile]
     struct BuildCastsJob : IJobParallelFor
     {
         [ReadOnly] public NativeArray<float3> positions;
@@ -731,6 +1070,17 @@ public class BoidsManager : MonoBehaviour
         public bool keepAboveFloor;
         public float floorCastHeight, floorMargin, floorClearance, floorWeight;
 
+        [ReadOnly] public NativeArray<float3> schoolCenter;   // [0], from CentroidJob
+        public float schoolRadius, schoolPull, viewCos;
+        public int maxNeighbours;
+
+        public bool otherOn;
+        public int mySchool;
+        [ReadOnly] public NativeArray<float3> otherPos;
+        [ReadOnly] public NativeArray<int> otherSchool;
+        [ReadOnly] public NativeParallelMultiHashMap<int, int> otherGrid;
+        public float otherCell, otherDist, otherWeight;
+
         [WriteOnly] public NativeArray<float3> outPositions;
         [WriteOnly] public NativeArray<float3> outHeadings;
         public NativeArray<float> speeds;   // read last frame's speed, write this frame's (same index only)
@@ -745,27 +1095,42 @@ public class BoidsManager : MonoBehaviour
             float3 align = 0, center = 0, separation = 0;
             int n = 0, na = 0, sc = 0;
 
+            // Neighbours: like a real schooling fish, it aligns with and closes on its K NEAREST visible
+            // schoolmates, not everyone in range. In a radius-based school the fish on the edge are pulled
+            // inward by half the radius and the school packs down; with the nearest few, the pull on an
+            // edge fish is about one spacing, and a dense patch pulls no harder than a sparse one.
             int3 cell = (int3)math.floor(pos / cellSize);
-            for (int x = -1; x <= 1; x++)
-                for (int y = -1; y <= 1; y++)
-                    for (int z = -1; z <= 1; z++)
-                    {
-                        int h = (((cell.x + x) * 73856093) ^ ((cell.y + y) * 19349663) ^ ((cell.z + z) * 83492791));
-                        if (grid.TryGetFirstValue(h, out int j, out var it))
-                        {
-                            do
-                            {
-                                if (j == index) continue;
-                                float3 off = positions[j] - pos;
-                                float d2 = math.lengthsq(off);
-                                if (d2 > nd2 || d2 < 1e-6f) continue;
-                                align += headings[j];
-                                center += positions[j];
-                                n++; na++;
-                                if (d2 < sep2) { float d = math.sqrt(d2); separation -= (off / d) * (1f - d / separationDist); sc++; }
-                            } while (grid.TryGetNextValue(out j, ref it));
-                        }
-                    }
+            var nearIdx = new FixedList128Bytes<int>();
+            var nearD2 = new FixedList128Bytes<float>();
+            int k = math.min(maxNeighbours, 30);
+            for (int ci = 0; ci < 27; ci++)
+            {
+                int3 c = cell + new int3(ci / 9 - 1, (ci / 3) % 3 - 1, ci % 3 - 1);
+                if (!grid.TryGetFirstValue(Hash(c), out int j, out var it)) continue;
+                do
+                {
+                    if (j == index) continue;
+                    float3 off = positions[j] - pos;
+                    float d2 = math.lengthsq(off);
+                    if (d2 > nd2 || d2 < 1e-6f) continue;
+                    // Separation works all round (a fish feels a close neighbour with its lateral line)...
+                    if (d2 < sep2) { float d = math.sqrt(d2); separation -= (off / d) * (1f - d / separationDist); sc++; }
+                    // ...alignment and cohesion only for the ones it can see (not in the blind spot behind).
+                    if (math.dot(off, fwd) < viewCos * math.sqrt(d2)) continue;
+                    if (nearD2.Length == k && d2 >= nearD2[k - 1]) continue;
+                    int at = nearD2.Length;
+                    while (at > 0 && nearD2[at - 1] > d2) at--;
+                    if (nearD2.Length == k) { nearD2.RemoveAt(k - 1); nearIdx.RemoveAt(k - 1); }
+                    nearD2.Insert(at, d2);
+                    nearIdx.Insert(at, j);
+                } while (grid.TryGetNextValue(out j, ref it));
+            }
+            for (int q = 0; q < nearIdx.Length; q++)
+            {
+                align += headings[nearIdx[q]];
+                center += positions[nearIdx[q]];
+            }
+            n = na = nearIdx.Length;
 
             for (int p = 0; p < influencerCount; p++)
             {
@@ -778,30 +1143,82 @@ public class BoidsManager : MonoBehaviour
                 }
             }
 
-            // Each rule is scaled by how much it's needed (not normalized to full strength), so the
-            // forces fade out smoothly instead of flipping on/off and making the fish twitch.
+            // Each rule is scaled by how much it's needed and capped at its weight (as in the classic
+            // composite: no single rule can exceed its share), so forces fade in and out smoothly.
             float3 steer = 0;
             float3 toLocalCenter = 0;
-            // Alignment: mean neighbour heading. It's shorter when the neighbours disagree, so a
+            // Separation keeps its closer-is-stronger falloff, capped so a crowd can't fling a fish.
+            float crowd = 0f;
+            if (sc > 0)
+            {
+                float sl = math.length(separation);
+                if (sl > 1f) separation /= sl;
+                crowd = math.min(sl, 1f);
+                steer += separation * separationWeight;
+            }
+            // Alignment: mean heading of the visible neighbours. It's shorter when they disagree, so a
             // confused group nudges gently instead of yanking.
             if (na > 0) steer += (align / na) * alignmentWeight;
             if (n > 0)
             {
                 // Cohesion grows with distance from the local centre, so it fades to zero as the
-                // fish reaches it rather than reversing at full strength as it passes through.
+                // fish reaches it rather than reversing at full strength as it passes through. It also
+                // yields to separation: a crowded fish isn't pulled further in. Without that, every fish
+                // on the edge of the school was pulled inward and the school packed down to ~0.6 m
+                // spacing, half the separation distance.
                 toLocalCenter = center / n - pos;
-                steer += toLocalCenter * (cohesionWeight / math.max(neighbourDist, 0.01f));
-            }
-            // Separation keeps its closer-is-stronger falloff, capped so a crowd can't fling a fish.
-            if (sc > 0)
-            {
-                float sl = math.length(separation);
-                if (sl > 1f) separation /= sl;
-                steer += separation * separationWeight;
+                steer += toLocalCenter * (cohesionWeight * (1f - crowd) / math.max(neighbourDist, 0.01f));
             }
 
-            float3 toGoal = goalPos - pos;
-            if (math.lengthsq(toGoal) > 1e-4f) steer += math.normalize(toGoal) * goalWeight;
+            // Other schools: keep clear of their fish, so two schools part around each other instead of
+            // swimming through one another (positions are last step's, which is plenty for this).
+            if (otherOn)
+            {
+                float od2 = otherDist * otherDist;
+                float3 away = 0;
+                int3 oc = (int3)math.floor(pos / otherCell);
+                for (int ci = 0; ci < 27; ci++)
+                {
+                    int3 c = oc + new int3(ci / 9 - 1, (ci / 3) % 3 - 1, ci % 3 - 1);
+                    if (!otherGrid.TryGetFirstValue(Hash(c), out int j, out var it)) continue;
+                    do
+                    {
+                        if (otherSchool[j] == mySchool) continue;
+                        float3 off = otherPos[j] - pos;
+                        float d2 = math.lengthsq(off);
+                        if (d2 > od2 || d2 < 1e-6f) continue;
+                        float d = math.sqrt(d2);
+                        away -= (off / d) * (1f - d / otherDist);
+                    } while (otherGrid.TryGetNextValue(out j, ref it));
+                }
+                float al = math.length(away);
+                if (al > 1e-5f)
+                {
+                    if (al > 1f) away /= al;
+                    steer += away * otherWeight;
+                    separation += away;   // counts as crowding for the speed brake below
+                }
+            }
+
+            // The roaming goal moves the school as a whole: every fish gets the SAME direction (school
+            // centre -> goal). Steering each fish at the goal point itself funnelled the whole school into
+            // that point and crushed it into a ball, well inside the separation distance.
+            float3 sCenter = schoolCenter[0];
+            // It fades out as the school arrives: right on top of the goal the direction flips about and
+            // tore the school into pieces heading different ways.
+            float3 migrate = goalPos - sCenter;
+            float gd = math.length(migrate);
+            if (gd > 1e-3f) steer += (migrate / gd) * (goalWeight * math.saturate(gd / (schoolRadius * 2f)));
+
+            // Stragglers: beyond the school's natural radius a fish is pulled back toward its centre
+            // (harder if it has lost sight of everyone). No pull inside the radius, so it never squeezes.
+            float3 toSchool = sCenter - pos;
+            float ds = math.length(toSchool);
+            if (ds > schoolRadius)
+            {
+                float lost = (ds - schoolRadius) / schoolRadius + (n == 0 ? 1f : 0f);
+                steer += (toSchool / ds) * (schoolPull * math.min(lost, 2f));
+            }
 
             // Flee predators (sharks): a strong radial escape that overrides schooling, so the
             // group parts/splits around the shark and rejoins (via cohesion) once it passes.
@@ -897,8 +1314,12 @@ public class BoidsManager : MonoBehaviour
             if (n > 0)
             {
                 float ahead = math.dot(toLocalCenter, newFwd); // >0 = center is in front (we're behind)
-                targetSpeed = math.clamp(baseSpeed + ahead * speedMatch, minSpeed, maxSpeed);
+                targetSpeed = baseSpeed + ahead * speedMatch;
             }
+            // Crowded ahead -> ease off (separation points backward), so a fish can hold its spacing by
+            // speed and not only by turning; with a fixed speed the back of the school ran into the front.
+            if (sc > 0 || otherOn) targetSpeed += math.dot(separation, newFwd) * (maxSpeed - minSpeed);
+            targetSpeed = math.clamp(targetSpeed, minSpeed, maxSpeed);
             if (fleeing) targetSpeed = fleeSpeed; // panic burst (faster than cruise)
 
             // Ease toward the target speed instead of jumping to it (neighbours entering/leaving

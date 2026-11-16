@@ -21,6 +21,9 @@ namespace ReefRun
     {
         public static LaunchOverlay Instance { get; private set; }
 
+        /// <summary>The overlay is covering the screen (launch countdown / loading): menus under it are off limits.</summary>
+        public static bool IsPlaying => Instance != null && Instance._playing;
+
         [Tooltip("Fallback only: the overlay ends when the NetworkManager's Game Scene Name loads (and the " +
                  "round starts). This is used just if no CustomNetworkManager is around.")]
         public string GameSceneName = "03 - Island";
@@ -114,7 +117,7 @@ namespace ReefRun
 
         void ShowDepth(Label label, VisualElement bar, float f)
         {
-            if (label != null) label.text = $"{Mathf.RoundToInt(f * SeabedDepth)} M";
+            if (label != null) label.text = $"{Mathf.RoundToInt(f * 100f)}%";   // how far along the load is
             if (bar != null) bar.style.width = Length.Percent(f * 100f);
         }
 

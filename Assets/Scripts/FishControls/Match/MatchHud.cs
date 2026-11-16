@@ -52,8 +52,9 @@ namespace FishGame
         static string s_event;
         static int s_eventFrame = -10;
 
-        /// <summary>Show an interaction prompt (e.g. "Press E to eat") this frame. "press X" / "[X]"
-        /// is drawn as a key tile.</summary>
+        /// <summary>Show an interaction prompt (e.g. "Press E to eat") this frame. "{action}" (a GameInput
+        /// action's Token) is drawn as that action's button - a key tile, or the controller's glyph; "press X" /
+        /// "[X]" as a literal key tile.</summary>
         public static void ShowPrompt(string text)
         {
             s_prompt = text;
@@ -115,10 +116,13 @@ namespace FishGame
         bool _lungeWasReady = true, _sonarWasReady = true, _barsMoved;
         static Texture2D s_vignetteTexture;
         string _shownPrompt;
+        int _shownPromptGlyphs = -1;
         int _shownSeconds = int.MinValue, _shownHealth = int.MinValue, _shownHunger = int.MinValue;
         bool _built;
 
-        static readonly Regex KeyPattern = new(@"(?i)(?:press\s+)?\[\s*(\w+)\s*\]|press\s+(\w+)");
+        // {action} is a GameInput action's button (a key tile on keyboard, the controller's own glyph on a pad);
+        // "press X" / "[X]" is a literal key.
+        static readonly Regex KeyPattern = new(@"(?i)\{(\w+)\}|(?:press\s+)?\[\s*(\w+)\s*\]|press\s+(\w+)");
         static readonly Color Orange = new(1f, 0.72f, 0.3f);
 
         void Awake()
@@ -183,6 +187,9 @@ namespace FishGame
             _lungeFill = Find<VisualElement>("lunge-fill");
             _sonarRow = Find<VisualElement>("sonar-row");
             _sonarFill = Find<VisualElement>("sonar-fill");
+            // The ability rows' key tiles follow the device: Q / R, or the controller's own buttons.
+            InputGlyphs.Bind(_lungeRow.Q<Label>(className: "key"), GameInput.Lunge);
+            InputGlyphs.Bind(_sonarRow.Q<Label>(className: "key"), GameInput.Sonar);
 
             _flash = Find<VisualElement>("flash");
             _flashText = Find<Label>("flash-text");
@@ -195,6 +202,9 @@ namespace FishGame
 
         // A piece of the layout by name. One that's been removed (or renamed) in the UI Builder just doesn't show:
         // a stand-in off screen takes its place, with a warning saying which.
+        /// <summary>The round has ended (the results are up): the in-round HUD, markers and labels all go.</summary>
+        public static bool RoundOver => RoundScreen.ShowingResults || (MatchManager.Instance != null && MatchManager.Instance.IsOver);
+
         T Find<T>(string name) where T : VisualElement, new()
         {
             var e = _root.Q<T>(name);
@@ -207,8 +217,10 @@ namespace FishGame
         {
             if (!_built) { Build(); if (!_built) return; }
 
-            // the pause menu takes the screen; the HUD steps aside
-            _root.style.display = PauseMenu.IsOpen ? DisplayStyle.None : DisplayStyle.Flex;
+            // the pause menu takes the screen, and once the round is over the results do: the HUD steps aside
+            bool gameOver = RoundOver;
+            _root.style.display = PauseMenu.IsOpen || gameOver ? DisplayStyle.None : DisplayStyle.Flex;
+            if (gameOver) return;
 
             UpdateClock();
             UpdateEvent();
@@ -411,7 +423,12 @@ namespace FishGame
             if (status && _statusText.text != s_status) _statusText.text = s_status;
 
             string text = prompt ? s_prompt : progress ? s_progressLabel : null;
-            if (text != _shownPrompt) { _shownPrompt = text; FillPrompt(text); }
+            if (text != _shownPrompt || (text != null && _shownPromptGlyphs != GameInput.GlyphVersion))
+            {
+                _shownPrompt = text;
+                _shownPromptGlyphs = GameInput.GlyphVersion;
+                FillPrompt(text);
+            }
             _promptPill.EnableInClassList("hidden", string.IsNullOrEmpty(text));
 
             _progress.EnableInClassList("hidden", !progress);
@@ -427,10 +444,20 @@ namespace FishGame
             foreach (Match m in KeyPattern.Matches(text))
             {
                 if (m.Index > at) Text(_promptPill, text.Substring(at, m.Index - at).Trim(), "prompt-text");
-                string key = m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value;
-                if (m.Value.IndexOf("press", System.StringComparison.OrdinalIgnoreCase) >= 0)
-                    Text(_promptPill, "Press", "prompt-text");
-                Text(_promptPill, key.ToUpperInvariant(), "key");
+                if (m.Groups[1].Success)
+                {
+                    // An action: its button on whatever the player is holding.
+                    var action = GameInput.Find(m.Groups[1].Value);
+                    if (action != null) _promptPill.Add(InputGlyphs.Tile(action));
+                    else Text(_promptPill, m.Groups[1].Value.ToUpperInvariant(), "key");
+                }
+                else
+                {
+                    string key = m.Groups[2].Success ? m.Groups[2].Value : m.Groups[3].Value;
+                    if (m.Value.IndexOf("press", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        Text(_promptPill, "Press", "prompt-text");
+                    Text(_promptPill, key.ToUpperInvariant(), "key");
+                }
                 at = m.Index + m.Length;
             }
             if (at < text.Length) Text(_promptPill, text.Substring(at).Trim(), "prompt-text");

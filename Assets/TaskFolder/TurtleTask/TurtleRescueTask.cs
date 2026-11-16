@@ -29,6 +29,14 @@ namespace FishGame
         [Tooltip("They start this high above the seabed (metres, min - max).")]
         [SerializeField] Vector2 swimHeight = new Vector2(3f, 8f);
 
+        [Header("Turtles circling the caught one (a landmark for the task)")]
+        [Tooltip("How many free turtles wheel around above each caught turtle until it's freed.")]
+        [Min(0)][SerializeField] int circlingTurtles = 2;
+        [Tooltip("Radius of the first one's circle (metres); each next one swims 2.5 m further out.")]
+        [SerializeField] float circleRadius = 6f;
+        [Tooltip("How far above the caught turtle the first one swims (metres); each next one 2.5 m higher.")]
+        [SerializeField] float circleHeight = 5f;
+
         [Header("Where (new spots every round)")]
         [Tooltip("Only over fairly flat ground (1 = level), so the ropes reach the seabed evenly.")]
         [Range(0f, 1f)][SerializeField] float minFlatness = 0.85f;
@@ -125,6 +133,7 @@ namespace FishGame
                 go.GetComponent<TangledTurtle>().ServerSetup(rng);
                 if (NetworkServer.active) NetworkServer.Spawn(go);
                 _spawned.Add(go);
+                SpawnCirclers(go.GetComponent<TangledTurtle>(), rng);
             }
             // The free ones: anywhere in open water over the reef, heading every which way.
             int free = 0;
@@ -147,6 +156,29 @@ namespace FishGame
             Debug.Log($"[TurtleTask] {placed.Count} tangled turtle(s) placed, {free} swimming free.");
             if (placed.Count < turtles)
                 Debug.LogWarning($"[TurtleTask] Only found room for {placed.Count} of {turtles} turtles.");
+        }
+
+        // Free turtles wheeling above a caught one, so the task can be found from a distance: each on its own
+        // ring and level, alternating which way round, spread evenly to start. They roam off once it's freed.
+        void SpawnCirclers(TangledTurtle trapped, System.Random rng)
+        {
+            if (swimmingTurtlePrefab == null || trapped == null) return;
+            Vector3 centre = trapped.transform.position;
+            float phase = (float)rng.NextDouble() * 360f;
+            for (int i = 0; i < circlingTurtles; i++)
+            {
+                float radius = circleRadius + i * 2.5f;
+                float height = circleHeight + i * 2.5f;
+                bool clockwise = i % 2 == 0;
+                Vector3 outward = Quaternion.Euler(0f, phase + i * 360f / Mathf.Max(1, circlingTurtles), 0f) * Vector3.forward;
+                Vector3 p = centre + outward * radius;
+                p.y = Mathf.Min(centre.y + height, WaterFx.SurfaceY - 4f);
+                Vector3 along = Vector3.Cross(Vector3.up, outward) * (clockwise ? 1f : -1f);   // already heading round the ring
+                var go = Instantiate(swimmingTurtlePrefab, p, Quaternion.LookRotation(along, Vector3.up));
+                if (go.TryGetComponent(out TurtleSwimmer swimmer)) swimmer.CircleAbove(trapped, radius, height, clockwise);
+                if (NetworkServer.active) NetworkServer.Spawn(go);
+                _spawned.Add(go);
+            }
         }
 
         // The scenery's meshes (coral, sponges, rocks - they've no colliders) bucketed by where they are, so a

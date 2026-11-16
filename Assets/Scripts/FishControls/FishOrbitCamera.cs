@@ -102,7 +102,6 @@ namespace FishGame
         /// <summary>True while the player has chosen to look out of the creature's eyes.</summary>
         public static bool FirstPerson => s_firstPerson;
 
-        InputAction _viewAction;
         float _fpBlend;            // 0 = third person, 1 = first person (eased between)
         Vector3 _tpPos;            // where the third-person rig is, kept up to date even in first person
         bool _tpPosValid;
@@ -116,8 +115,6 @@ namespace FishGame
         readonly RaycastHit[] _camHits = new RaycastHit[8];
         float _currentDistance;
 
-        InputAction _lookAction;
-        InputAction _freeLookAction;
         InputAction _turnAction; // keyboard steering: x = yaw (A/D), y = pitch (Up/Down arrows)
         float _yaw;        // steering yaw the fish follows
         float _pitch;      // steering pitch the fish follows
@@ -146,24 +143,13 @@ namespace FishGame
             if (target == null && transform.parent != null)
                 target = transform.parent;
 
-            // Self-contained bindings so the camera works with zero Inspector wiring.
-            _lookAction = new InputAction("Look", InputActionType.Value, expectedControlType: "Vector2");
-            _lookAction.AddBinding("<Mouse>/delta");
-            _lookAction.AddBinding("<Gamepad>/rightStick");
-
-            _freeLookAction = new InputAction("FreeLook", InputActionType.Button);
-            _freeLookAction.AddBinding("<Mouse>/rightButton");
-            _freeLookAction.AddBinding("<Gamepad>/leftShoulder");
-
+            // Look, free-look and the controller's first-person button are GameInput's; this is the keyboard-only steering.
             _turnAction = new InputAction("KeyboardTurn", InputActionType.Value, expectedControlType: "Vector2");
             _turnAction.AddCompositeBinding("2DVector")
                 .With("Left", "<Keyboard>/a")
                 .With("Right", "<Keyboard>/d")
                 .With("Up", "<Keyboard>/upArrow")
                 .With("Down", "<Keyboard>/downArrow");
-
-            _viewAction = new InputAction("FirstPerson", InputActionType.Button);
-            _viewAction.AddBinding("<Gamepad>/rightStickPress");
 
             if (!s_prefLoaded)
             {
@@ -200,18 +186,12 @@ namespace FishGame
         }
         void OnEnable()
         {
-            _lookAction.Enable();
-            _freeLookAction.Enable();
             _turnAction.Enable();
-            _viewAction.Enable();
         }
 
         void OnDisable()
         {
-            _lookAction.Disable();
-            _freeLookAction.Disable();
             _turnAction.Disable();
-            _viewAction.Disable();
             HideBody(null); // never leave a body invisible
         }
 
@@ -255,7 +235,7 @@ namespace FishGame
 
             // First / third person.
             if (!MouseTaken &&
-                ((kb != null && kb[firstPersonKey].wasPressedThisFrame) || _viewAction.WasPressedThisFrame()))
+                ((kb != null && kb[firstPersonKey].wasPressedThisFrame) || GameInput.FirstPerson.WasPressedThisFrame()))
             {
                 s_firstPerson = !s_firstPerson;
                 PlayerPrefs.SetInt(FirstPersonPref, s_firstPerson ? 1 : 0);
@@ -264,24 +244,14 @@ namespace FishGame
             // Mouse delta is already per-frame movement, so we DON'T multiply by deltaTime.
             // Gamepad is a sustained axis, so that one is time-scaled.
             // The Escape menu frees the mouse for its buttons; it mustn't also swing the camera.
-            Vector2 look = MouseTaken ? Vector2.zero : _lookAction.ReadValue<Vector2>();
-            bool fromGamepad = Gamepad.current != null && _lookAction.activeControl?.device == Gamepad.current;
-
-            float dx, dy;
-            if (fromGamepad)
-            {
-                dx = look.x * gamepadSensitivity * Time.deltaTime;
-                dy = look.y * gamepadSensitivity * Time.deltaTime;
-            }
-            else
-            {
-                dx = look.x * mouseSensitivity;
-                dy = look.y * mouseSensitivity;
-            }
+            Vector2 mouse = MouseTaken ? Vector2.zero : GameInput.Look.ReadPointer();
+            Vector2 stick = MouseTaken ? Vector2.zero : GameInput.Look.ReadPad();
+            float dx = mouse.x * mouseSensitivity + stick.x * gamepadSensitivity * Time.deltaTime;
+            float dy = mouse.y * mouseSensitivity + stick.y * gamepadSensitivity * Time.deltaTime;
 
             float pitchDelta = invertY ? dy : -dy;
 
-            if (_freeLookAction.IsPressed())
+            if (GameInput.FreeLook.IsPressed())
             {
                 // Free-look: orbit the camera only. The steering angles (and thus the fish's
                 // aim) stay frozen, so the fish keeps swimming its current heading.
@@ -354,6 +324,7 @@ namespace FishGame
             Vector3 desiredPos = pivot + backDir * _currentDistance;
             if (!_tpPosValid) { _tpPos = transform.position; _tpPosValid = true; }
             _tpPos = Vector3.SmoothDamp(_tpPos, desiredPos, ref _posVelocity, followSmoothTime);
+            _tpPos = KeepInsideWalls(_tpPos);
 
             // Look at the fish. Guard against a near-zero direction when zoomed in tight, which
             // would make the rotation jitter — fall back to the orbit direction instead.
@@ -374,13 +345,32 @@ namespace FishGame
             else
             {
                 float e = _fpBlend * _fpBlend * (3f - 2f * _fpBlend);
-                transform.SetPositionAndRotation(Vector3.Lerp(_tpPos, SafeEyePoint(), e), Quaternion.Slerp(tpRot, camRot, e));
+                transform.SetPositionAndRotation(KeepInsideWalls(Vector3.Lerp(_tpPos, SafeEyePoint(), e)),
+                                                 Quaternion.Slerp(tpRot, camRot, e));
             }
 
             // Our own body would fill the view from inside it: hide it (shadow kept) once we're mostly in.
             bool inside = firstPerson && _fpBlend > 0.5f;
             HideBody(inside ? target : null);
             SetNearClip(inside);
+        }
+
+        // The arena glass is thin, and the spring arm only clamps where the camera is heading, not where
+        // the smoothed follow has it right now; turning along a wall could leave the lagging camera, or the
+        // corners of its near clip plane, on the far side. Pin it to its fish's side with room for the
+        // whole near plane.
+        Vector3 KeepInsideWalls(Vector3 pos)
+        {
+            var walls = ArenaWalls.Instance;
+            if (walls == null || target == null) return pos;
+            float margin = collisionRadius;
+            if (_camera != null || TryGetComponent(out _camera))
+            {
+                float near = _camera.nearClipPlane;
+                float h = near * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+                margin = Mathf.Max(margin, Mathf.Sqrt(near * near + h * h * (1f + _camera.aspect * _camera.aspect)));
+            }
+            return walls.KeepOnSide(target.position, pos, margin + 0.05f);
         }
 
         // ---------------------------------------------------------------- first person

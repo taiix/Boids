@@ -1,163 +1,161 @@
 /* ============================================================
    REEF RUN — in-round screen (RoundScreen.cs)
-   Role intro / wall-lifted banner, exit marker, spectate bar and
-   the end-of-round results. Same palette as the lobby
-   (ReefRunLobby.uss); variables don't cross UIDocuments, so the
+   Role intro / wall-lifted banner, exit marker, teammate and task
+   markers, break-free, spectate bar and the end-of-round results.
+   Same look as the menus and HUD: opaque blocks whose edges lean
+   like the italic type (ReefSlab), a loud block in the role's colour
+   for the headline, navy for everything else. The results use the
+   main menu's skeleton. Variables don't cross UIDocuments, so the
    ones used here are redeclared on the root.
+   Type sizes: 18 / 22 / 30 / 44 / 56 / 84 / 190.
    ============================================================ */
 
-.rs-root{
-    --text:#eaf6f4; --dim:#88b4bd; --aqua:#3fe0c5; --shark:#ff5d6c; --amber:#ffc857; --tag:#c3a6ff;
-    --glass:rgba(8,40,52,0.62); --border:rgba(99,200,210,0.22);
-    position:absolute; left:0; top:0; right:0; bottom:0;
+.rs-root {
+    --navy: #051729; --teal: #179499; --teal-l: #2cc3c4; --orange: #ffb84d; --shark: #ff6b6b; --amber: #e6b333;
+    --text: #eef6f7; --dim: #8fb0bb;
+    position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+    color: var(--text); font-size: 18px;
+    -unity-font-definition: url("../UI Toolkit/Fonts/Barlow-Regular.ttf");
 }
+/* this reset outranks a single class, so Label rules that set a margin or padding carry the .rs-root prefix */
+.rs-root Label { padding: 0; margin: 0; }
 
-/* ---------- banner ---------- */
-.rs-banner{ position:absolute; left:0; right:0; top:24%; align-items:center; opacity:0; }
-.rs-eyebrow{
-    font-size:15px; letter-spacing:7px; color:var(--aqua); -unity-text-align:middle-center;
-    text-shadow:0 1px 4px rgba(0,0,0,0.9); margin-bottom:6px;
-}
-.rs-title{
-    font-size:60px; -unity-font-style:bold; letter-spacing:4px; color:var(--text);
-    -unity-text-align:middle-center; text-shadow:0 3px 10px rgba(0,0,0,0.85);
-}
-.rs-sub{
-    font-size:21px; color:var(--text); margin-top:6px; -unity-text-align:middle-center;
-    text-shadow:0 2px 6px rgba(0,0,0,0.9);
-}
-.rs-banner.fish .rs-eyebrow{ color:var(--aqua); }
-.rs-banner.shark .rs-eyebrow{ color:var(--shark); }
-.rs-banner.alert .rs-eyebrow{ color:var(--amber); }
-.rs-banner.shark .rs-title{ color:#ffd9dc; }
+/* ---------- ReefSlab blocks (ReefSlab.cs). Set these on the slab's own classes; keep this rule first ---------- */
+.slab { --slab-color: #051729; --slab-lean: 0.21; --slab-left: 1; --slab-right: 1; --slab-notch: 0; }
+
+/* ---------- banner: the headline on a block in the role's colour, the goal on navy under it ---------- */
+.rs-banner { position: absolute; left: 0; right: 0; top: 17%; align-items: center; opacity: 0; }
+.rs-banner-loud { --slab-color: #2cc3c4; padding: 0 44px; }
+.rs-banner.fish .rs-banner-loud { --slab-color: #2cc3c4; }
+.rs-banner.shark .rs-banner-loud { --slab-color: #ff6b6b; }
+.rs-banner.alert .rs-banner-loud { --slab-color: #ffb84d; }
+.rs-eyebrow { font-size: 84px; letter-spacing: 1px; color: var(--navy); -unity-text-align: middle-center;
+              -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-ExtraBoldItalic.ttf"); }
+.rs-banner-body { padding: 10px 40px 12px 40px; align-items: center; margin-top: 4px; }
+.rs-title { font-size: 30px; letter-spacing: 2px; color: var(--text); -unity-text-align: middle-center;
+            -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-ExtraBold.ttf"); }
+.rs-sub { font-size: 18px; color: var(--dim); -unity-text-align: middle-center; }
 
 /* ---------- exit marker ---------- */
-.rs-marker{ position:absolute; align-items:center; translate:-50% -50%; }
-.rs-diamond{
-    width:18px; height:18px; rotate:45deg;
-    border-width:2px; border-color:var(--amber); background-color:rgba(255,200,87,0.28);
-}
-.rs-marker-label{
-    margin-top:9px; font-size:14px; letter-spacing:3px; color:var(--amber); -unity-font-style:bold;
-    text-shadow:0 1px 4px rgba(0,0,0,0.95);
-}
+.rs-marker { position: absolute; align-items: center; translate: -50% -50%; }
+.rs-diamond { width: 16px; height: 16px; rotate: 45deg; background-color: var(--orange); margin-bottom: 8px; }
+.rs-marker-slab { --slab-color: #ffb84d; padding: 1px 14px; }
+.rs-marker-label { font-size: 18px; letter-spacing: 2px; color: var(--navy);
+                   -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-Bold.ttf"); }
 
 /* ---------- fish teammates ---------- */
-.rs-ally-layer{ position:absolute; left:0; top:0; right:0; bottom:0; }
-.rs-ally{ position:absolute; align-items:center; translate:-50% -100%; }
-.rs-ally-name{
-    font-size:14px; -unity-font-style:bold; color:var(--aqua); letter-spacing:1px;
-    text-shadow:0 1px 4px rgba(0,0,0,0.95); -unity-text-align:middle-center;
-}
-.rs-ally-distance{ font-size:12px; color:var(--text); text-shadow:0 1px 4px rgba(0,0,0,0.95); }
-.rs-ally-pip{
-    width:10px; height:10px; rotate:45deg; margin-bottom:4px;
-    border-width:2px; border-color:var(--aqua); background-color:rgba(63,224,197,0.35);
-}
-.rs-ally.edge{ translate:-50% -50%; }
-.rs-ally.edge .rs-ally-pip{ width:13px; height:13px; }
-.rs-ally.caught .rs-ally-name{ color:var(--shark); }
-.rs-ally.caught .rs-ally-pip{ border-color:var(--shark); background-color:rgba(255,93,108,0.35); }
+.rs-ally-layer { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.rs-ally { position: absolute; align-items: center; translate: -50% -100%; }
+.rs-ally-pip { width: 12px; height: 12px; rotate: 45deg; background-color: var(--teal-l); margin-bottom: 7px; }
+.rs-ally-slab { padding: 1px 14px; flex-direction: row; align-items: center; }
+.rs-ally-name { font-size: 18px; letter-spacing: 1px; color: var(--teal-l);
+                -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-Bold.ttf"); }
+.rs-root .rs-ally-distance { font-size: 18px; color: var(--text); margin-left: 10px;
+                             -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-Bold.ttf"); }
+.rs-ally.edge { translate: -50% -50%; }
+.rs-ally.edge .rs-ally-pip { width: 15px; height: 15px; }
+.rs-ally.caught .rs-ally-pip { background-color: var(--shark); }
+.rs-ally.caught .rs-ally-slab { --slab-color: #ff6b6b; }
+.rs-ally.caught .rs-ally-name { color: var(--navy); }
+.rs-root .rs-ally.caught .rs-ally-distance { color: var(--navy); }
 
 /* ---------- tasks this fish tagged ---------- */
-.rs-tag-layer{ position:absolute; left:0; top:0; right:0; bottom:0; }
-.rs-tag{ position:absolute; align-items:center; translate:-50% -50%; }
-.rs-tag-diamond{
-    width:16px; height:16px; rotate:45deg;
-    border-width:2px; border-color:var(--tag); background-color:rgba(195,166,255,0.3);
-}
-.rs-tag-label{
-    margin-top:8px; font-size:13px; letter-spacing:2px; color:var(--tag); -unity-font-style:bold;
-    text-shadow:0 1px 4px rgba(0,0,0,0.95);
-}
-.rs-tag.edge .rs-tag-diamond{ width:19px; height:19px; }
+.rs-tag-layer { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.rs-tag { position: absolute; align-items: center; translate: -50% -50%; }
+.rs-tag-diamond { width: 14px; height: 14px; rotate: 45deg; background-color: var(--text); margin-bottom: 8px; }
+.rs-tag-slab { --slab-color: #eef6f7; padding: 1px 14px; }
+.rs-tag-label { font-size: 18px; letter-spacing: 2px; color: var(--navy);
+                -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-Bold.ttf"); }
+.rs-tag.edge .rs-tag-diamond { width: 17px; height: 17px; }
 
 /* ---------- spectating ---------- */
-.rs-spectate{ position:absolute; left:0; right:0; bottom:6%; align-items:center; }
-.rs-spectate-card{
-    align-items:center; padding:10px 26px 12px 26px; border-radius:8px;
-    background-color:var(--glass); border-width:1px; border-color:var(--border);
-}
-.rs-spec-eyebrow{ font-size:11px; letter-spacing:5px; color:var(--dim); }
-.rs-spec-name{ font-size:24px; -unity-font-style:bold; color:var(--text); margin-top:2px; }
-.rs-spec-hint{ font-size:12px; color:var(--dim); margin-top:4px; letter-spacing:1px; }
+.rs-spectate { position: absolute; left: 0; right: 0; bottom: 5%; align-items: center; }
+.rs-spectate-card { padding: 8px 44px 10px 44px; align-items: center; }
+.rs-spec-eyebrow { font-size: 18px; letter-spacing: 3px; color: var(--dim);
+                   -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-Bold.ttf"); }
+.rs-spec-name { font-size: 30px; color: var(--text); -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-ExtraBold.ttf"); }
+.rs-spec-hint { font-size: 18px; color: var(--dim); }
 
 /* ---------- caught: break free ---------- */
-.rs-struggle{ position:absolute; left:0; right:0; top:64%; align-items:center; }
-.rs-struggle-title{
-    font-size:46px; -unity-font-style:bold; letter-spacing:5px; color:var(--shark);
-    -unity-text-align:middle-center; text-shadow:0 3px 10px rgba(0,0,0,0.9);
-}
-.rs-struggle-key{
-    font-size:20px; letter-spacing:4px; -unity-font-style:bold; color:var(--text); margin-top:2px;
-    text-shadow:0 2px 6px rgba(0,0,0,0.9);
-}
-.rs-struggle-bar{
-    width:540px; height:24px; margin-top:12px; border-radius:12px; overflow:hidden;
-    background-color:rgba(3,16,24,0.75); border-width:2px; border-color:rgba(255,93,108,0.7);
-    transition:scale 0.06s ease-out;
-}
-.rs-struggle.pressed .rs-struggle-bar{ scale:1.04 1.2; border-color:var(--aqua); }
-.rs-struggle-fill{ height:100%; width:0%; background-color:var(--aqua); }
-.rs-struggle-time{ width:540px; height:5px; margin-top:6px; border-radius:3px; background-color:rgba(255,93,108,0.25); }
-.rs-struggle-time-fill{ height:100%; width:100%; border-radius:3px; background-color:var(--shark); }
-.rs-struggle-sub{ font-size:15px; color:var(--text); margin-top:8px; text-shadow:0 1px 4px rgba(0,0,0,0.9); }
+.rs-struggle { position: absolute; left: 0; right: 0; top: 55%; align-items: center; }
+.rs-struggle-loud { --slab-color: #ff6b6b; padding: 0 36px; }
+.rs-struggle-title { font-size: 56px; letter-spacing: 1px; color: var(--navy);
+                     -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-ExtraBoldItalic.ttf"); }
+.rs-struggle-keys { flex-direction: row; align-items: center; margin-top: 10px; }
+.rs-root .rs-struggle-key { font-size: 30px; letter-spacing: 2px; color: var(--text); margin-right: 12px; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+                            -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-ExtraBold.ttf"); }
+/* key tile, like the HUD's */
+.rs-root .rs-key { min-width: 32px; height: 32px; padding: 0 10px; border-radius: 7px; background-color: var(--teal); color: var(--orange);
+                   font-size: 18px; -unity-text-align: middle-center;
+                   -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-ExtraBold.ttf"); }
+.rs-struggle-bar { width: 540px; height: 30px; margin-top: 12px; border-width: 4px; border-color: #051729; background-color: #051729;
+                   transition: scale 0.06s ease-out; }
+.rs-struggle.pressed .rs-struggle-bar { scale: 1.04 1.2; }
+.rs-struggle-fill { height: 22px; width: 0%; background-color: var(--teal-l); }
+.rs-struggle-time { width: 540px; height: 6px; margin-top: 6px; background-color: #051729; }
+.rs-struggle-time-fill { height: 6px; width: 100%; background-color: var(--shark); }
+.rs-struggle-note { padding: 4px 26px; margin-top: 10px; }
+.rs-struggle-sub { font-size: 18px; color: var(--text); }
 
 /* ---------- results ---------- */
-.rs-results{
-    position:absolute; left:0; top:0; right:0; bottom:0;
-    align-items:center; justify-content:center;
-    background-color:rgba(3,16,24,0.84);
-    opacity:0; transition:opacity 0.6s ease-out;
-}
-.rs-results.shown{ opacity:1; }
+.rs-results { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(3, 16, 24, 0.84);
+              opacity: 0; transition: opacity 0.6s ease-out; }
+.rs-results.shown { opacity: 1; }
 
-.rs-card{
-    width:960px; max-width:94%; align-items:center;
-    padding:34px 40px 30px 40px; border-radius:10px;
-    background-color:var(--glass); border-width:1px; border-color:var(--border);
-}
-.rs-res-eyebrow{ font-size:13px; letter-spacing:7px; color:var(--dim); }
-.rs-res-title{ font-size:66px; -unity-font-style:bold; letter-spacing:5px; color:var(--text); margin-top:4px; }
-.rs-res-title.fish{ color:var(--aqua); }
-.rs-res-title.shark{ color:var(--shark); }
-.rs-res-you{
-    font-size:14px; letter-spacing:5px; -unity-font-style:bold; margin-top:6px;
-    padding:4px 14px; border-radius:14px; border-width:1px;
-}
-.rs-res-you.won{ color:var(--aqua); border-color:var(--aqua); }
-.rs-res-you.lost{ color:var(--shark); border-color:var(--shark); }
-.rs-res-sub{ font-size:19px; color:var(--text); margin-top:14px; }
+/* which side won (top left), whether you did, and the tally */
+.rs-top { position: absolute; left: 72px; top: 36px; align-items: flex-start; }
+.rs-res-title { font-size: 190px; letter-spacing: -2px; color: var(--text);
+                -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-ExtraBoldItalic.ttf"); }
+.rs-res-title.fish { color: var(--teal-l); }
+.rs-res-title.shark { color: var(--shark); }
+.rs-res-line { flex-direction: row; align-items: center; margin-top: -26px; }
+.rs-res-you-slab { padding: 0 26px; }
+.rs-res-you-slab.won { --slab-color: #ffb84d; }
+.rs-res-you-slab.lost { --slab-color: #ff6b6b; }
+.rs-res-you { font-size: 44px; letter-spacing: 1px; color: var(--navy);
+              -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-ExtraBold.ttf"); }
+.rs-root .rs-res-sub { font-size: 30px; letter-spacing: 1px; color: var(--text); margin-left: 22px;
+                       -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-Bold.ttf"); }
 
-.rs-columns{ flex-direction:row; align-self:stretch; margin-top:24px; }
-.rs-col{
-    flex-grow:1; flex-basis:0; min-height:150px; margin:0 8px; padding:14px 18px;
-    border-radius:6px; background-color:rgba(3,16,24,0.45);
-    border-width:1px; border-color:rgba(99,200,210,0.14);
-}
-.rs-col-head{ font-size:12px; letter-spacing:4px; -unity-font-style:bold; margin-bottom:10px; color:var(--dim); }
-.rs-col.escaped .rs-col-head{ color:var(--aqua); }
-.rs-col.eaten .rs-col-head{ color:var(--shark); }
-.rs-col.died .rs-col-head{ color:var(--amber); }
-.rs-row{ flex-direction:row; align-items:center; margin:3px 0; }
-.rs-dot{ width:8px; height:8px; border-radius:4px; margin-right:10px; background-color:var(--dim); }
-.rs-col.escaped .rs-dot{ background-color:var(--aqua); }
-.rs-col.eaten .rs-dot{ background-color:var(--shark); }
-.rs-col.died .rs-dot{ background-color:var(--amber); }
-.rs-row-name{ font-size:18px; color:var(--text); }
-.rs-empty{ font-size:15px; color:var(--dim); -unity-font-style:italic; }
+/* who ended up where: plain lists under a heading, on one navy block out of the left edge */
+.rs-board { --slab-left: 0; position: absolute; left: -40px; top: 392px; padding: 22px 110px 24px 112px; }
+.rs-columns { flex-direction: row; }
+.rs-col { min-width: 250px; margin-right: 40px; }
+.rs-root .rs-col-head { font-size: 22px; letter-spacing: 2px; margin-bottom: 6px; color: var(--dim);
+                        -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-Bold.ttf"); }
+.rs-root .rs-col.escaped .rs-col-head { color: var(--teal-l); }
+.rs-root .rs-col.eaten .rs-col-head { color: var(--shark); }
+.rs-root .rs-col.died .rs-col-head { color: var(--amber); }
+.rs-row { flex-direction: row; align-items: center; }
+.rs-dot { display: none; }
+.rs-row-name { font-size: 30px; color: var(--text); -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-ExtraBold.ttf"); }
+.rs-empty { font-size: 18px; color: var(--dim); }
+.rs-root .rs-shark-line { margin-top: 18px; font-size: 22px; letter-spacing: 2px; color: var(--dim);
+                          -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-Bold.ttf"); }
+.rs-root .rs-left-line { margin-top: 4px; font-size: 18px; color: var(--dim); }
 
-.rs-shark-line{ margin-top:18px; font-size:15px; letter-spacing:2px; color:var(--dim); }
-.rs-left-line{ margin-top:6px; font-size:13px; color:var(--dim); }
+/* what next (bottom left): the main menu's nav. It starts past the screen edge so the hover lunge never opens a gap */
+.rs-nav { position: absolute; left: -40px; bottom: 52px; align-items: flex-start; }
+.rs-root .rs-nav .rs-btn-primary, .rs-root .rs-nav .rs-btn-primary:hover, .rs-root .rs-nav .rs-btn-primary:active, .rs-root .rs-nav .rs-btn-primary:focus {
+    background-color: rgba(0, 0, 0, 0); border-width: 0; border-radius: 0; margin: 0; padding: 0;
+    flex-direction: row; transition: translate 0.14s ease-out-cubic; }
+.rs-root .rs-nav .rs-btn-primary:hover, .rs-root .rs-nav .rs-btn-primary:focus { translate: 14px 0; }
+.rs-root .rs-nav .rs-btn-primary:active { translate: 6px 0; }
+.rs-primary-slab { --slab-color: #ffb84d; --slab-left: 0; --slab-notch: 30; padding: 6px 86px 6px 112px; }
+.rs-btn-primary:hover .rs-primary-slab, .rs-btn-primary:focus .rs-primary-slab { --slab-color: #ffd08a; }
+.rs-primary-label { font-size: 84px; letter-spacing: 1px; color: var(--navy);
+                    -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-ExtraBold.ttf"); }
+.rs-buttons { --slab-left: 0; flex-direction: row; align-items: center; height: 66px; margin-top: 6px; padding: 0 44px 0 94px; }
+.rs-root .rs-nav .rs-btn, .rs-root .rs-nav .rs-btn:hover, .rs-root .rs-nav .rs-btn:active, .rs-root .rs-nav .rs-btn:focus {
+    background-color: rgba(0, 0, 0, 0); border-width: 0; border-radius: 0; margin: 0; padding: 0 18px; height: 66px;
+    color: var(--text); font-size: 30px; letter-spacing: 2px;
+    -unity-font-definition: url("../UI Toolkit/Fonts/BarlowCondensed-ExtraBoldItalic.ttf"); transition: color 0.1s ease; }
+.rs-root .rs-nav .rs-buttons .rs-btn:hover, .rs-root .rs-nav .rs-buttons .rs-btn:focus { color: var(--orange); }
+.rs-root .rs-nav .rs-buttons .rs-btn:active { color: #ffd08a; }
+.rs-root .rs-wait { font-size: 18px; color: var(--dim); margin: 12px 0 0 112px; }
 
-.rs-buttons{ flex-direction:row; justify-content:center; margin-top:26px; }
-.rs-btn{
-    font-size:15px; letter-spacing:3px; -unity-font-style:bold;
-    padding:12px 26px; margin:0 8px; border-radius:6px;
-    color:var(--text); background-color:rgba(8,40,52,0.7);
-    border-width:1px; border-color:rgba(99,200,210,0.35);
-}
-.rs-btn:hover{ border-color:var(--aqua); color:var(--aqua); }
-.rs-btn.primary{ color:rgb(3,24,30); background-color:var(--aqua); border-color:var(--aqua); }
-.rs-btn.primary:hover{ color:rgb(3,24,30); background-color:rgb(120,240,218); }
-.rs-wait{ margin-top:14px; font-size:13px; color:var(--dim); }
+/* ---------- buttons from the approved UI kit: selected = lighter with a thin frame, pressed = darker and a touch smaller ---------- */
+.rs-btn-primary:hover .rs-primary-slab, .rs-btn-primary:focus .rs-primary-slab, .rs-btn-primary.pad-focus .rs-primary-slab { --slab-outline: #ffb84d; --slab-outline-width: 4; }
+.rs-root .rs-nav .rs-btn-primary:active { scale: 0.97 0.97; }
+.rs-btn-primary:active .rs-primary-slab { --slab-color: #d9952f; --slab-outline: rgba(0, 0, 0, 0); }
+.rs-root .rs-nav .rs-buttons .rs-btn.pad-focus { color: var(--orange); }

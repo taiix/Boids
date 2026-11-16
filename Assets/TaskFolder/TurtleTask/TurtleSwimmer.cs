@@ -32,7 +32,38 @@ namespace FishGame
         Vector3 _target;
         float _speed, _yaw, _pitch, _roll, _nextPick, _pace;
 
+        // Circling a tangled turtle (so the fish can spot the task from afar) until it's freed.
+        TangledTurtle _circleOf;
+        float _circleRadius, _circleHeight, _circleSide = 1f;
+
         public bool Swimming => _swimming;
+
+        /// <summary>Server / offline, right after it's made: wheel around above <paramref name="trapped"/> -
+        /// <paramref name="radius"/> metres out, <paramref name="height"/> above it - instead of roaming. Once
+        /// that turtle is freed it wanders off like the rest.</summary>
+        public void CircleAbove(TangledTurtle trapped, float radius, float height, bool clockwise)
+        {
+            _circleOf = trapped;
+            _circleRadius = radius;
+            _circleHeight = height;
+            _circleSide = clockwise ? 1f : -1f;
+        }
+
+        bool Circling => _circleOf != null && !_circleOf.Freed;
+
+        // A point a little further round the circle from where it is now: chasing it draws the circle.
+        Vector3 CirclePoint(Vector3 pos)
+        {
+            Vector3 centre = _circleOf.transform.position;
+            Vector3 out_ = pos - centre;
+            out_.y = 0f;
+            if (out_.sqrMagnitude < 0.01f) out_ = Vector3.forward;
+            // Chasing a point 40 degrees ahead cuts the corner, so aim that much wider to end up on the ring.
+            const float lead = 40f;
+            Vector3 next = Quaternion.Euler(0f, lead * _circleSide, 0f) * out_.normalized * (_circleRadius / Mathf.Cos(lead * Mathf.Deg2Rad));
+            float y = Mathf.Min(centre.y + _circleHeight, WaterFx.SurfaceY - underSurface - 0.5f);
+            return new Vector3(centre.x + next.x, y, centre.z + next.z);
+        }
 
         bool Authority => NetworkServer.active ? _id != null && _id.isServer : !NetworkClient.active;
 
@@ -81,12 +112,14 @@ namespace FishGame
             if (dt <= 0f) return;
             Vector3 pos = transform.position;
             Vector3 heading = Quaternion.Euler(_pitch, _yaw, 0f) * Vector3.forward;
-            if ((pos - _target).sqrMagnitude < 16f || Time.time > _nextPick || !InArea(_target)) PickTarget(pos, heading);
+            bool circling = Circling;
+            if (circling) { _target = CirclePoint(pos); _nextPick = Time.time + 5f; }
+            else if ((pos - _target).sqrMagnitude < 16f || Time.time > _nextPick || !InArea(_target)) PickTarget(pos, heading);
 
             Vector3 want = (_target - pos).normalized;
 
             // Something solid straight ahead (a wall, a big rock): turn off somewhere else.
-            if (Physics.SphereCast(pos, 0.4f, heading, out var hit, 6f, ~0, QueryTriggerInteraction.Ignore)
+            if (!circling && Physics.SphereCast(pos, 0.4f, heading, out var hit, 6f, ~0, QueryTriggerInteraction.Ignore)
                 && !hit.collider.transform.IsChildOf(transform) && hit.collider.GetComponentInParent<FishPlayer>() == null
                 && hit.collider.gameObject.layer != 3)   // the seabed is handled below, by climbing
                 PickTarget(pos, Vector3.Reflect(heading, hit.normal));

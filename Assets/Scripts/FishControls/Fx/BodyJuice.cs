@@ -7,7 +7,7 @@ namespace FishGame
     ///   * <b>Squash and stretch</b>: the model stretches nose-to-tail as it surges forward and squashes as it pulls
     ///     up hard, on a springy wobble, keeping its volume. Read off how the body actually moves, so every machine
     ///     sees it on everyone; <see cref="Punch"/> adds a kick (the shark's jaws clamping, a lunge's coil).
-    ///   * <b>Flips</b> (<see cref="Flip"/>): a quick roll - a fish's happy flip when it eats or a task is done near it.
+    ///   * <b>Flips</b> (<see cref="Flip"/>): a quick roll - a fish's happy flip when a task is done near it.
     ///   * <b>Idle personality</b>: a body that rests a while does something now and then - a fish flicks, looks
     ///     around or barrel-rolls; the shark stretches lazily.
     ///   * <b>Bumps</b>: hitting the seabed or a rock at speed kicks up a puff (only where the body is simulated,
@@ -42,7 +42,6 @@ namespace FishGame
         float _restFor, _nextIdle;
         int _idleKind;
         float _idleStart = -10f;
-        float _lastHunger = -1f;
         float _nextBump;
 
         static readonly Vector3[] Axes = { Vector3.right, Vector3.up, Vector3.forward };
@@ -137,14 +136,6 @@ namespace FishGame
             Vector3 k = new Vector3(across, across, across);
             k[_lengthAxis] = along;
             _model.localScale = Vector3.Scale(_baseScale, k);
-
-            // ---- eating: hunger going up on the synced vitals, seen on every machine
-            if (!_shark && _player != null && _player.TryGetComponent(out FishVitals vitals))
-            {
-                float h = vitals.Hunger;
-                if (_lastHunger >= 0f && h - _lastHunger > 3f) Flip(0.45f);
-                _lastHunger = h;
-            }
 
             // ---- idle: resting a while, now and then do something
             bool resting = speed < 0.6f && _player != null && !_player.IsOut && !_player.IsBeingEaten;

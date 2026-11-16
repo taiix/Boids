@@ -128,6 +128,35 @@ trailers or social posts if you want, labelled as staged.
 
 The staged clips also contain the third-party models covered by the rights questions below.
 
+## Re-recorded on 2026-11-16 (current build: new match HUD, new menu and lobby, roaming turtles)
+
+All 13 takes were re-recorded with the same method: started from the main menu (HOST A GAME → Ready → Start), in
+real time, High Fidelity, the game's post-processing. They **replace the October files of the same name**.
+
+- **Scripts:** `tools/takes/` (see its README).
+- **Encoder:** `tools/encode_clip.py`.
+- **Outputs:** GIF + WEBP in `assets/gifs/`, 1920 px MP4 in `Marketing/Clips/mp4/`.
+
+| File | View | What happens | GIF window |
+|---|---|---|---|
+| `31_shark_hunt` | Shark | Lunges into the school and catches one, blood ("Sonar: nothing moving", no player fish nearby) | 0–4.5 s |
+| `25_fish_join_school` | Fish | Swims into the big school and disappears in it | 0–4.5 s |
+| `37_fish_turtle` | Fish | Swims up to a tangled turtle: ropes, knots and the task prompt | 0–4 s |
+| `30_shark_orcas` | Shark | Two orcas close in, "HIT BY AN ORCA!", blood, "ORCAS HUNTING YOU" | 0–4.5 s |
+| `27_fish_storm` | Fish | Inside the school in the storm's dark, then a lightning flash (the storm started by itself) | 0–4.5 s |
+| `26_fish_nightfall` | Fish | Night: a glowing plankton trail behind the swimming fish | 0–4.5 s |
+| `29_fish_escape` | Fish | "TIME'S UP – THE SOUTH WALL HAS LIFTED", the exit counter, the bubble curtain. MP4 cut at 6.5 s, before the results screen shows the Steam name | 2–6.5 s |
+| `40_event_red_tide` | Fish | The rust cloud ahead, swims in: red murk, "TOXIC WATER", health drops | 0–4.5 s |
+| `45_event_trawler` | Fish | The net sweeps in: "CAUGHT IN THE NET! You're hurt", red flash, blood | 1.5–6 s |
+| `41_event_jellyfish` | Fish | A jellyfish drifts close past the fish | 0–4.5 s |
+| `44_event_current` | Fish | "STRONG CURRENT – pushing south-west": the reef slides sideways | 0–4.5 s |
+| `43_event_sandslide` | Fish | The quake shakes the view, the seabed goes murky, sand clouds rise | 0–4.5 s |
+| `42_event_cold_layer` | Fish | **New**, but weak: the banner and a haze band only. Not used on the page | 0–4.5 s |
+
+As in October: autopilot through the player's own camera and motor; staging by teleport; events started with
+`WorldEvents.DevStart`; the escape opened with the F7 path; shark via the F8 role swap; no mic (the voice chip reads
+"QUIET"). The staged October clips `01`–`09` are untouched.
+
 ## Open rights questions (must be closed before any public use)
 
 1. **"Underwater life deluxe"** and **"Coral Reef Decor Pack"**: confirm the seller, the licence type, and that

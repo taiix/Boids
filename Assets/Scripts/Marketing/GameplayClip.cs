@@ -51,6 +51,14 @@ namespace FishGame
         public float blendAt = -1f;
         [Tooltip("Seconds into the clip to summon the orcas (negative = never).")]
         public float orcasAt = -1f;
+        [Tooltip("Seconds into the clip to lunge whatever is ahead (negative = never). Used for breaches.")]
+        public float lungeAt = -1f;
+        [Tooltip("Steering pitch limit for the autopilot (the camera allows up to 85).")]
+        public float pitchLimit = 40f;
+        [Tooltip("Free-look orbit: the camera swings from freeYawFrom to freeYawTo degrees over the clip, " +
+                 "as a player holding free-look would (NaN = leave the camera behind the body).")]
+        public float freeYawFrom = float.NaN, freeYawTo = float.NaN;
+        public float freePitch;
 
         FishPlayer _body;
         FishOrbitCamera _cam;
@@ -59,8 +67,8 @@ namespace FishGame
         SharkAbilities _abilities;
         FishFlockBlend _blend;
         bool _blended;
-        bool _autopilot, _sonared, _orcas;
-        float _t;
+        bool _autopilot, _sonared, _orcas, _lunged;
+        float _t, _length = 1f;
         int _written, _inFlight;
 
         static readonly System.Reflection.BindingFlags Flags =
@@ -73,6 +81,7 @@ namespace FishGame
             var go = new GameObject("Gameplay Clip (marketing)");
             Current = go.AddComponent<GameplayClip>();
             Current._autopilot = autopilot;
+            Current._length = Mathf.Max(0.1f, seconds + warmup);
             Current.StartCoroutine(Current.Run(name, seconds, warmup, fps));
             return Current;
         }
@@ -104,10 +113,20 @@ namespace FishGame
 
             float start = Time.unscaledTime + warmup, end = start + seconds, last = -1f;
             float gap = 0.98f / Mathf.Max(1, fps);
-            var rt = new RenderTexture(Screen.width, Screen.height, 0, RenderTextureFormat.ARGB32);
+            int w = Screen.width, h = Screen.height;
+            var rt = new RenderTexture(w, h, 0, RenderTextureFormat.ARGB32);
             bool flip = SystemInfo.graphicsUVStartsAtTop;
-            var times = new System.Text.StringBuilder();
-            int requested = 0;
+
+            // Raw frames go to ffmpeg, which encodes them on the GPU (AMF/NVENC). The old path encoded a JPEG per
+            // frame on the CPU and allocated 8 MB per frame, which starved the fish jobs and caused GC hitches.
+            var writer = new FrameWriter(dir, w, h, flip);
+            if (!writer.Start(out string error))
+            {
+                Status = "error: " + error;
+                Debug.LogError("[GameplayClip] " + error);
+                Done = true;
+                yield break;
+            }
             Status = "recording";
             while (Time.unscaledTime < end)
             {
@@ -115,37 +134,22 @@ namespace FishGame
                 float now = Time.unscaledTime;
                 if (now < start || now - last < gap) continue;
                 last = now;
-                if (rt.width != Screen.width || rt.height != Screen.height)
-                {
-                    rt.Release();
-                    rt.width = Screen.width;
-                    rt.height = Screen.height;
-                }
+                if (Screen.width != w || Screen.height != h) continue; // the pipe has a fixed size
                 ScreenCapture.CaptureScreenshotIntoRenderTexture(rt);
-                int w = rt.width, h = rt.height;
-                string path = Path.Combine(dir, $"{requested:0000}.jpg");
-                times.AppendLine($"{requested:0000}.jpg {(now - start).ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)}");
-                requested++;
+                float t = now - start;
                 Interlocked.Increment(ref _inFlight);
                 AsyncGPUReadback.Request(rt, 0, TextureFormat.RGBA32, req =>
                 {
-                    if (req.hasError) { Interlocked.Decrement(ref _inFlight); return; }
-                    byte[] bytes = req.GetData<byte>().ToArray();
-                    Task.Run(() =>
-                    {
-                        try
-                        {
-                            if (flip) FlipRows(bytes, w * 4, h);
-                            File.WriteAllBytes(path, ImageConversion.EncodeArrayToJPG(bytes, GraphicsFormat.R8G8B8A8_SRGB, (uint)w, (uint)h, 0, 95));
-                            Interlocked.Increment(ref _written);
-                        }
-                        finally { Interlocked.Decrement(ref _inFlight); }
-                    });
+                    try { if (!req.hasError) writer.Push(req.GetData<byte>(), t); }
+                    finally { Interlocked.Decrement(ref _inFlight); }
                 });
             }
             Status = "encoding";
             while (Volatile.Read(ref _inFlight) > 0) yield return null;
-            File.WriteAllText(Path.Combine(dir, "frames.txt"), times.ToString());
+            var finish = Task.Run(writer.Finish);
+            while (!finish.IsCompleted) yield return null;
+            _written = writer.Written;
+            if (writer.Dropped > 0) Debug.LogWarning($"[GameplayClip] {name}: dropped {writer.Dropped} frames (encoder behind)");
             rt.Release();
             Destroy(rt);
             if (_controller != null) _controller.enabled = true;
@@ -159,6 +163,14 @@ namespace FishGame
             if (!_autopilot || _body == null || _cam == null || _motor == null || Done) return;
             float dt = Time.deltaTime;
             _t += dt;
+
+            // The free-look swing runs even while the flock steers the body.
+            if (!float.IsNaN(freeYawFrom))
+            {
+                float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_t / _length));
+                typeof(FishOrbitCamera).GetField("_freeYaw", Flags).SetValue(_cam, Mathf.Lerp(freeYawFrom, float.IsNaN(freeYawTo) ? freeYawFrom : freeYawTo, k));
+                typeof(FishOrbitCamera).GetField("_freePitch", Flags).SetValue(_cam, freePitch);
+            }
 
             // Blending hands the body to the flock (FishFlockBlend turns the controller back on when it ends).
             if (_blend != null && _blend.IsBlending) return;
@@ -193,7 +205,7 @@ namespace FishGame
             var want = Quaternion.LookRotation(to.sqrMagnitude > 0.01f ? to : _body.transform.forward, Vector3.up).eulerAngles;
             float wantPitch = Mathf.DeltaAngle(0f, want.x);
             yaw = Mathf.MoveTowardsAngle(yaw, want.y, turnRate * dt);
-            pitch = Mathf.MoveTowards(pitch, Mathf.Clamp(wantPitch, -40f, 40f), turnRate * 0.6f * dt);
+            pitch = Mathf.MoveTowards(pitch, Mathf.Clamp(wantPitch, -pitchLimit, pitchLimit), turnRate * 0.6f * dt);
             typeof(FishOrbitCamera).GetField("_yaw", Flags).SetValue(_cam, yaw);
             typeof(FishOrbitCamera).GetField("_pitch", Flags).SetValue(_cam, pitch);
 
@@ -206,6 +218,11 @@ namespace FishGame
                     _sonared = true;
                     typeof(SharkAbilities).GetMethod("DoSonar", Flags).Invoke(_abilities, null);
                 }
+                if (lungeAt >= 0f && !_lunged && _t >= lungeAt && _abilities.LungeReady)
+                {
+                    _lunged = true;
+                    typeof(SharkAbilities).GetMethod("DoLunge", Flags).Invoke(_abilities, null);
+                }
                 if (lungeRange > 0f && hunt && to.magnitude < lungeRange && _abilities.LungeReady &&
                     Vector3.Angle(_body.transform.forward, to) < 25f)
                     typeof(SharkAbilities).GetMethod("DoLunge", Flags).Invoke(_abilities, null);
@@ -214,17 +231,6 @@ namespace FishGame
             {
                 _orcas = true;
                 WorldEvents.ServerSummonOrcas();
-            }
-        }
-
-        static void FlipRows(byte[] pixels, int rowBytes, int rows)
-        {
-            var row = new byte[rowBytes];
-            for (int top = 0, bottom = rows - 1; top < bottom; top++, bottom--)
-            {
-                System.Buffer.BlockCopy(pixels, top * rowBytes, row, 0, rowBytes);
-                System.Buffer.BlockCopy(pixels, bottom * rowBytes, pixels, top * rowBytes, rowBytes);
-                System.Buffer.BlockCopy(row, 0, pixels, bottom * rowBytes, rowBytes);
             }
         }
 
@@ -249,6 +255,90 @@ namespace FishGame
         {
             if (Current == this) Current = null;
             if (_controller != null) _controller.enabled = true;
+        }
+    }
+
+    /// <summary>Streams raw RGBA frames to an ffmpeg process (hardware HEVC) from a background thread, with pooled
+    /// buffers so recording allocates nothing per frame. Writes capture.mkv and frames.txt (frame index -> time).</summary>
+    sealed class FrameWriter
+    {
+        readonly string _dir;
+        readonly int _w, _h;
+        readonly bool _flip;
+        readonly System.Collections.Concurrent.BlockingCollection<(byte[] buf, float t)> _queue = new(); // bounded by the pool
+        readonly System.Collections.Concurrent.ConcurrentBag<byte[]> _pool = new();
+        readonly System.Text.StringBuilder _times = new();
+        System.Diagnostics.Process _proc;
+        Thread _thread;
+        int _written, _dropped;
+        public int Written => Volatile.Read(ref _written);
+        public int Dropped => Volatile.Read(ref _dropped);
+
+        public FrameWriter(string dir, int w, int h, bool flip) { _dir = dir; _w = w; _h = h; _flip = flip; }
+
+        // The Editor may have been started before ffmpeg was put on PATH, so also look where winget installs it.
+        static string FfmpegPath()
+        {
+            foreach (var d in (System.Environment.GetEnvironmentVariable("PATH") ?? "").Split(';'))
+                if (d.Length > 0 && File.Exists(Path.Combine(d, "ffmpeg.exe"))) return Path.Combine(d, "ffmpeg.exe");
+            string links = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "Microsoft", "WinGet", "Links", "ffmpeg.exe");
+            return File.Exists(links) ? links : "ffmpeg";
+        }
+
+        public bool Start(out string error)
+        {
+            error = null;
+            foreach (var f in Directory.GetFiles(_dir)) File.Delete(f);
+            for (int i = 0; i < 10; i++) _pool.Add(new byte[_w * _h * 4]);
+            string encoder = SystemInfo.graphicsDeviceVendor.ToLowerInvariant().Contains("nvidia")
+                ? "-c:v hevc_nvenc -preset p7 -rc constqp -qp 14"
+                : "-c:v hevc_amf -quality quality -rc cqp -qp_i 14 -qp_p 14";
+            // The readback is already top-down where UVs start at the top (D3D, Vulkan, Metal); flip only on GL.
+            string vf = _flip ? "format=nv12" : "vflip,format=nv12";
+            var psi = new System.Diagnostics.ProcessStartInfo(FfmpegPath(),
+                $"-hide_banner -loglevel error -y -f rawvideo -pix_fmt rgba -s {_w}x{_h} -r 60 -i - -vf {vf} {encoder} \"{Path.Combine(_dir, "capture.mkv")}\"")
+            {
+                UseShellExecute = false, RedirectStandardInput = true, RedirectStandardError = true, CreateNoWindow = true,
+            };
+            try { _proc = System.Diagnostics.Process.Start(psi); }
+            catch (System.Exception e) { error = "could not start ffmpeg: " + e.Message; return false; }
+            _proc.ErrorDataReceived += (_, e) => { if (!string.IsNullOrEmpty(e.Data)) Debug.LogWarning("[ffmpeg] " + e.Data); };
+            _proc.BeginErrorReadLine();
+            _thread = new Thread(Pump) { IsBackground = true, Priority = System.Threading.ThreadPriority.BelowNormal, Name = "GameplayClip writer" };
+            _thread.Start();
+            return true;
+        }
+
+        /// <summary>Main thread (readback callback): copy into a pooled buffer, or drop the frame if the encoder is behind.</summary>
+        public void Push(Unity.Collections.NativeArray<byte> data, float t)
+        {
+            if (!_pool.TryTake(out var buf)) { Interlocked.Increment(ref _dropped); return; }
+            data.CopyTo(buf);
+            _queue.Add((buf, t));
+        }
+
+        void Pump()
+        {
+            var stdin = _proc.StandardInput.BaseStream;
+            int index = 0;
+            foreach (var (buf, t) in _queue.GetConsumingEnumerable())
+            {
+                try { stdin.Write(buf, 0, buf.Length); }
+                catch (System.Exception e) { Debug.LogWarning("[GameplayClip] pipe: " + e.Message); _pool.Add(buf); continue; }
+                _times.AppendLine($"{index:0000}.png {t.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)}");
+                index++;
+                Interlocked.Increment(ref _written);
+                _pool.Add(buf);
+            }
+        }
+
+        public void Finish()
+        {
+            _queue.CompleteAdding();
+            _thread.Join();
+            try { _proc.StandardInput.Close(); } catch { }
+            _proc.WaitForExit(120000);
+            File.WriteAllText(Path.Combine(_dir, "frames.txt"), _times.ToString());
         }
     }
 }

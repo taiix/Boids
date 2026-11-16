@@ -1,0 +1,413 @@
+﻿<!doctype html>
+<!--
+  REEF RUN: Kickstarter campaign page, v3 (2026-11-16). LOCAL PREVIEW ONLY. Nothing here is published.
+
+  What this is: the whole campaign page (basics, story, rewards, risks, FAQ, Use of AI) laid out the way
+  Kickstarter shows it, with every image in place. Open it in a browser. Tick "Editor notes" (top right)
+  to see which file to upload at each spot and which lines still need a fact from you.
+
+  STEAM LINK: set STEAM_URL in the script at the bottom. Until it is set, the three Steam banners are plain
+  images with no link. On Kickstarter itself: click the image in the story editor and paste the URL.
+
+  Sources: 15_CAMPAIGN_COPY_V2.md, 05_REWARD_TIERS.md, 03_funding_model.xlsx and
+  reports/Reef Run Kickstarter page research.md (2026-11-16).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Reef Run · Kickstarter page preview</title>
+<style>
+  :root {
+    --ink: #222; --soft: #656969; --line: #dcdedd; --paper: #fff; --wash: #f7f7f6;
+    --green: #037362; --green-2: #028858; --note: #fff4cc; --note-ink: #6b5200;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.6 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  img { max-width: 100%; height: auto; display: block; }
+  a { color: var(--green); }
+
+  .ribbon { position: sticky; top: 0; z-index: 20; display: flex; gap: 16px; align-items: center; justify-content: space-between;
+    background: #1b1b1b; color: #fff; font-size: 13px; padding: 8px 16px; }
+  .ribbon b { color: #ffd76a; }
+  .ribbon label { cursor: pointer; white-space: nowrap; }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+  .top { text-align: center; padding: 34px 0 22px; }
+  .top h1 { font-size: clamp(26px, 4vw, 38px); line-height: 1.15; margin: 0 0 10px; font-weight: 500; }
+  .top p { margin: 0 auto; max-width: 760px; color: var(--soft); font-size: 18px; }
+
+  .hero { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+  .hero .media { position: relative; }
+  .hero .media img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+  .hero .media .play { position: absolute; inset: 0; display: grid; place-items: center; }
+  .hero .media .play span { background: rgba(0,0,0,.6); color: #fff; padding: 10px 18px; border-radius: 4px; font-size: 14px; }
+  .stats { border-top: 6px solid var(--line); padding-top: 14px; }
+  .stats .big { font-size: 32px; line-height: 1.1; color: var(--green); }
+  .stats .big.k { color: var(--ink); }
+  .stats small { display: block; color: var(--soft); margin-bottom: 18px; font-size: 14px; }
+  .btn { display: block; text-align: center; background: var(--green-2); color: #fff; padding: 13px; font-size: 16px; opacity: .55; cursor: not-allowed; }
+  .stats .fine { font-size: 12.5px; color: var(--soft); margin-top: 12px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 22px; color: var(--soft); font-size: 14px; margin: 14px 0 0; }
+
+  .tabs { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin-top: 30px; position: sticky; top: 35px; background: var(--paper); z-index: 10; }
+  .tabs .wrap { display: flex; gap: 26px; overflow-x: auto; }
+  .tabs a { padding: 15px 0; color: var(--ink); text-decoration: none; font-size: 15px; white-space: nowrap; }
+  .tabs a:first-child { box-shadow: inset 0 -3px var(--green-2); }
+
+  .cols { display: grid; grid-template-columns: minmax(0, 680px) minmax(0, 330px); gap: 60px; justify-content: space-between; padding-top: 44px; padding-bottom: 80px; }
+  .story > h2 { font-size: 28px; line-height: 1.2; font-weight: 600; margin: 56px 0 14px; scroll-margin-top: 100px; }
+  .story > h2:first-child { margin-top: 0; }
+  .story h3 { font-size: 20px; margin: 30px 0 8px; }
+  .story p { margin: 0 0 16px; }
+  .story ul { padding-left: 22px; margin: 0 0 16px; }
+  .story li { margin-bottom: 8px; }
+  .story figure { margin: 22px 0 26px; }
+  .story figure img { width: 100%; background: #0b2c3f; }
+  .story figcaption { font-size: 14px; color: var(--soft); text-align: center; margin-top: 7px; }
+  .hook { font-size: 27px; line-height: 1.25; font-weight: 700; text-align: center; margin: 4px 0 20px !important; }
+  .lead { font-size: 19px; }
+  .wip { font-size: 13.5px; color: var(--soft); text-align: center; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .pair figure { margin: 0 0 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; margin: 0 0 18px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; background: var(--wash); }
+  td.n { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .ladder { list-style: none; padding: 0 !important; }
+  .ladder li { border: 1px solid var(--line); border-left: 5px solid var(--green-2); padding: 11px 14px; margin-bottom: 9px; }
+  .ladder li.locked { border-left-color: var(--line); color: var(--soft); }
+  .ladder b { display: inline-block; min-width: 86px; }
+  details { border-bottom: 1px solid var(--line); padding: 13px 0; }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { margin: 9px 0 0; }
+  .field { background: var(--wash); border: 1px solid var(--line); padding: 14px 16px; margin: 0 0 14px; }
+  .field h4 { margin: 0 0 6px; font-size: 13px; letter-spacing: .05em; text-transform: uppercase; color: var(--soft); }
+  .field p:last-child { margin-bottom: 0; }
+
+  aside h2 { font-size: 18px; margin: 0 0 14px; }
+  .tier { border: 1px solid var(--line); margin-bottom: 18px; }
+  .tier .body { padding: 16px; }
+  .tier .price { font-size: 22px; }
+  .tier h3 { margin: 2px 0 8px; font-size: 17px; }
+  .tier p { font-size: 14.5px; margin: 0 0 10px; line-height: 1.5; }
+  .tier ul { font-size: 14px; padding-left: 18px; margin: 0 0 10px; }
+  .tier .when { font-size: 12.5px; color: var(--soft); text-transform: uppercase; letter-spacing: .04em; }
+  .tier .tag { display: inline-block; background: #e8f5f0; color: var(--green); font-size: 12px; padding: 2px 8px; margin-left: 6px; vertical-align: middle; }
+
+  /* Things still owed by the team, and upload hints. Hidden unless "Editor notes" is ticked. */
+  .todo { background: var(--note); color: var(--note-ink); padding: 0 4px; border-radius: 3px; }
+  .note { display: none; background: var(--note); color: var(--note-ink); font: 12.5px/1.45 Consolas, monospace; padding: 6px 9px; margin: 6px 0 12px; border-radius: 3px; word-break: break-word; }
+  body.notes .note { display: block; }
+
+  @media (max-width: 900px) {
+    .hero, .cols { grid-template-columns: minmax(0, 1fr); gap: 26px; }
+    .cols { padding-top: 28px; }
+    .tabs { top: 52px; }
+    .ribbon { flex-wrap: wrap; gap: 4px 16px; }
+  }
+  @media (max-width: 520px) { .pair { grid-template-columns: 1fr; } .hook { font-size: 23px; } }
+</style>
+</head>
+<body>
+
+<div class="ribbon">
+  <span><b>Draft preview.</b> Not published, not submitted. Goal, dates and tiers are the v2 plan.</span>
+  <label><input type="checkbox" id="notes"> Editor notes (files to upload, facts still needed)</label>
+</div>
+
+<!-- ============================== BASICS ============================== -->
+<div class="wrap">
+  <header class="top">
+    <h1>Reef Run — 3 fish, 1 shark, and it can hear you</h1>
+    <p>A 4-player online party game: hide in the school, finish the tasks, and keep your voice down — the shark hears proximity chat.</p>
+    <div class="note">Title 49/60 characters · Subtitle 124/135 · Category: Games › Video Games · Location: [[your city]], Netherlands</div>
+  </header>
+
+  <section class="hero">
+    <div class="media">
+      <img src="../assets/visuals/ks_project_image_1024x576.jpg" alt="Reef Run logo over a great white shark and a school of reef fish, with the line: 3 fish, 1 shark, it can hear you">
+      <div class="play"><span>▶ Project video goes here (60–90 s, opens on the bite)</span></div>
+      <div class="note">Project image: assets/visuals/ks_project_image_1920x1080.png · Video: the real 4-player trailer only. Never the animatic. Kickstarter plays it at 640×360, so burn subtitles in large.</div>
+    </div>
+    <div class="stats">
+      <div class="big">€0</div><small>pledged of €14,000 goal</small>
+      <div class="big k">0</div><small>backers</small>
+      <div class="big k">30</div><small>days to go</small>
+      <span class="btn">Back this project</span>
+      <p class="fine">All or nothing. This project will only be funded if it reaches its goal. Preview: pledging is not open.</p>
+      <div class="meta"><span>Video Games</span><span><span class="todo">[[your city]]</span>, Netherlands</span></div>
+    </div>
+  </section>
+</div>
+
+<nav class="tabs"><div class="wrap">
+  <a href="#story">Campaign</a><a href="#rewards">Rewards</a><a href="#faq">FAQ</a><a href="#risks">Risks</a><a href="#ai">Use of AI</a>
+</div></nav>
+
+<div class="wrap cols">
+<!-- ============================== STORY ============================== -->
+<main class="story" id="story">
+
+  <figure>
+    <img src="../assets/gifs/31_shark_hunt.webp" alt="Shark view with the game's HUD: a sonar ring, a lunge into a school of fish and a catch" loading="lazy">
+    <div class="note">assets/gifs/31_shark_hunt.webp (upload the WEBP; Kickstarter can show large GIFs as a still). Swap for the voice hero (whisper → ripple → lunge, with real players) once the 4-player session is recorded.</div>
+  </figure>
+  <p class="hook">Three of you are fish. One of you is the shark.<br>And the shark can hear you.</p>
+
+  <p class="lead">Reef Run is an online party game for four friends. One player is a great white. The other three are reef fish with ten minutes to finish their tasks and get out.</p>
+  <p>You talk on proximity voice, and the tasks <em>need</em> talking. But every word spoken near the shark shows up on its screen. So you whisper, you hide inside a school of a thousand fish, and somebody always laughs at the wrong moment.</p>
+  <ul>
+    <li><strong>Players:</strong> exactly 4 online (1 shark, 3 fish), friends or public lobbies</li>
+    <li><strong>Round:</strong> 10 minutes</li>
+    <li><strong>Platform:</strong> PC (Windows) on Steam</li>
+    <li><strong>Planned price:</strong> €12.99 · backers from €12</li>
+    <li><strong>Play it:</strong> backer beta July 2027, release Q4 2027</li>
+  </ul>
+
+  <figure>
+    <a data-steam><img src="../assets/visuals/ks_cta_wishlist_steam_top_1360x380.png" alt="Wishlist Reef Run on Steam" loading="lazy"></a>
+    <div class="note">assets/visuals/ks_cta_wishlist_steam_top_1360x380.png · LINK: your Steam page (click the image in the editor → URL). Valve only allows the Steam logo for games that have a Steam app, so keep this out until yours exists.</div>
+  </figure>
+  <figure>
+    <a href="https://discord.gg/8KTgjVyWam"><img src="../assets/visuals/ks_cta_discord_1360x380.png" alt="Join the Reef Run Discord to find a group" loading="lazy"></a>
+    <div class="note">assets/visuals/ks_cta_discord_1360x380.png · LINK: https://discord.gg/8KTgjVyWam</div>
+  </figure>
+
+  <h2 id="hear">The shark is always listening</h2>
+  <p>Most hide-and-seek games go quiet when the hunter is near. Reef Run can't, because the tasks are built so that each fish sees a different clue. To win you have to say it out loud.</p>
+  <p>When you speak, the shark sees a ripple where your voice came from. Up close the ripple is exact. At the edge of its hearing it is off by up to eight metres, so a whisper from far away might just save you.</p>
+  <figure>
+    <img src="../assets/visuals/ks_the_twist_explainer_1360x820.png" alt="Diagram: a fish talks, the shark sees a ripple at that spot, and the fish gets two seconds to run" loading="lazy">
+    <figcaption>Illustration of the mechanic. The ripple is drawn larger here than it appears in game.</figcaption>
+    <div class="note">assets/visuals/ks_the_twist_explainer_1360x820.png</div>
+  </figure>
+  <p>Get heard clearly and your screen warns you: <strong>SHARK HEARD YOU</strong>. You have about two seconds to move.</p>
+
+  <h2 id="shark">Play the shark</h2>
+  <p>You are faster than everything on the reef, and you are hungry. Among thousands of identical fish, three are your friends.</p>
+  <ul>
+    <li><strong>Listen.</strong> Voices leave ripples. Laughter leaves bigger ones.</li>
+    <li><strong>Sonar.</strong> One pulse lights up every player fish that is moving. Then it needs 25 seconds to recharge.</li>
+    <li><strong>Lunge.</strong> A burst of speed with your jaws open. Miss by a little and you still graze them.</li>
+  </ul>
+  <figure>
+    <img src="../../Marketing/Screenshots/HUD/H1b_shark_charges_school.png" alt="The shark charging a school of red fish, with the round timer, health and hunger bars and the lunge and sonar buttons on screen" loading="lazy">
+    <figcaption>The shark's view, HUD on.</figcaption>
+    <div class="note">Marketing/Screenshots/HUD/H1b_shark_charges_school.png</div>
+  </figure>
+
+  <h2 id="fish">Play a fish</h2>
+  <p>You are small, slow and delicious. What you have is each other, and a reef full of places to disappear.</p>
+  <div class="pair">
+    <figure>
+      <img src="../assets/gifs/25_fish_join_school.webp" alt="A player fish swims into a school of fish and blends in" loading="lazy">
+      <figcaption><strong>Vanish into a school.</strong> Swim in and you shrink to its size and move with the flock.</figcaption>
+      <div class="note">assets/gifs/25_fish_join_school.webp</div>
+    </figure>
+    <figure>
+      <img src="../assets/gifs/37_fish_turtle.webp" alt="A player fish approaches a sea turtle tangled in a net, with rope prompts on screen" loading="lazy">
+      <figcaption><strong>Talk to win.</strong> Free the turtle by biting matching ropes at the same moment. Count it down. Quietly.</figcaption>
+      <div class="note">assets/gifs/37_fish_turtle.webp</div>
+    </figure>
+  </div>
+  <p>There are three co-op tasks in the build today: free a tangled turtle, relay a code between fish who each see half of it, and clean up the reef. Each one is easy if you can shout and nerve-racking if you can't.</p>
+  <p>And if you get eaten, you are not done. Ghosts get their own voice channel, and once per round a ghost can flash the shark's position to the fish who are still alive.</p>
+
+  <h2 id="reef">The reef fights back</h2>
+  <p>Every round, the sea throws something at all four of you. There are nine events, and you never know which is coming.</p>
+  <div class="pair">
+    <figure><img src="../assets/gifs/30_shark_orcas.webp" alt="Orcas ram the player shark" loading="lazy"><figcaption><strong>Orcas.</strong> For once, the shark is the prey.</figcaption><div class="note">assets/gifs/30_shark_orcas.webp</div></figure>
+    <figure><img src="../assets/gifs/45_event_trawler.webp" alt="A trawler net sweeps into view and catches the player fish" loading="lazy"><figcaption><strong>Trawler net.</strong> It sweeps wall to wall. Dive under it.</figcaption><div class="note">assets/gifs/45_event_trawler.webp</div></figure>
+    <figure><img src="../assets/gifs/26_fish_nightfall.webp" alt="At night, a swimming fish leaves a glowing plankton trail" loading="lazy"><figcaption><strong>Nightfall.</strong> Anything that moves leaves a glowing trail.</figcaption><div class="note">assets/gifs/26_fish_nightfall.webp</div></figure>
+    <figure><img src="../assets/gifs/27_fish_storm.webp" alt="A dark reef lit by a lightning flash" loading="lazy"><figcaption><strong>Lightning storm.</strong> Dark, then one flash that shows everyone.</figcaption><div class="note">assets/gifs/27_fish_storm.webp</div></figure>
+    <figure><img src="../assets/gifs/40_event_red_tide.webp" alt="A fish swims into a rust-coloured cloud and starts losing health" loading="lazy"><figcaption><strong>Red tide.</strong> Great cover. Also poison.</figcaption><div class="note">assets/gifs/40_event_red_tide.webp</div></figure>
+    <figure><img src="../assets/gifs/41_event_jellyfish.webp" alt="Glowing jellyfish drift past the camera" loading="lazy"><figcaption><strong>Jellyfish swarm.</strong> Don't touch. That goes for the shark too.</figcaption><div class="note">assets/gifs/41_event_jellyfish.webp</div></figure>
+    <figure><img src="../assets/gifs/44_event_current.webp" alt="Schools of fish stream sideways in a strong current" loading="lazy"><figcaption><strong>Strong current.</strong> The whole reef slides sideways.</figcaption><div class="note">assets/gifs/44_event_current.webp</div></figure>
+    <figure><img src="../assets/gifs/43_event_sandslide.webp" alt="Clouds of sand rise from the seabed after a quake" loading="lazy"><figcaption><strong>Sand slide.</strong> A quake, then a wall of silt.</figcaption><div class="note">assets/gifs/43_event_sandslide.webp</div></figure>
+  </div>
+  <p class="wip">The ninth is a cold layer that slows everything inside it. All clips are recorded from the current build, started from the main menu. Work in progress.</p>
+  <div class="note">Kickstarter stacks images one per row. Eight in a row is long on a phone: if it drags, keep orcas, trawler, nightfall and storm and name the rest in one sentence.</div>
+
+  <h2 id="round">A round, start to finish</h2>
+  <figure>
+    <img src="../assets/visuals/ks_how_a_round_works_1360x1840.png" alt="Five steps of a round: pick your pod, hide in the school, talk carefully, survive the reef, run for it" loading="lazy">
+    <div class="note">assets/visuals/ks_how_a_round_works_1360x1840.png</div>
+  </figure>
+  <figure>
+    <img src="../assets/gifs/29_fish_escape.webp" alt="The message 'the east wall has lifted' appears and a fish races for the exit through a curtain of bubbles" loading="lazy">
+    <figcaption><strong>Then run.</strong> When the clock hits zero a wall lifts, and the shark can see everyone.</figcaption>
+    <div class="note">assets/gifs/29_fish_escape.webp</div>
+  </figure>
+
+  <h2 id="today">What exists today, and what your pledge adds</h2>
+  <p>Reef Run is not an idea. A full online round is playable now: Steam lobbies, proximity voice, the hearing system, three tasks, nine events, the escape and the ghost channel.</p>
+  <p>What it isn't yet is <em>finished</em>. The campaign pays for the unglamorous half of making a game: fixing what breaks when real groups play, performance on modest PCs, onboarding, full controller support, push-to-talk and accessibility options.</p>
+  <figure>
+    <img src="../assets/visuals/ks_built_vs_funded_1360x788.png" alt="Two lists: what is in the build today, and what the campaign funds" loading="lazy">
+    <div class="note">assets/visuals/ks_built_vs_funded_1360x788.png</div>
+  </figure>
+  <p>We are not promising bots, modes for fewer than four players, consoles, or Mac and Linux at any funding level.</p>
+
+  <h2 id="tiers">Rewards</h2>
+  <p>Everything is digital, so there is no shipping to wait for or pay. The game is meant for four, so the more of you pledge together, the less each seat costs. The <strong>Pod of Four</strong> is the cheapest way in: €11 a seat, and your whole group is sorted.</p>
+  <table>
+    <tr><th>Tier</th><th>Pledge</th><th>You get</th></tr>
+    <tr><td>Ripple</td><td class="n">€5</td><td>Supporters credit, Discord backer role, 4K wallpapers. No game.</td></tr>
+    <tr><td><strong>Early Diver</strong><br>first 120</td><td class="n">€12</td><td>Reef Run on Steam: backer beta, then the full game. Supporters credit.</td></tr>
+    <tr><td>Diver</td><td class="n">€15</td><td>Same as Early Diver.</td></tr>
+    <tr><td><strong>Dive Buddies</strong></td><td class="n">€26<br>€13 a seat</td><td>2 Steam keys, one for you and one for a friend. 2 Supporters credits.</td></tr>
+    <tr><td><strong>Pod of Four</strong> ⭐</td><td class="n">€44<br>€11 a seat</td><td>4 Steam keys for your group, beta for all four, 4 Supporters credits, and Pod Stripes: a matching fish pattern only pack backers get.</td></tr>
+    <tr><td>Founding Pod</td><td class="n">€99</td><td>Pod of Four, plus 4 Founder cosmetic sets (fish "Founder Fin", shark "Old Scar"), 4 Founders credits and the Making-of PDF.</td></tr>
+    <tr><td>Name the Trawler<br>10 only</td><td class="n">€199</td><td>A Steam key, the Founder cosmetics, a Founders credit and the PDF, plus your name on the trawler's hull. Names are checked by us and rotate each round.</td></tr>
+  </table>
+  <p>Planned price on Steam is €12.99. Backer beta: July 2027. Full release: Q4 2027. Keys arrive through Kickstarter's Pledge Manager. <span class="todo">[[VAT line from your accountant]]</span></p>
+
+  <h2 id="stretch">Stretch goals</h2>
+  <p>The goal finishes the game you have seen on this page. Anything above it goes into more game. Every stretch goal ships as a free update for everyone who owns Reef Run.</p>
+  <ul class="ladder">
+    <li><b>€14,000</b> Funded: Reef Run, finished, polished and on Steam.</li>
+    <li class="locked"><b>€17,500</b> A fourth co-op task, and an extra Kickstarter cosmetic for every backer.</li>
+    <li class="locked"><b>€21,000</b> Backers vote on a 10th world event, and a Steam Deck pass.</li>
+    <li class="locked"><b>€28,000</b> Six more languages: German, French, Spanish, Brazilian Portuguese, Polish and Dutch.</li>
+    <li class="locked"><b>€35,000</b> An original soundtrack from a commissioned composer.</li>
+    <li class="locked"><b>€56,000</b> A second map (kelp forest or shipwreck), two more tasks and four months of free updates.</li>
+  </ul>
+  <div class="note">All goals shown from day one (the research found funded pages in this niche show the full ladder). The Boo Croo ended at 156% of a near-identical ladder and unlocked only its first two steps, so €17,500 and €21,000 must be the most wanted, cheapest items. Optional: add 2–3 community goals (e.g. 1,000 Discord members → a cosmetic).</div>
+
+  <h2 id="money">Where the money goes</h2>
+  <figure>
+    <img src="../assets/visuals/ks_funding_allocation_1360x780.png" alt="Ring chart of the 14,000 euro goal: programming and netcode 21%, design 6%, playtests and community 10%, backer rewards 3%, marketing 16%, business costs 10%, contingency 10%, platform fees, VAT and tax reserve 25%" loading="lazy">
+    <div class="note">assets/visuals/ks_funding_allocation_1360x780.png (rebuilt from 03_funding_model.xlsx by tools/make_visuals.py)</div>
+  </figure>
+  <p>About a quarter of every campaign never reaches the game: platform and payment fees, failed payments, VAT and tax. We would rather show that than hide it.</p>
+  <p>About 1,100 hours of work remain. Half of them stay unpaid even if we fund. That is our share of the bet.</p>
+
+  <h2 id="roadmap">Roadmap</h2>
+  <figure>
+    <img src="../assets/visuals/ks_roadmap_1360x700.png" alt="Roadmap: playable round done in 2026, Steam Next Fest demo February 2027, Kickstarter April to May 2027, backer beta July 2027, release in the fourth quarter of 2027" loading="lazy">
+    <div class="note">assets/visuals/ks_roadmap_1360x700.png</div>
+  </figure>
+  <p>The release window already includes a 30% buffer. If a date moves anyway, backers hear it from us first, with the reason.</p>
+
+  <h2 id="team">Who is making this</h2>
+  <p><span class="todo">[[Two or three sentences in your own words: who you are, why a shark, and the game night that started it. First person. This is the one section nobody else can write.]]</span></p>
+  <p>We are Unacite Studio, two developers in the Netherlands. We started Reef Run in June 2026 and have built it in our evenings and weekends since, <span class="todo">[[N]]</span> commits so far. Everything you see on this page was captured from the game.</p>
+  <p><span class="todo">[[If true by launch: "N groups played our public playtest, and X% said they would buy it."]]</span></p>
+  <figure>
+    <img src="../assets/visuals/ks_team_TEMPLATE_1360x640.png" alt="Team photo placeholder" loading="lazy">
+    <div class="note">TEMPLATE: replace with a real photo, names and roles. assets/visuals/ks_team_TEMPLATE_1360x640.png</div>
+  </figure>
+
+  <h2 id="thanks">Can't back us today?</h2>
+  <p>Even if you don't plan on pledging, you can still help Reef Run exist: wishlist it on Steam, and come play a test round with us on Discord. Both cost nothing, and both matter more than you would think.</p>
+  <figure>
+    <a data-steam><img src="../assets/visuals/ks_cta_wishlist_steam_1360x380.png" alt="Wishlist Reef Run on Steam" loading="lazy"></a>
+    <div class="note">assets/visuals/ks_cta_wishlist_steam_1360x380.png · LINK: your Steam page</div>
+  </figure>
+  <p>Thank you for reading this far. See you on the reef. Try to keep it down.</p>
+
+  <!-- ============================== RISKS ============================== -->
+  <h2 id="risks">Risks and challenges</h2>
+  <div class="note">This goes in Kickstarter's own "Risks and challenges" field, not the story.</div>
+  <p><strong>We are two people.</strong> If one of us is out, things slow down. That is why the goal only covers a game that already runs, plus polish.</p>
+  <p><strong>Online games break in the wild.</strong> Backers get a beta months before release, and bug fixing is our largest budget line.</p>
+  <p><strong>It needs four players.</strong> Public lobbies and our Discord help you find a group, and the pack tiers make the seats cheaper the more of you pledge together. We are not promising bots.</p>
+  <p><strong>There are no servers to shut down.</strong> One of the four players hosts the round through Steam, so the game does not depend on us paying a server bill.</p>
+  <p><strong>Dates can move.</strong> There is a 30% buffer in the schedule. If a date slips anyway, you hear it from us first.</p>
+
+  <!-- ============================== FAQ ============================== -->
+  <h2 id="faq">FAQ</h2>
+  <details open><summary>What platforms?</summary><p>PC (Windows) on Steam. No consoles, Mac or Linux are promised.</p></details>
+  <details><summary>Is it really exactly four players?</summary><p>Yes: one shark, three fish. The whole design leans on that number.</p></details>
+  <details><summary>I don't have three friends who play. Now what?</summary><p>Public lobbies are in the game, and our Discord has a group finder. There are no bots.</p></details>
+  <details><summary>Do I need a microphone?</summary><p>You need one to get the most out of it. Open mic works today; push-to-talk is funded by this campaign.</p></details>
+  <details><summary>What happens to online play if you stop working on it?</summary><p>It keeps working. One of the four players hosts each round through Steam, so there is no server of ours to switch off.</p></details>
+  <details><summary>Am I the shark every round?</summary><p>No. The shark is picked at random each round.</p></details>
+  <details><summary>Is there a demo?</summary><p><span class="todo">[[Yes: link / "A demo is planned for Steam Next Fest, February 2027."]]</span></p></details>
+  <details><summary>When do I get to play?</summary><p>Backer beta in July 2027. Full release in the fourth quarter of 2027.</p></details>
+  <details><summary>What will it cost on Steam?</summary><p>Planned at €12.99. Steam buyers will get a launch discount comparable to the backer price.</p></details>
+  <details><summary>How do I get my key?</summary><p>Through Kickstarter's Pledge Manager after the campaign ends. Steam keys for the beta go out in July 2027.</p></details>
+  <details><summary>Can I pledge after the campaign ends?</summary><p>No. Steam's rules don't allow selling keys through late pledges before release. After that, the game is on Steam.</p></details>
+  <details><summary>Will it run on Steam Deck? Other languages?</summary><p>English at launch. A Steam Deck pass and six more languages are stretch goals, so they depend on how far the campaign goes.</p></details>
+  <details><summary>Did you use AI?</summary><p>For code, yes: we use an AI coding assistant, and we test and ship every change ourselves. There is no AI-generated art, music, sound or voice in Reef Run. Details are in the Use of AI section.</p></details>
+  <details><summary>What about taxes?</summary><p><span class="todo">[[VAT line from your accountant]]</span></p></details>
+
+  <!-- ============================== USE OF AI ============================== -->
+  <h2 id="ai">Use of AI</h2>
+  <div class="note">Kickstarter asks two yes/no questions and prints your explanation on the page. Both answers below are "Yes" as things stand. They must stay accurate: change them if the facts change.</div>
+  <div class="field">
+    <h4>Does your campaign page contain any generative AI? · Yes</h4>
+    <p>The text on this page was drafted with an AI writing assistant and then edited by us. Every image and clip is captured from the game or built from those captures. None of them is AI-generated.</p>
+    <div class="note">If you rewrite the story in your own words, this answer becomes "No" and this box goes away. That is worth an evening: the closest competitor sells "No AI".</div>
+  </div>
+  <div class="field">
+    <h4>Will your final project contain any generative AI? · Yes</h4>
+    <p>We use an AI coding assistant to help write and review Reef Run's code. We decide what gets built, and we test and ship every change ourselves.</p>
+    <p>Reef Run contains no AI-generated art, models, music, sound effects, voices or writing. Art comes from our own work and from licensed asset packs; music and sounds are licensed and credited in the game.</p>
+    <div class="note">[[Confirm before submitting: none of the asset packs or the new music tracks declares AI-generated content.]]</div>
+  </div>
+</main>
+
+<!-- ============================== REWARDS ============================== -->
+<aside id="rewards">
+  <h2>Support</h2>
+  <div class="note">Reward images (3:2, no text): assets/visuals/rewards_3x2/. Shipping: none (digital). Add-ons: none. Late Pledges: off. Duration: 30 days.</div>
+
+  <div class="tier"><img src="../assets/visuals/rewards_3x2/reward_ripple_1200x800.jpg" alt="" loading="lazy"><div class="body">
+    <div class="price">Pledge €5 or more</div><h3>Ripple</h3>
+    <p>Thank you! Your name goes in the in-game Supporters credits. You get the Backer role in our Discord and a 4K wallpaper pack of the reef. No copy of the game is included.</p>
+    <div class="when">Estimated delivery · Jun 2027</div></div></div>
+
+  <div class="tier"><img src="../assets/visuals/rewards_3x2/reward_early_diver_1200x800.jpg" alt="" loading="lazy"><div class="body">
+    <div class="price">Pledge €12 or more</div><h3>Early Diver <span class="tag">120 only</span></h3>
+    <p>One Steam key for Reef Run: the backer beta, then the full game at release. Your name in the Supporters credits. For the first 120 backers.</p>
+    <div class="when">Estimated delivery · Jul 2027</div></div></div>
+
+  <div class="tier"><img src="../assets/visuals/rewards_3x2/reward_diver_1200x800.jpg" alt="" loading="lazy"><div class="body">
+    <div class="price">Pledge €15 or more</div><h3>Diver</h3>
+    <p>One Steam key for Reef Run: the backer beta, then the full game at release. Your name in the Supporters credits.</p>
+    <div class="when">Estimated delivery · Jul 2027</div></div></div>
+
+  <div class="tier"><img src="../assets/visuals/rewards_3x2/reward_dive_buddies_1200x800.jpg" alt="" loading="lazy"><div class="body">
+    <div class="price">Pledge €26 or more</div><h3>Dive Buddies <span class="tag">€13 a seat</span></h3>
+    <p>One for you, one for the friend you'd trust not to laugh near the shark.</p>
+    <ul><li>2 Steam keys (beta + full game)</li><li>2 names in the Supporters credits</li></ul>
+    <div class="when">Estimated delivery · Jul 2027</div></div></div>
+
+  <div class="tier"><img src="../assets/visuals/rewards_3x2/reward_pod_of_four_1200x800.jpg" alt="" loading="lazy"><div class="body">
+    <div class="price">Pledge €44 or more</div><h3>Pod of Four <span class="tag">€11 a seat</span></h3>
+    <p>Reef Run is a 4-player game. This is the one for your group, and the cheapest seat on the reef.</p>
+    <ul><li>4 Steam keys (beta + full game) to share</li><li>Pod Stripes: a matching fish pattern for your four, pack backers only</li><li>4 names in the Supporters credits</li></ul>
+    <div class="when">Keys Jul 2027 · pattern at release</div></div></div>
+
+  <div class="tier"><img src="../assets/visuals/rewards_3x2/reward_founding_pod_1200x800.jpg" alt="" loading="lazy"><div class="body">
+    <div class="price">Pledge €99 or more</div><h3>Founding Pod</h3>
+    <p>Everything in Pod of Four, plus the Founder rewards for all four of you.</p>
+    <ul><li>4 Steam keys + Pod Stripes</li><li>4 Founder cosmetic sets: "Founder Fin" fish pattern and "Old Scar" shark skin, Kickstarter backers only</li><li>4 Founders credits</li><li>"Making of Reef Run" PDF</li></ul>
+    <div class="when">Keys Jul 2027 · the rest Dec 2027</div></div></div>
+
+  <div class="tier"><img src="../assets/visuals/rewards_3x2/reward_name_the_trawler_1200x800.jpg" alt="" loading="lazy"><div class="body">
+    <div class="price">Pledge €199 or more</div><h3>Name the Trawler <span class="tag">10 only</span></h3>
+    <p>A Steam key, the Founder cosmetic set, your name in the Founders credits and the Making-of PDF. Plus your name (or your group's) painted on the hull of the trawler that drags its net across the reef. One backer name shows per round, in rotation. We check every name; it has to suit a PG-13 game.</p>
+    <div class="when">Estimated delivery · Dec 2027</div></div></div>
+
+  <p style="font-size:13px;color:var(--soft)">Digital rewards only. PC (Windows) on Steam. Keys are delivered through Kickstarter's Pledge Manager. <span class="todo">[[VAT line]]</span></p>
+  <p style="font-size:11.5px;color:var(--soft)">Steam and the Steam logo are trademarks and/or registered trademarks of Valve Corporation in the U.S. and/or other countries. Discord is a trademark of Discord Inc.</p>
+</aside>
+</div>
+
+<script>
+  // Paste the Steam store URL between the quotes. Empty = the Steam banners are images only.
+  const STEAM_URL = "";
+
+  document.querySelectorAll("a[data-steam]").forEach((a) => {
+    if (STEAM_URL) { a.href = STEAM_URL; a.target = "_blank"; a.rel = "noopener"; }
+  });
+  const box = document.getElementById("notes");
+  box.addEventListener("change", () => document.body.classList.toggle("notes", box.checked));
+</script>
+</body>
+</html>

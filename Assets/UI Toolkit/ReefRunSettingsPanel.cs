@@ -96,12 +96,23 @@ namespace ReefRun
                 _masterVal.text = Pct(e.newValue);
                 AudioListener.volume = e.newValue; // live audio preview
             });
-            _musicSlider?.RegisterValueChangedCallback(e => _musicVal.text = Pct(e.newValue));
-            _sfxSlider?.RegisterValueChangedCallback(e => _sfxVal.text = Pct(e.newValue));
+            _musicSlider?.RegisterValueChangedCallback(e =>
+            {
+                _musicVal.text = Pct(e.newValue);
+                GameAudio.PreviewMusic(e.newValue);   // heard while dragging; saved on Apply
+            });
+            _sfxSlider?.RegisterValueChangedCallback(e =>
+            {
+                _sfxVal.text = Pct(e.newValue);
+                GameAudio.PreviewSfx(e.newValue);     // same, with a tick to judge it by
+            });
             _shakeSlider?.RegisterValueChangedCallback(e => _shakeVal.text = Pct(e.newValue));
 
             PopulateDropdowns();
             ApplySavedToControls(); // populate controls from PlayerPrefs
+
+            // Controller: move between the controls, A presses / toggles, left-right moves a slider, B closes.
+            if (_overlay != null) UiPad.Register(_overlay, Close, () => _masterSlider, priority: 10);
         }
 
         void PopulateDropdowns()
@@ -227,6 +238,7 @@ namespace ReefRun
             if (_overlay == null) return;
             // revert live master volume preview to last saved value
             AudioListener.volume = PlayerPrefs.GetFloat(K_MASTER, 1f);
+            GameAudio.EndPreview();   // music / effects too (Apply has saved them by now, if it was pressed)
             _micPoll?.Pause();
             _mic.Stop();
             _loopToggle?.SetValueWithoutNotify(false);

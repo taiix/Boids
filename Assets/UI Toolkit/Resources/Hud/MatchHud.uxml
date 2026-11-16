@@ -3,67 +3,81 @@
     <ui:VisualElement name="hurt-vignette" class="overlay hurt-vignette"/>
     <ui:VisualElement name="white-pop" class="overlay white-pop"/>
     <ui:VisualElement name="hud" class="hud">
-        <ui:VisualElement name="clock" class="hud-panel clock">
+        <rr:ReefSlab name="clock" class="slab clock">
             <fg:HudClockLabel name="clock-label" text="SURVIVE" warmup-text="HUNT STARTING" over-text="ROUND OVER" no-match-text="NO MATCH" class="clock-label cb"/>
-            <ui:Label name="clock-time" text="10:00" class="clock-time xb"/>
+            <ui:Label name="clock-time" text="10:00" class="clock-time xbi"/>
             <ui:VisualElement class="clock-bar">
                 <ui:VisualElement name="clock-fill" class="clock-fill"/>
             </ui:VisualElement>
-        </ui:VisualElement>
-        <ui:VisualElement name="event" class="hud-panel event">
+        </rr:ReefSlab>
+        <rr:ReefSlab name="event" class="slab slab--orange event">
             <ui:Label name="event-text" text="ORCAS IN 6s" class="event-text cb"/>
-        </ui:VisualElement>
-        <ui:VisualElement name="vitals" class="hud-panel vitals">
+        </rr:ReefSlab>
+        <rr:ReefSlab name="vitals" class="slab slab--from-left vitals">
             <ui:VisualElement name="health-row" class="vrow">
                 <ui:Label text="HEALTH" class="vlabel cb"/>
-                <ui:VisualElement class="vbar">
-                    <ui:VisualElement name="health-fill" class="vfill vfill--health"/>
+                <ui:VisualElement class="vbar vbar--health">
+                    <ui:VisualElement name="health-fill" class="vfill--health"/>
+                    <ui:VisualElement class="vsegs">
+                        <ui:VisualElement class="vseg"/>
+                        <ui:VisualElement class="vseg"/>
+                        <ui:VisualElement class="vseg"/>
+                        <ui:VisualElement class="vseg"/>
+                        <ui:VisualElement class="vseg"/>
+                        <ui:VisualElement class="vseg"/>
+                        <ui:VisualElement class="vseg"/>
+                        <ui:VisualElement class="vseg"/>
+                        <ui:VisualElement class="vseg"/>
+                        <ui:VisualElement class="vseg"/>
+                    </ui:VisualElement>
                 </ui:VisualElement>
-                <ui:Label name="health-value" text="100%" class="vval sb"/>
+                <ui:Label name="health-value" text="100%" class="vval xb"/>
             </ui:VisualElement>
             <ui:VisualElement name="hunger-row" class="vrow">
                 <fg:HudHungerLabel name="hunger-label" text="HUNGER" starving-text="STARVING" class="vlabel cb"/>
-                <ui:VisualElement class="vbar">
-                    <ui:VisualElement name="hunger-fill" class="vfill vfill--hunger"/>
+                <ui:VisualElement class="vbar vbar--hunger">
+                    <ui:VisualElement name="hunger-fill" class="vfill--hunger"/>
                 </ui:VisualElement>
-                <ui:Label name="hunger-value" text="100%" class="vval sb"/>
+                <ui:Label name="hunger-value" text="100%" class="vval xb"/>
             </ui:VisualElement>
-        </ui:VisualElement>
-        <ui:VisualElement name="voice" class="hud-panel voice">
+        </rr:ReefSlab>
+        <rr:ReefSlab name="voice" class="slab slab--from-right voice">
             <rr:ReefGlyph name="mic-icon" kind="Mic" color="#8FB0BBFF" style="width: 22px; height: 22px;"/>
             <fg:HudVoiceLabel name="voice-label" text="QUIET" talking-text="TALKING" mic-off-text="MIC OFF" no-mic-text="NO MIC" shark-heard-text="SHARK HEARD YOU" ghost-text="GHOST CHANNEL" ghost-talking-text="TALKING TO GHOSTS" class="voice-label cb"/>
-        </ui:VisualElement>
+        </rr:ReefSlab>
         <ui:VisualElement name="prompt" class="prompt">
-            <ui:VisualElement name="prompt-pill" class="hud-panel prompt-pill">
+            <rr:ReefSlab name="prompt-pill" class="slab prompt-pill">
                 <ui:Label text="Press" class="prompt-text"/>
                 <ui:Label text="E" class="key"/>
                 <ui:Label text="to eat" class="prompt-text"/>
-            </ui:VisualElement>
-            <ui:VisualElement name="status" class="hud-panel status">
+            </rr:ReefSlab>
+            <rr:ReefSlab name="status" class="slab status">
                 <ui:Label name="status-text" text="1/2 fish pushing" class="status-text"/>
-            </ui:VisualElement>
+            </rr:ReefSlab>
             <ui:VisualElement name="progress" class="progress">
                 <ui:VisualElement name="progress-fill" class="progress-fill"/>
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:VisualElement name="abilities" class="hud-panel abilities">
+        <rr:ReefSlab name="abilities" class="slab slab--from-right abilities">
             <ui:VisualElement name="lunge-row" class="arow">
-                <ui:Label text="Q" class="key akey"/>
-                <ui:Label text="LUNGE" class="alabel cb"/>
                 <ui:VisualElement class="abar">
                     <ui:VisualElement name="lunge-fill" class="afill"/>
                 </ui:VisualElement>
+                <ui:Label text="Q" class="key akey"/>
+                <ui:Label text="LUNGE" class="alabel cb"/>
             </ui:VisualElement>
             <ui:VisualElement name="sonar-row" class="arow">
-                <ui:Label text="R" class="key akey"/>
-                <ui:Label text="SONAR" class="alabel cb"/>
                 <ui:VisualElement class="abar">
                     <ui:VisualElement name="sonar-fill" class="afill"/>
                 </ui:VisualElement>
+                <ui:Label text="R" class="key akey"/>
+                <ui:Label text="SONAR" class="alabel cb"/>
             </ui:VisualElement>
-        </ui:VisualElement>
+        </rr:ReefSlab>
         <ui:VisualElement name="flash" class="flash">
-            <ui:Label name="flash-text" text="STUNNED!" class="flash-text hud-panel xb"/>
+            <rr:ReefSlab class="slab slab--orange flash-slab">
+                <ui:Label name="flash-text" text="STUNNED!" class="flash-text xbi"/>
+            </rr:ReefSlab>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

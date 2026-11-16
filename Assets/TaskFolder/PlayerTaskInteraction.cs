@@ -2,7 +2,6 @@ using FishGame;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 
 
@@ -15,12 +14,6 @@ public class PlayerTaskInteraction : MonoBehaviour
     public PlayerTaskInteraction otherFake;
     FishMotor fishMotor;
 
-    private InputAction _holdAction;
-    public bool IsHolding { get; private set; }
-    private InputAction _puzzleMove;
-    public Vector2 PuzzleInput { get; private set; }
-    private InputAction _submitAction;   // Enter — check the full sequence
-    private InputAction _deleteAction;   // Backspace — delete the last arrow
 
     public GameObject uiElement;
     //public bool isAtInteractionSpot;
@@ -33,86 +26,24 @@ public class PlayerTaskInteraction : MonoBehaviour
         {Direction.Left,270 }
     };
 
-    void Awake()
+    // While this player is entering the sequence: the arrows (WASD / arrow keys / d-pad or stick), Enter / A to
+    // check it, Backspace / B to take the last arrow back. All through GameInput, so a controller works too.
+    void Update()
     {
-        _holdAction = new InputAction("Hold", InputActionType.Button);
-        _holdAction.AddBinding("<Mouse>/leftButton");
-        _holdAction.AddBinding("<Gamepad>/rightTrigger");
+        if (isFake || task == null || !task.isWorkedOn) return;
+        GameInput.ReportPuzzle();
 
-        _puzzleMove = new InputAction("PuzzleMove", InputActionType.Value, "Vector2");
-
-        _puzzleMove.AddCompositeBinding("2DVector")
-            .With("Up", "<Keyboard>/w")
-            .With("Down", "<Keyboard>/s")
-            .With("Left", "<Keyboard>/a")
-            .With("Right", "<Keyboard>/d");
-
-        _puzzleMove.AddCompositeBinding("2DVector")
-            .With("Up", "<Keyboard>/upArrow")
-            .With("Down", "<Keyboard>/downArrow")
-            .With("Left", "<Keyboard>/leftArrow")
-            .With("Right", "<Keyboard>/rightArrow");
-
-        _puzzleMove.AddBinding("<Gamepad>/dpad");
-
-        _puzzleMove.performed += OnPuzzleMove;
-
-        _holdAction.started += ctx => IsHolding = true;
-        _holdAction.canceled += ctx => IsHolding = false;
-
-        _submitAction = new InputAction("SubmitSequence", InputActionType.Button);
-        _submitAction.AddBinding("<Keyboard>/enter");
-        _submitAction.AddBinding("<Keyboard>/numpadEnter");
-        _submitAction.AddBinding("<Gamepad>/start");
-        _submitAction.performed += ctx => { if (!isFake && task != null && task.isWorkedOn) SubmitCurrent(); };
-
-        _deleteAction = new InputAction("DeleteArrow", InputActionType.Button);
-        _deleteAction.AddBinding("<Keyboard>/backspace");
-        _deleteAction.AddBinding("<Gamepad>/buttonEast");
-        _deleteAction.performed += ctx => { if (!isFake && task != null && task.isWorkedOn) DeleteLast(); };
-    }
-    private void OnPuzzleMove(InputAction.CallbackContext ctx)
-    {
-        // During the input phase (isWorkedOn) just press the directions — no holding required.
-        if (task == null || !task.isWorkedOn || isFake)
-            return;
-
-        Vector2 input = ctx.ReadValue<Vector2>();
-
-        if (input == Vector2.up)
-            SubmitDirection(Direction.Up);
-        else if (input == Vector2.down)
-            SubmitDirection(Direction.Down);
-        else if (input == Vector2.left)
-            SubmitDirection(Direction.Left);
-        else if (input == Vector2.right)
-            SubmitDirection(Direction.Right);
-    }
-    void OnEnable()
-    {
-        _holdAction.Enable();
-        _puzzleMove.Enable();
-        _submitAction.Enable();
-        _deleteAction.Enable();
-
-        _puzzleMove.performed += ctx =>
+        if (GameInput.PuzzleArrowPressed(out Vector2 arrow))
         {
-            PuzzleInput = ctx.ReadValue<Vector2>();
-        };
-
-        _puzzleMove.canceled += ctx =>
-        {
-            PuzzleInput = Vector2.zero;
-        };
+            if (arrow == Vector2.up) SubmitDirection(Direction.Up);
+            else if (arrow == Vector2.down) SubmitDirection(Direction.Down);
+            else if (arrow == Vector2.left) SubmitDirection(Direction.Left);
+            else SubmitDirection(Direction.Right);
+        }
+        if (GameInput.PuzzleSubmit.WasPressedThisFrame()) SubmitCurrent();
+        if (GameInput.PuzzleDelete.WasPressedThisFrame()) DeleteLast();
     }
 
-    void OnDisable()
-    {
-        _holdAction.Disable();
-        _puzzleMove.Disable();
-        _submitAction.Disable();
-        _deleteAction.Disable();
-    }
     public void ShowSequence(List<Direction> sequence)
     {
         if (!isFake)

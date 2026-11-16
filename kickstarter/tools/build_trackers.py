@@ -150,7 +150,7 @@ gates = [
     ("G0", "Kickstarter identity + NL bank verification passed (type Yes when done)", "No", "Yes", "text", "01 §3.1, K3 (creator resident in NL)"),
     ("G1", "Steam page live + key distribution confirmed (Yes/No)", "No", "Yes", "text", "S3"),
     ("G2", "Cumulative net wishlists", "=MAX('Weekly KPIs'!G2:G31)", 7500, "num", "02 §9"),
-    ("G3", "Expected backers from direct list = followers×0.20 + email×0.04", "=MAX('Weekly KPIs'!J2:J31)*0.2+MAX('Weekly KPIs'!I2:I31)*0.04", 224, "num", "03 Backer Funnel (MVD v2; ≈1,120 KS followers at 20%)"),
+    ("G3", "Expected backers from direct list = followers×0.20 + email×0.04", "=MAX('Weekly KPIs'!J2:J31)*0.2+MAX('Weekly KPIs'!I2:I31)*0.04", 282, "num", "03 Backer Funnel (MVD v3: 60% of 470 backers; ≈1,410 KS followers at 20%)"),
     ("G4a", "Share 'Yes' at €12.99 among respondents with 3+ rounds",
      "=IF(SUM('Playtest Survey'!L2:L501)=0,0,COUNTIFS('Playtest Survey'!C2:C501,\">=3\",'Playtest Survey'!F2:F501,\"Yes\")/SUM('Playtest Survey'!L2:L501))", 0.40, "pct", "02 §7 H3"),
     ("G4b", "Group return rate (all weeks)", "=IF(SUM('Weekly KPIs'!N2:N31)=0,0,SUM('Weekly KPIs'!O2:O31)/SUM('Weekly KPIs'!N2:N31))", 0.30, "pct", "02 §7 H2"),
@@ -199,11 +199,11 @@ ws.column_dimensions["A"].width = 52
 ws.column_dimensions["B"].width = 16
 ws.column_dimensions["C"].width = 60
 inp = [("Funding goal (EUR)", 14000, USD, "From 03_funding_model.xlsx → Scenarios, FUNDING GOAL (MVD)"),
-       ("Planned average pledge (EUR)", 37.56, '€#,##0.00', "From 03 → Rewards (blended)"),
+       ("Planned average pledge (EUR)", 29.80, '€#,##0.00', "From 03 → Rewards (blended, v3 tiers)"),
        ("Launch date", "2027-04-13", DATE, "Provisional (03 §5). Type a real date."),
        ("Campaign length (days)", 30, NUM, "Max 30 because of Steam key rules (S3)"),
        ("Marketing budget for the campaign (EUR)", 1500, USD, "03 Costs, MVD (live-campaign ads; v2)"),
-       ("Net revenue per backer used to judge ads (EUR)", 28.8, '€#,##0.00', "≈ average pledge × (1 − 23.3% deductions incl. VAT), from 03 v2"),
+       ("Net revenue per backer used to judge ads (EUR)", 22.8, '€#,##0.00', "≈ average pledge × (1 − 23.5% deductions incl. VAT), from 03 v3"),
        ("Kickstarter followers at launch (type on launch day)", 0, NUM, "From the pre-launch page"),
        ("Cancellation alert threshold (% of pledged)", 0.05, PCT, "Assumption")]
 for i, (lab, v, fmt, note) in enumerate(inp, start=1):
@@ -256,8 +256,8 @@ ws.freeze_panes = "C2"
 
 ws = wb.create_sheet("Tiers")
 header(ws, 1, ["Tier", "Price", "Planned mix", "Backers (type from KS dashboard)", "Pledged", "Actual mix", "vs plan (points)", "Limit", "Remaining"], [22, 9, 11, 14, 11, 10, 11, 8, 10])
-tiers = [("Ripple", 5, 0.07, None), ("Early Diver", 12, 0.18, 300), ("Diver", 15, 0.20, None), ("Founding Diver", 29, 0.22, None),
-         ("Pod of Four", 49, 0.20, None), ("Founding Pod", 99, 0.10, None), ("Name the Trawler", 199, 0.03, 25), ("No reward / custom", 1, 0.0, None)]
+tiers = [("Ripple", 5, 0.02, None), ("Early Diver", 12, 0.18, 120), ("Diver", 15, 0.37, None), ("Dive Buddies", 26, 0.16, None),
+         ("Pod of Four", 44, 0.18, None), ("Founding Pod", 99, 0.08, None), ("Name the Trawler", 199, 0.01, 10), ("No reward / custom", 1, 0.0, None)]
 for i, (n, p, m, lim) in enumerate(tiers, start=2):
     put(ws, f"A{i}", n)
     put(ws, f"B{i}", p, BLUE, USD)

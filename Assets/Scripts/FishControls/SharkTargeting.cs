@@ -53,6 +53,9 @@ namespace FishGame
         [Header("Hearing fish talk")]
         [Tooltip("Colour of the ripples where a voice came from, and the tint on a fish heard close by.")]
         [SerializeField] Color heardColor = new Color(0.65f, 0.92f, 1f);
+        [Tooltip("Brightness of the tint on a fish heard talking (or caught by the sonar). Kept well under the " +
+                 "lock's: at that strength a fish close to the shark blew out to white through bloom.")]
+        [SerializeField] float heardTintStrength = 0.7f;
         [Tooltip("How long a fish heard close by stays tinted and lockable (seconds).")]
         [SerializeField] float heardSeconds = 2f;
         [Tooltip("How long one ripple lasts on screen (seconds).")]
@@ -67,7 +70,6 @@ namespace FishGame
         /// <summary>The fish the shark is focused on (or null). SharkAbilities reads this.</summary>
         public GameObject LockedTarget { get; private set; }
 
-        InputAction _lockAction, _cycleAction;
         Collider[] _body;   // the shark's own colliders, so fish hidden behind its body aren't picked
         readonly Highlight _fx = new Highlight();
         readonly List<GameObject> _candidates = new List<GameObject>();
@@ -109,28 +111,16 @@ namespace FishGame
         {
             if (aimCam == null) aimCam = GetComponentInChildren<Camera>(true);
             _body = GetComponents<Collider>();
-
-            _lockAction = new InputAction("LockTarget", InputActionType.Button);
-            _lockAction.AddBinding("<Keyboard>/f");
-            _lockAction.AddBinding("<Gamepad>/buttonEast");
-
-            _cycleAction = new InputAction("CycleTarget", InputActionType.Button);
-            _cycleAction.AddBinding("<Keyboard>/tab");
-            _cycleAction.AddBinding("<Gamepad>/rightShoulder");
         }
 
         void OnEnable()
         {
-            _lockAction.Enable();
-            _cycleAction.Enable();
             ProximityVoice.SharkHeard += OnHeard;
             MatchManager.TaskDone += OnTaskDone;
         }
 
         void OnDisable()
         {
-            _lockAction.Disable();
-            _cycleAction.Disable();
             ProximityVoice.SharkHeard -= OnHeard;
             MatchManager.TaskDone -= OnTaskDone;
             ClearLock();
@@ -151,13 +141,13 @@ namespace FishGame
             // Drop the lock if the fish was eaten, destroyed, or got away.
             if (LockedTarget != null && !StillValid(LockedTarget)) ClearLock();
 
-            if (_lockAction.WasPressedThisFrame())
+            if (GameInput.LockTarget.WasPressedThisFrame())
             {
                 if (LockedTarget != null) ClearLock();
                 else LockNearestToCentre();
             }
 
-            if (_cycleAction.WasPressedThisFrame())
+            if (GameInput.CycleTarget.WasPressedThisFrame())
             {
                 if (LockedTarget != null) CycleTarget();
                 else LockNearestToCentre();
@@ -285,7 +275,7 @@ namespace FishGame
             _fx.Remove(f);
             if (f == LockedTarget) _fx.Apply(f, glowColor, tintStrength, solidTint);
             else if (_revealed.Contains(f)) _fx.Apply(f, revealColor, tintStrength, solidTint);
-            else if (_heard.ContainsKey(f)) _fx.Apply(f, heardColor, tintStrength, solidTint);
+            else if (_heard.ContainsKey(f)) _fx.Apply(f, heardColor, heardTintStrength, solidTint);
         }
 
         // ---- hearing ----
@@ -399,6 +389,7 @@ namespace FishGame
 
         void OnGUI()
         {
+            if (MatchHud.RoundOver) return;   // the results are up: no more in-round markers
             var cam = Cam;
             if (cam != null && _ripples.Count > 0) DrawRipples(cam);
             if (cam != null && _tasks.Count > 0) DrawTasks(cam);

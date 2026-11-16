@@ -1,5 +1,7 @@
 /* ============================================================
-   REEF RUN — launch overlay ("DESCENDING"), same look as the menu.
+   REEF RUN — launch overlay (the loading screen), same look as the menu:
+   a big italic title out of the bottom-left corner and the load bar on
+   a navy block from the left edge (ReefSlab).
    Lives on its own persistent UIDocument (Bootstrap) so it survives
    the lobby -> game scene change; the variables are redeclared here
    because they don't cross UIDocuments.
@@ -12,47 +14,52 @@
     --shark: #ff6b6b;
     --text: #eef6f7;
     --dim: #8fb0bb;
-    --line: rgba(143, 176, 187, 0.18);
+    --track: rgba(143, 176, 187, 0.16);
 }
 
 /* container opacity (fade in/out) is driven from C# in LaunchOverlay.cs, not a USS transition -
    a scene-load frame stall would otherwise eat the fade-out. */
 .overlay {
     position: absolute; left: 0; top: 0; right: 0; bottom: 0;
-    /* the text sits in the dark lower third, under the Eclipse key art's light (graded dark, fading to the deep) */
-    align-items: center; justify-content: flex-end; padding-bottom: 9%;
     background-color: #020a12;
     background-image: url("Images/Launch_Background.jpg");
     -unity-background-scale-mode: scale-and-crop;
     opacity: 0;
     color: var(--text);
+    font-size: 18px;
     -unity-font-definition: url("Fonts/Barlow-Regular.ttf");
 }
 .ov-shade { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(3, 12, 22, 0.3); }
+/* this reset outranks a single class, so Label rules that set a margin carry the .overlay prefix */
 .overlay Label { padding: 0; margin: 0; }
 
-.ov-inner { align-items: center; }
-.overlay .ov-eyebrow { font-size: 17px; letter-spacing: 6px; color: var(--orange); margin-bottom: 6px;
-              -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
-.ov-title-row { flex-direction: row; align-items: center; }
-.ov-title { font-size: 120px; letter-spacing: 6px; color: var(--text);
+/* ReefSlab block (ReefSlab.cs) */
+.slab { --slab-color: #051729; --slab-lean: 0.21; --slab-left: 1; --slab-right: 1; --slab-notch: 0; }
+.slab--from-left { --slab-left: 0; }
+
+/* everything sits in the dark lower-left of the key art; it starts past the screen edge like the menu's nav */
+.ov-inner { position: absolute; left: -40px; bottom: 56px; align-items: flex-start; }
+.ov-title-row { flex-direction: row; align-items: flex-end; margin-left: 112px; }
+.ov-title { font-size: 190px; letter-spacing: -2px; color: var(--text); text-shadow: 0 8px 40px rgba(0, 0, 0, 0.55);
             -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBoldItalic.ttf"); }
-.ov-dots { flex-direction: row; align-items: center; margin-left: 18px; margin-top: 30px; }
-.ov-dot { width: 12px; height: 12px; border-radius: 6px; background-color: var(--teal-l); margin-left: 9px; opacity: 0.25;
+.ov-dots { flex-direction: row; margin: 0 0 58px 22px; }
+.ov-dot { width: 16px; height: 16px; background-color: var(--teal-l); margin-right: 10px; opacity: 0.25;
           transition: opacity 0.25s ease; }
 .ov-dot--on { opacity: 1; }
 
-/* depth gauge */
-.ov-depth { width: 520px; margin-top: 18px; }
-.ov-depth-row { flex-direction: row; justify-content: space-between; }
-.ov-depth-label { font-size: 15px; letter-spacing: 3px; color: var(--dim); -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
-.ov-depth-val { font-size: 15px; letter-spacing: 2px; color: var(--teal-l); -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
-.ov-bar { height: 4px; margin-top: 8px; border-radius: 2px; background-color: rgba(143, 176, 187, 0.18); }
-.ov-bar-fill { height: 4px; width: 0%; border-radius: 2px; background-color: var(--teal-l); }
+/* load bar */
+.ov-load { flex-direction: row; align-items: center; height: 66px; padding: 0 60px 0 112px; margin-top: -22px; }
+.overlay .ov-load-label { font-size: 22px; letter-spacing: 2px; color: var(--dim); margin-right: 22px;
+                          -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
+.ov-bar { width: 520px; height: 10px; background-color: var(--track); }
+.ov-bar-fill { height: 10px; width: 0%; background-color: var(--teal-l); }
+.overlay .ov-load-val { font-size: 22px; letter-spacing: 1px; color: var(--teal-l); margin-left: 22px; min-width: 52px;
+                        -unity-font-definition: url("Fonts/BarlowCondensed-Bold.ttf"); }
 
 /* the story lines */
-.overlay .ov-line { margin-top: 34px; opacity: 0; transition: opacity 0.6s ease; }
-.ov-line-1 { font-size: 30px; color: var(--shark); letter-spacing: 1px; -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBold.ttf"); }
-.overlay .ov-line-2 { font-size: 18px; color: var(--dim); margin-top: 10px; }
+.overlay .ov-line { opacity: 0; transition: opacity 0.6s ease; }
+.overlay .ov-line-1 { font-size: 44px; color: var(--shark); letter-spacing: 1px; margin: 22px 0 0 112px;
+                      -unity-font-definition: url("Fonts/BarlowCondensed-ExtraBold.ttf"); }
+.overlay .ov-line-2 { font-size: 22px; color: #cfe3e8; margin: 2px 0 0 112px; }
 .overlay.phase1 .ov-line-1 { opacity: 1; }
 .overlay.phase2 .ov-line-2 { opacity: 1; }

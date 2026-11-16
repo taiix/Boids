@@ -88,12 +88,14 @@ caption a stand-in as the hearing mechanic. Put a small "In-engine footage, work
 | Tier | € | What you get | Delivery |
 |---|---|---|---|
 | Ripple | 5 | Name in the Supporters credits · Discord backer role · 4K wallpapers | Jun 2027 |
-| **Early Diver** · *limit 300* | **12** | Reef Run on Steam (backer beta + full game) · Supporters credit | Beta Jul 2027 |
+| **Early Diver** · *limit 120* | **12** | Reef Run on Steam (backer beta + full game) · Supporters credit | Beta Jul 2027 |
 | Diver | 15 | Same as Early Diver | Beta Jul 2027 |
-| **Founding Diver** | **29** | Diver + **Founder cosmetics** (fish "Founder Fin" + shark "Old Scar") + Founders credit + Making-of PDF | Key Jul 2027 · cosmetics at release |
-| **Pod of Four** ⭐ | **49** | **4 Steam keys for your group** · beta for all four · 4 Supporters credits | Beta Jul 2027 |
+| **Dive Buddies** | **26** (€13 a seat) | 2 Steam keys · 2 Supporters credits | Beta Jul 2027 |
+| **Pod of Four** ⭐ | **44** (€11 a seat) | **4 Steam keys for your group** · beta for all four · 4 Supporters credits · Pod Stripes pattern | Beta Jul 2027 · pattern at release |
 | Founding Pod | 99 | Pod of Four + 4 Founder cosmetic sets + 4 Founders credits + Making-of PDF | Keys Jul 2027 · cosmetics at release |
-| Name the Trawler · *limit 25* | 199 | Founding Diver + your name on the trawler's hull (moderated, rotates per round) | At release |
+| Name the Trawler · *limit 10* | 199 | Steam key + Founder cosmetics + Founders credit + PDF + your name on the trawler's hull (moderated, rotates per round) | At release |
+
+*v3 prices (2026-11-16, 05 v3). The final page text is in `page/index.html`.*
 
 *Footer: Digital only · Steam (Windows) · keys via Kickstarter's Pledge Manager · [[VAT line per your accountant;
 Kickstarter recommends prices excluding VAT, added in the Pledge Manager]].*
@@ -110,7 +112,7 @@ that are unpaid at the base goal.
 | €21,000 | 150% | **Backers vote on a 10th world event** + **Steam Deck pass** | ≈120 h + Deck |
 | €28,000 | 200% | **6 languages** (DE, FR, ES, PT-BR, PL, NL) | ≈€2,400 translation + 60 h |
 | €35,000 | 250% | **Original soundtrack** by a commissioned composer | ≈€2,500 |
-| €55,500 | ~400% | **A second map** (kelp forest / shipwreck) + 2 more tasks + 4 months of free updates | Realistic budget |
+| €56,000 | 400% | **A second map** (kelp forest / shipwreck) + 2 more tasks + 4 months of free updates | Realistic budget |
 
 ## 8. Where the money goes (pie by function)
 

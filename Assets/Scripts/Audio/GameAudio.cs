@@ -95,8 +95,41 @@ namespace FishGame
 
         void ReadPrefs()
         {
-            _musicVolume = PlayerPrefs.GetFloat(K_MUSIC, 1f);
-            _sfxVolume = PlayerPrefs.GetFloat(K_SFX, 1f);
+            _musicVolume = s_previewMusic >= 0f ? s_previewMusic : PlayerPrefs.GetFloat(K_MUSIC, 1f);
+            _sfxVolume = s_previewSfx >= 0f ? s_previewSfx : PlayerPrefs.GetFloat(K_SFX, 1f);
+        }
+
+        // ================================================================== settings preview
+
+        // The settings screen's sliders, heard while they're dragged (-1: not previewing, use the saved value).
+        static float s_previewMusic = -1f, s_previewSfx = -1f, s_nextSfxSample;
+
+        /// <summary>True while the settings screen is trying volumes out: the music follows at once instead of fading.</summary>
+        static bool Previewing => s_previewMusic >= 0f || s_previewSfx >= 0f;
+
+        /// <summary>Settings: play the music at this volume from now, without saving it.</summary>
+        public static void PreviewMusic(float volume)
+        {
+            s_previewMusic = Mathf.Clamp01(volume);
+            if (s_instance != null) s_instance._musicVolume = s_previewMusic;
+        }
+
+        /// <summary>Settings: play effects at this volume from now, without saving it, with a tick to judge it by.</summary>
+        public static void PreviewSfx(float volume)
+        {
+            s_previewSfx = Mathf.Clamp01(volume);
+            if (s_instance == null) return;
+            s_instance._sfxVolume = s_previewSfx;
+            if (Time.unscaledTime < s_nextSfxSample || Lib == null) return;
+            s_nextSfxSample = Time.unscaledTime + 0.12f;
+            Play(Lib.uiClick, 0.7f);
+        }
+
+        /// <summary>Settings closed: back to the saved volumes (which Apply has just written, if it was pressed).</summary>
+        public static void EndPreview()
+        {
+            s_previewMusic = s_previewSfx = -1f;
+            if (s_instance != null) s_instance.ReadPrefs();
         }
 
         // ================================================================== effects
@@ -284,7 +317,7 @@ namespace FishGame
             float duck = Time.unscaledTime < _duckUntil ? 0.25f : 1f;
             duck *= 1f - 0.45f * _threat;                          // the shark's cluster takes over from the music
             float level = MusicLevel * _musicVolume * duck;
-            float step = Time.unscaledDeltaTime * 0.35f;
+            float step = Time.unscaledDeltaTime * (Previewing ? 4f : 0.35f);   // a dragged slider is heard at once
             FadeMusic(_musicA, level, step);
             FadeMusic(_musicB, level, step);
         }

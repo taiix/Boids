@@ -38,22 +38,18 @@ namespace FishGame
         [Tooltip("Used when there's no SteamLobby to ask (it normally knows the lobby scene).")]
         [SerializeField] string fallbackLobbyScene = "02 - ReefRunLobby";
 
-        InputAction _toggle;
         ReefRunSettingsPanel _settings;
         UIDocument _doc;
         VisualElement _pause;
         UnityEngine.UIElements.Button _lobbyButton;
-        Label _lobbyHint;
+        Label _lobbyHint, _note;
+        const string PausedNote = "The game keeps going while you're in here.";
         CursorLockMode _cursorBefore;
         bool _cursorVisibleBefore;
 
         void Awake()
         {
             IsOpen = false;
-            _toggle = new InputAction("Pause", InputActionType.Button);
-            _toggle.AddBinding("<Keyboard>/escape");
-            _toggle.AddBinding("<Gamepad>/start");
-
             if (menuRoot != null) menuRoot.SetActive(false);   // legacy uGUI menu: never shown
 
             // Same 1920x1080 panel as the HUD, so the settings screen lays out like the main menu's.
@@ -75,7 +71,7 @@ namespace FishGame
             }
         }
 
-        void OnEnable() => _toggle.Enable();
+        void OnEnable() => GameInput.ControllerDisconnected += OnControllerDisconnected;
 
         void Start() => BuildMenu();
 
@@ -92,30 +88,54 @@ namespace FishGame
             _pause.style.display = DisplayStyle.None;
             root.Add(_pause);
 
-            _pause.Add(Lbl("PAUSED", "pause-eyebrow"));
-            var logo = new VisualElement();
-            logo.AddToClassList("pause-logo");
-            logo.Add(Lbl("REEF", "pause-logo-word"));
-            logo.Add(Lbl("RUN", "pause-logo-word", "pause-logo-word--run"));
-            _pause.Add(logo);
-            _pause.Add(Lbl("The dive keeps going while you're in here.", "pause-note"));
+            // Title, top left.
+            var title = new VisualElement { pickingMode = PickingMode.Ignore };
+            title.AddToClassList("pause-title");
+            title.Add(Lbl("PAUSED", "pause-word"));
+            _note = Lbl(PausedNote, "pause-note");
+            title.Add(_note);
+            _pause.Add(title);
 
-            Btn("RESUME", () => SetOpen(false), "pause-btn--primary");
-            Btn("SETTINGS", OpenSettings);
-            _lobbyButton = Btn("BACK TO LOBBY", BackToLobby);
+            // Nav, bottom left: RESUME as the one orange block (ReefSlab), the rest as words on a navy strip.
+            var nav = new VisualElement { pickingMode = PickingMode.Ignore };
+            nav.AddToClassList("pause-nav");
+            _pause.Add(nav);
+
+            var resume = new UnityEngine.UIElements.Button(() => SetOpen(false));
+            resume.AddToClassList("pause-primary");
+            var resumeSlab = new ReefSlab { pickingMode = PickingMode.Ignore };
+            resumeSlab.AddToClassList("slab");
+            resumeSlab.AddToClassList("pause-primary-slab");
+            var resumeLabel = Lbl("RESUME", "pause-primary-label");
+            var resumeKey = InputGlyphs.Tile(GameInput.Pause, InputSet.Menu);
+            resumeLabel.pickingMode = PickingMode.Ignore;
+            resumeKey.pickingMode = PickingMode.Ignore;
+            resumeSlab.Add(resumeLabel);
+            resumeSlab.Add(resumeKey);
+            resume.Add(resumeSlab);
+            nav.Add(resume);
+
+            var more = new ReefSlab();
+            more.AddToClassList("slab");
+            more.AddToClassList("pause-more");
+            nav.Add(more);
+            Btn(more, "SETTINGS", OpenSettings);
+            _lobbyButton = Btn(more, "BACK TO LOBBY", BackToLobby);
+            Btn(more, "MAIN MENU", ToMainMenu);
+            Btn(more, "QUIT GAME", Quit);
+
             _lobbyHint = Lbl("", "pause-hint");
-            _pause.Add(_lobbyHint);
-            Btn("MAIN MENU", ToMainMenu);
-            Btn("QUIT GAME", Quit);
-            _pause.Add(Lbl("ESC TO RESUME", "pause-foot"));
+            nav.Add(_lobbyHint);
+
+            // Controller: d-pad / stick between the buttons, A presses, B resumes.
+            UiPad.Register(_pause, () => SetOpen(false), () => resume, priority: 20);
         }
 
-        UnityEngine.UIElements.Button Btn(string text, System.Action onClick, string extra = null)
+        static UnityEngine.UIElements.Button Btn(VisualElement parent, string text, System.Action onClick)
         {
             var b = new UnityEngine.UIElements.Button(onClick) { text = text };
             b.AddToClassList("pause-btn");
-            if (extra != null) b.AddToClassList(extra);
-            _pause.Add(b);
+            parent.Add(b);
             return b;
         }
 
@@ -141,7 +161,16 @@ namespace FishGame
                 _pause.style.display = DisplayStyle.None;
             }
         }
-        void OnDisable() => _toggle.Disable();
+        void OnDisable() => GameInput.ControllerDisconnected -= OnControllerDisconnected;
+
+        // The controller they were playing on went away (unplugged, flat battery): open the menu, so they
+        // aren't left swimming blind, and say why. It's multiplayer, so the round itself carries on.
+        void OnControllerDisconnected()
+        {
+            if (RoundScreen.ShowingResults) return;   // already on a menu
+            SetOpen(true);
+            if (_note != null) _note.text = "Controller disconnected. Reconnect it, or carry on with keyboard and mouse.";
+        }
 
         bool _quitting;
         void OnApplicationQuit() => _quitting = true;
@@ -151,7 +180,6 @@ namespace FishGame
         void OnDestroy()
         {
             IsOpen = false;
-            _toggle?.Dispose();
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
             // Not when the game is closing: SteamManager is already gone, and asking it re-creates it
@@ -161,7 +189,7 @@ namespace FishGame
 
         void Update()
         {
-            if (_toggle.WasPressedThisFrame())
+            if (GameInput.Pause.WasPressedThisFrame())
             {
                 if (_settings != null && _settings.IsOpen) _settings.Close(); // Esc backs out of settings first
                 else SetOpen(!IsOpen);
@@ -190,6 +218,7 @@ namespace FishGame
             {
                 Cursor.lockState = _cursorBefore;
                 Cursor.visible = _cursorVisibleBefore;
+                if (_note != null) _note.text = PausedNote;
                 if (_settings != null && _settings.IsOpen) _settings.Close();
             }
             ShowMenu(open);
@@ -217,6 +246,7 @@ namespace FishGame
             var root = settingsDocument.rootVisualElement;
             if (root == null) return;
             _settings = new ReefRunSettingsPanel(root);
+            UiPad.Register(root, () => _settings?.Close(), priority: 30);
             _settings.Closed += OnSettingsClosed;
             ShowMenu(false);
             _settings.Open();
@@ -225,6 +255,7 @@ namespace FishGame
         void OnSettingsClosed()
         {
             _settings = null;
+            if (settingsDocument != null && settingsDocument.rootVisualElement != null) UiPad.Unregister(settingsDocument.rootVisualElement);
             if (settingsDocument != null) settingsDocument.gameObject.SetActive(false);
             ShowMenu(IsOpen);
         }

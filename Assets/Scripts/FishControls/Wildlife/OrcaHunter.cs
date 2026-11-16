@@ -159,6 +159,7 @@ namespace FishGame
             {
                 Hunt(dt);
                 KeepOffShark();
+                KeepOffPod();
             }
             Animate(dt);
         }
@@ -391,6 +392,57 @@ namespace FishGame
             _shark.ServerOrcaShove(push.normalized * (closing * contactShove));
         }
 
+        // Nor do they swim through each other: two bodies that meet are pushed apart, each orca moving its own
+        // half (every orca runs this), and whatever speed it had into the other is lost against it.
+        void KeepOffPod()
+        {
+            Vector3 pos = transform.position, fwd = transform.forward;
+            float half = bodyLength * 0.45f, reach = bodyRadius * 2f;
+            for (int i = 0; i < All.Count; i++)
+            {
+                var o = All[i];
+                if (o == null || o == this) continue;
+                Vector3 op = o.transform.position, of = o.transform.forward;
+                ClosestPoints(pos - fwd * half, pos + fwd * half, op - of * (o.bodyLength * 0.45f), op + of * (o.bodyLength * 0.45f),
+                              out Vector3 onMe, out Vector3 onOther);
+                Vector3 gap = onMe - onOther;
+                float dist = gap.magnitude, r = bodyRadius + o.bodyRadius;
+                if (dist >= r) continue;
+                Vector3 away = dist > 1e-4f ? gap / dist
+                             : (All.IndexOf(this) < i ? 1f : -1f) * Vector3.Cross(Vector3.up, fwd).normalized;
+                pos += away * ((r - dist) * 0.5f);
+                float into = Vector3.Dot(fwd, -away);
+                if (into > 0f) _speed *= 1f - into * 0.5f;
+            }
+            transform.position = pos;
+        }
+
+        // Steering that keeps the pod apart before they ever touch: veer from any orca close by, hardest from one
+        // right in the way. A bite or a charge barely turns, so this works on the heading it wants, and
+        // KeepOffPod catches the rest.
+        Vector3 PodAvoidance(Vector3 pos, Vector3 heading)
+        {
+            Vector3 avoid = Vector3.zero;
+            float half = bodyLength * 0.45f, range = bodyRadius * 2f + bodyLength * 0.6f;
+            for (int i = 0; i < All.Count; i++)
+            {
+                var o = All[i];
+                if (o == null || o == this) continue;
+                Vector3 op = o.transform.position, of = o.transform.forward;
+                // Where we'll be in half a second, against where it will be.
+                Vector3 me = pos + heading * (_speed * 0.5f), them = op + of * (o._speed * 0.5f);
+                ClosestPoints(me - heading * half, me + heading * half, them - of * (o.bodyLength * 0.45f), them + of * (o.bodyLength * 0.45f),
+                              out Vector3 onMe, out Vector3 onOther);
+                Vector3 gap = onMe - onOther;
+                float dist = gap.magnitude;
+                if (dist >= range) continue;
+                Vector3 away = dist > 1e-4f ? gap / dist : Vector3.Cross(Vector3.up, heading).normalized;
+                float ahead = Mathf.Clamp01(Vector3.Dot(heading, (op - pos).normalized));   // it's in our way
+                avoid += away * ((1f - dist / range) * (1.2f + 1.5f * ahead));
+            }
+            return avoid;
+        }
+
         // The closest points between segments p1-q1 and p2-q2 (Ericson, Real-Time Collision Detection 5.1.9).
         static void ClosestPoints(Vector3 p1, Vector3 q1, Vector3 p2, Vector3 q2, out Vector3 c1, out Vector3 c2)
         {
@@ -444,6 +496,7 @@ namespace FishGame
             Vector3 want = goal - pos;
             if (want.sqrMagnitude < 0.01f) want = transform.forward;
             want.Normalize();
+            if (_mode != Mode.Leave) want = (want + PodAvoidance(pos, transform.forward)).normalized;
 
             // Over the seabed and over the reef - coral, sponges, rocks (SceneryIndex) - never through them:
             // look along the way it's going (further the faster it goes) and climb in good time.

@@ -59,7 +59,7 @@ on Steam · **Players:** 4 online (1 shark, 3 fish) · **Release:** Q4 2027 (pla
 |---|---|---|---|
 | 1 Welcome | Immediately | You're in the first wave 🦈 | Who you are. The one-line pitch. The signup incentive (4K wallpaper pack + first playtest invite). One question: "How many people are in your usual game group?" |
 | 2 Nurture | Weekly, weeks 2–6 | e.g. "How the shark hears you" / "1,000 fish, 1 player" / "Playtest #1 results" | One GIF, ≤120 words, one link (Discord or playtest). Real development news only |
-| 3 Pre-launch hype | Weekly, 2 weeks before launch, then 3 days before | "Reef Run launches on Kickstarter on [[date]]" | The date and time, the Early Diver (€12, limit 300) and Pod of Four (€49), "follow the pre-launch page to get the launch email", and ask readers to whitelist your address |
+| 3 Pre-launch hype | Weekly, 2 weeks before launch, then 3 days before | "Reef Run launches on Kickstarter on [[date]]" | The date and time, the Early Diver (€12, limit 120) and Pod of Four (€44, €11 a seat), "follow the pre-launch page to get the launch email", and ask readers to whitelist your address |
 | 4 Campaign | Day 1, day 3, milestones, midpoint, final week, final 48 h | "We're live!" · "What backers are saying" · "We hit 50%!" · "48 hours left" | Templates E2–E6 in 10. Honest numbers, one CTA |
 
 Benchmarks from the guide: welcome-to-backer conversion of 1–5% on cold lists and 5–10%+ on nurtured lists.

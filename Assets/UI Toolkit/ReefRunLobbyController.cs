@@ -3,7 +3,6 @@ using Mirror;
 using Steamworks;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
 namespace ReefRun
@@ -88,8 +87,8 @@ namespace ReefRun
 
         void Update()
         {
-            // R toggles ready, like the in-game key tiles suggest - but not while typing a search.
-            if (_root != null && !_searchFocused && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
+            // R (X on a controller) toggles ready, like the key tile on the button says - but not while typing a search.
+            if (_root != null && !_searchFocused && GameInput.MenuReady.WasPressedThisFrame())
                 ToggleLocalReady();
         }
 
@@ -151,7 +150,9 @@ namespace ReefRun
             _readyBtn.clicked += ToggleLocalReady;
             _startBtn.clicked += StartMatch;
             _backBtn.clicked += LeaveLobby;
-            _root.Q<Label>("overlay-link").RegisterCallback<ClickEvent>(_ => OpenInviteOverlay());
+            var overlayLink = _root.Q<Label>("overlay-link");
+            overlayLink.RegisterCallback<ClickEvent>(_ => OpenInviteOverlay());
+            UiPad.MakePressable(overlayLink, OpenInviteOverlay);
 
             for (int i = 0; i < ClockOptions.Length; i++)
             {
@@ -163,6 +164,26 @@ namespace ReefRun
             _search.RegisterValueChangedCallback(_ => { UpdateSearchHint(); PopulateFriends(); });
             _search.RegisterCallback<FocusInEvent>(_ => { _searchFocused = true; UpdateSearchHint(); });
             _search.RegisterCallback<FocusOutEvent>(_ => { _searchFocused = false; UpdateSearchHint(); });
+            _search.tooltip = "Search Steam friends";   // the title Steam's on-screen keyboard shows
+
+            // The key tiles show the controller's own buttons when that's what the player is holding.
+            InputGlyphs.Bind(_readyBtn.Q<Label>(className: "key"), GameInput.MenuReady);
+            _root.Query<Label>(className: "key").ForEach(tile =>
+            {
+                if (tile.parent == null || !tile.parent.ClassListContains("rr")) return;   // the how-to-play rows only
+                switch (tile.text)
+                {
+                    case "E": InputGlyphs.Bind(tile, GameInput.Interact, InputSet.Fish); break;
+                    case "F": InputGlyphs.Bind(tile, GameInput.FlockBlend); break;
+                    case "LMB": InputGlyphs.Bind(tile, GameInput.Attack); break;
+                    case "Q": InputGlyphs.Bind(tile, GameInput.Lunge); break;
+                    case "R": InputGlyphs.Bind(tile, GameInput.Sonar); break;
+                }
+            });
+
+            // Controller: d-pad / stick around the lobby (starting on READY), A presses. No B here: backing out
+            // of a lobby by accident is worse than walking to LEAVE.
+            UiPad.Register(_root, null, () => _readyBtn);
 
             PopulateSteamLobby();
             RefreshLobbyData();
@@ -249,7 +270,7 @@ namespace ReefRun
             int ready = _players.FindAll(p => p.ready).Count;
             bool host = NetworkServer.active;
 
-            _fishCount.text = n >= 2 ? $"{n - 1} of you" : "Everyone, until a second diver joins";
+            _fishCount.text = n >= 2 ? $"{n - 1} of you" : "Everyone, until a second player joins";
 
             bool meReady = Me?.ready ?? false;
             _readyLabel.text = meReady ? "CANCEL READY" : "READY UP";
@@ -260,7 +281,7 @@ namespace ReefRun
             _startBtn.SetEnabled(canStart);
             _startBtn.EnableInClassList("btn-orange", canStart);
             _startBtn.EnableInClassList("btn-off", !canStart);
-            _startLabel.text = host ? "START DIVE" : "WAITING FOR HOST";
+            _startLabel.text = host ? "START GAME" : "WAITING FOR HOST";
             _startSub.text = $"{ready} of {n} ready";
 
             _settingsNote.text = host ? "You're the host" : "Host only";
@@ -292,13 +313,12 @@ namespace ReefRun
             if (p.isYou) tags.Add(Lbl("YOU", "tag", "tag--you"));
             if (p.isHost) tags.Add(Lbl("HOST", "tag", "tag--host"));
             if (!p.isYou && !p.isHost)
-                tags.Add(Lbl(IsFriend(p.steamId) ? "FRIEND" : "DIVER", "tag"));   // public lobbies bring strangers
+                tags.Add(Lbl(IsFriend(p.steamId) ? "FRIEND" : "PLAYER", "tag"));   // public lobbies bring strangers
             who.Add(tags);
             info.Add(who);
 
             var mic = new ReefGlyph(ReefGlyph.Kind.Mic, MicIdle, 22);
             mic.AddToClassList("pc-mic");
-            mic.tooltip = "Lights up while they talk";
             info.Add(mic);
             _talk[p.steamId] = (card, mic);
 
@@ -318,8 +338,9 @@ namespace ReefRun
             plus.Add(new ReefGlyph(ReefGlyph.Kind.Plus, Orange, 24));
             open.Add(plus);
             open.Add(Lbl("Open slot", "open-t1"));
-            open.Add(Lbl("Invite a friend →", "open-t2"));
+            open.Add(Lbl("Invite a friend", "open-t2"));
             open.AddManipulator(new Clickable(OpenInviteOverlay));
+            UiPad.MakePressable(open, OpenInviteOverlay);
             return open;
         }
 
@@ -350,9 +371,11 @@ namespace ReefRun
             bool host = NetworkServer.active;
             if (_visFriendsBtn != null) { _visFriendsBtn.EnableInClassList("seg-btn--on", !_public); _visFriendsBtn.SetEnabled(host); }
             if (_visPublicBtn != null) { _visPublicBtn.EnableInClassList("seg-btn--on", _public); _visPublicBtn.SetEnabled(host); }
-            if (_typeNote != null) _typeNote.text = _public ? "Public lobby · listed under JOIN" : "Friends-only lobby";
+            if (_typeNote != null) _typeNote.text = _public ? "Public lobby, listed under JOIN" : "Friends-only lobby";
             if (_eyebrow != null)
-                _eyebrow.text = $"{(_public ? "PUBLIC" : "FRIENDS")} LOBBY · {_players.Count} / {MaxSlots} DIVERS";
+                _eyebrow.text = _public ? "PUBLIC LOBBY" : "FRIENDS LOBBY";
+            var count = _root.Q<Label>("lobby-count");
+            if (count != null) count.text = $"{_players.Count} / {MaxSlots}";
         }
 
         static bool IsFriend(CSteamID id) =>
@@ -388,7 +411,7 @@ namespace ReefRun
                 if (filter.Length > 0 && name.IndexOf(filter, System.StringComparison.OrdinalIgnoreCase) < 0) continue;
                 friends.Add((id, name, state));
             }
-            _friendsCount.text = $"● {online} online";
+            _friendsCount.text = $"{online} online";
 
             friends.Sort((a, b) =>
             {
@@ -397,13 +420,13 @@ namespace ReefRun
             });
 
             int onlineShown = friends.FindAll(f => f.state != FriendState.Offline).Count;
-            if (onlineShown > 0) _friends.Add(Lbl($"ONLINE — {onlineShown}", "sec"));
+            if (onlineShown > 0) _friends.Add(Lbl($"ONLINE {onlineShown}", "sec"));
             bool offlineHeader = false;
             foreach (var f in friends)
             {
                 if (f.state == FriendState.Offline && !offlineHeader)
                 {
-                    _friends.Add(Lbl($"OFFLINE — {friends.Count - onlineShown}", "sec"));
+                    _friends.Add(Lbl($"OFFLINE {friends.Count - onlineShown}", "sec"));
                     offlineHeader = true;
                 }
                 _friends.Add(BuildFriendRow(f.id, f.name, f.state));
@@ -471,7 +494,6 @@ namespace ReefRun
         {
             var tile = new Button();
             tile.AddToClassList("inv");
-            tile.tooltip = "Invite to lobby";
             bool sent = _invited.Contains(id);
             tile.Add(new ReefGlyph(sent ? ReefGlyph.Kind.Check : ReefGlyph.Kind.Plus, Orange, sent ? 18 : 20));
             if (sent)

@@ -32,7 +32,6 @@ namespace FishGame
         [Tooltip("How fast the shrink/grow transition happens. Higher = snappier.")]
         [SerializeField] float scaleSmoothing = 10f;
 
-        InputAction _blendAction;
         Rigidbody _rb;
         Boid _boid;
         BoidsManager _activeManager; // the flock we're currently blended into
@@ -55,17 +54,10 @@ namespace FishGame
             if (motor == null) motor = GetComponent<FishMotor>();
             if (controller == null) controller = GetComponent<FishController>();
             _rb = GetComponent<Rigidbody>();
-
-            _blendAction = new InputAction("FlockBlend", InputActionType.Button);
-            _blendAction.AddBinding("<Keyboard>/f");
-            _blendAction.AddBinding("<Gamepad>/buttonNorth");
         }
-
-        void OnEnable() => _blendAction?.Enable();
 
         void OnDisable()
         {
-            _blendAction?.Disable();
             if (_blending) EndBlend(); // never leave the fish stuck as a boid
         }
 
@@ -91,7 +83,7 @@ namespace FishGame
                 return;
             }
 
-            if (_blendAction.WasPressedThisFrame())
+            if (GameInput.FlockBlend.WasPressedThisFrame())
             {
                 var flock = FindNearestFlock();
                 if (flock != null) StartBlend(flock);

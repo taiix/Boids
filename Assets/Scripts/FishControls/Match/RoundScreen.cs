@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Mirror;
+using ReefRun;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
@@ -49,7 +50,8 @@ namespace FishGame
         float _struggleShown;
         bool _wasHeld;
         Label _bannerEyebrow, _bannerTitle, _bannerSub, _markerLabel, _spectateName, _spectateHint;
-        Label _resEyebrow, _resTitle, _resYou, _resSub, _resShark, _resLeft, _resWait;
+        Label _resTitle, _resYou, _resSub, _resShark, _resLeft, _resWait;
+        VisualElement _resYouSlab;
         Button _playAgain, _toLobby, _leave;
 
         float _bannerShownAt = -1f, _bannerHold;
@@ -58,6 +60,8 @@ namespace FishGame
         MatchPhase _lastPhase = MatchPhase.Warmup;
         float _nextResultsRefresh;
         bool _leaving;
+        int _spectateHintGlyphs = -1;
+        const string SpectateKeysHint = "Left click: next player. Right click: previous";
 
         void Awake()
         {
@@ -84,10 +88,12 @@ namespace FishGame
             _root.AddToClassList("rs-root");
             _root.pickingMode = PickingMode.Ignore;
 
+            // Banner: the headline on a block in the role's colour, the goal on a navy block under it.
             _banner = Box(_root, "rs-banner");
-            _bannerEyebrow = Text(_banner, "rs-eyebrow");
-            _bannerTitle = Text(_banner, "rs-title");
-            _bannerSub = Text(_banner, "rs-sub");
+            _bannerEyebrow = Text(Slab(_banner, "rs-banner-loud"), "rs-eyebrow");
+            var bannerBody = Slab(_banner, "rs-banner-body");
+            _bannerTitle = Text(bannerBody, "rs-title");
+            _bannerSub = Text(bannerBody, "rs-sub");
 
             _allyLayer = Box(_root, "rs-ally-layer");
             _allyLayer.pickingMode = PickingMode.Ignore;
@@ -97,42 +103,59 @@ namespace FishGame
 
             _marker = Box(_root, "rs-marker");
             Box(_marker, "rs-diamond");
-            _markerLabel = Text(_marker, "rs-marker-label");
+            _markerLabel = Text(Slab(_marker, "rs-marker-slab"), "rs-marker-label");
 
             _spectate = Box(_root, "rs-spectate");
-            var card = Box(_spectate, "rs-spectate-card");
+            var card = Slab(_spectate, "rs-spectate-card");
             Text(card, "rs-spec-eyebrow", "SPECTATING");
             _spectateName = Text(card, "rs-spec-name");
-            _spectateHint = Text(card, "rs-spec-hint", "Left click: next player   ·   Right click: previous");
+            _spectateHint = Text(card, "rs-spec-hint", SpectateKeysHint);
 
             _struggle = Box(_root, "rs-struggle");
-            Text(_struggle, "rs-struggle-title", "BREAK FREE!");
-            Text(_struggle, "rs-struggle-key", "MASH  SPACE");
+            Text(Slab(_struggle, "rs-struggle-loud"), "rs-struggle-title", "BREAK FREE!");
+            var keys = Box(_struggle, "rs-struggle-keys");
+            Text(keys, "rs-struggle-key", "MASH");
+            // SPACE on keyboard; on a controller, the glyph of whatever button "ascend" is on.
+            InputGlyphs.Bind(Text(keys, "rs-key", "SPACE"), GameInput.Ascend, InputSet.Fish, "SPACE");
             var bar = Box(_struggle, "rs-struggle-bar");
             _struggleFill = Box(bar, "rs-struggle-fill");
             var time = Box(_struggle, "rs-struggle-time");
             _struggleTimeFill = Box(time, "rs-struggle-time-fill");
-            _struggleSub = Text(_struggle, "rs-struggle-sub");
+            _struggleSub = Text(Slab(_struggle, "rs-struggle-note"), "rs-struggle-sub");
 
+            // Results: the main menu's skeleton - a big title top-left, who ended up where on a navy block,
+            // and the host's next step as the one orange block bottom-left.
             _results = Box(_root, "rs-results");
-            var res = Box(_results, "rs-card");
-            _resEyebrow = Text(res, "rs-res-eyebrow", "ROUND OVER");
-            _resTitle = Text(res, "rs-res-title");
-            _resYou = Text(res, "rs-res-you");
-            _resSub = Text(res, "rs-res-sub");
-            _columns = Box(res, "rs-columns");
-            _resShark = Text(res, "rs-shark-line");
-            _resLeft = Text(res, "rs-left-line");
-            _buttons = Box(res, "rs-buttons");
-            _playAgain = Btn(_buttons, "PLAY AGAIN", PlayAgain, "primary");
+            var top = Box(_results, "rs-top");
+            _resTitle = Text(top, "rs-res-title");
+            var line = Box(top, "rs-res-line");
+            _resYouSlab = Slab(line, "rs-res-you-slab");
+            _resYou = Text(_resYouSlab, "rs-res-you");
+            _resSub = Text(line, "rs-res-sub");
+
+            var board = Slab(_results, "rs-board");
+            _columns = Box(board, "rs-columns");
+            _resShark = Text(board, "rs-shark-line");
+            _resLeft = Text(board, "rs-left-line");
+
+            var nav = Box(_results, "rs-nav");
+            _playAgain = new Button(PlayAgain);
+            _playAgain.AddToClassList("rs-btn-primary");
+            var playSlab = Slab(_playAgain, "rs-primary-slab");
+            playSlab.pickingMode = PickingMode.Ignore;
+            Text(playSlab, "rs-primary-label", "PLAY AGAIN").pickingMode = PickingMode.Ignore;
+            nav.Add(_playAgain);
+            _buttons = Slab(nav, "rs-buttons");
             _toLobby = Btn(_buttons, "BACK TO LOBBY", BackToLobby);
             _leave = Btn(_buttons, "LEAVE GAME", Leave);
-            _resWait = Text(res, "rs-wait", "Waiting for the host to start the next round...");
+            _resWait = Text(nav, "rs-wait", "Waiting for the host to start the next round...");
 
             foreach (var e in new[] { _banner, _marker, _spectate, _struggle })
                 SetPickingIgnore(e);
             _struggle.style.display = DisplayStyle.None;
             _results.style.display = DisplayStyle.None;
+            // Controller: move between the results' buttons, A presses.
+            UiPad.Register(_results, null, () => _playAgain, priority: 5);
             _marker.style.display = DisplayStyle.None;
             _spectate.style.display = DisplayStyle.None;
             _banner.style.opacity = 0f;
@@ -144,6 +167,16 @@ namespace FishGame
             v.AddToClassList(cls);
             parent.Add(v);
             return v;
+        }
+
+        // The menus' leaning navy block (ReefSlab), coloured and sized from RoundScreen.uss.
+        static ReefSlab Slab(VisualElement parent, string cls)
+        {
+            var s = new ReefSlab();
+            s.AddToClassList("slab");
+            s.AddToClassList(cls);
+            parent.Add(s);
+            return s;
         }
 
         static Label Text(VisualElement parent, string cls, string text = "")
@@ -269,8 +302,8 @@ namespace FishGame
 
             int health = me.TryGetComponent(out FishVitals v) ? Mathf.RoundToInt(v.HealthNorm * 100f) : 100;
             _struggleSub.text = me.CanBreakFree
-                ? $"Health {health}%  -  mash faster than {me.StruggleHoldRate:0.#} a second"
-                : $"Health {health}%  -  still wounded from the last bite, too weak to tear free";
+                ? $"Health {health}%. Mash faster than {me.StruggleHoldRate:0.#} a second"
+                : $"Health {health}%. Still wounded from the last bite, too weak to tear free";
         }
 
         // Your own fate gets a sting: a bright one for making it, a sad one (and a ghostly breath) for not.
@@ -373,8 +406,9 @@ namespace FishGame
             {
                 var tag = Box(_allyLayer, "rs-ally");
                 Box(tag, "rs-ally-pip");
-                var name = Text(tag, "rs-ally-name");
-                var distance = Text(tag, "rs-ally-distance");
+                var tagSlab = Slab(tag, "rs-ally-slab");
+                var name = Text(tagSlab, "rs-ally-name");
+                var distance = Text(tagSlab, "rs-ally-distance");
                 SetPickingIgnore(tag);
                 _allyTags.Add((tag, name, distance));
             }
@@ -408,7 +442,7 @@ namespace FishGame
             {
                 var marker = Box(_tagLayer, "rs-tag");
                 Box(marker, "rs-tag-diamond");
-                var label = Text(marker, "rs-tag-label");
+                var label = Text(Slab(marker, "rs-tag-slab"), "rs-tag-label");
                 SetPickingIgnore(marker);
                 _taskTags.Add((marker, label));
             }
@@ -433,9 +467,16 @@ namespace FishGame
             _spectate.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
             if (!show) return;
             var who = spec.Watching;
-            string side = who != null && who.IsSharkBody ? "<color=#ff5d6c>SHARK</color>" : "<color=#3fe0c5>FISH</color>";
+            string side = who != null && who.IsSharkBody ? "<color=#ff6b6b>SHARK</color>" : "<color=#2cc3c4>FISH</color>";
             _spectateName.text = who == null ? "Nobody left in the water" : $"{who.PlayerName}   {side}";
             _spectateHint.style.display = who != null ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_spectateHintGlyphs != GameInput.GlyphVersion)
+            {
+                _spectateHintGlyphs = GameInput.GlyphVersion;
+                _spectateHint.text = GameInput.UsingPad
+                    ? $"{InputGlyphs.Name(GameInput.SpectateNext)}: next player. {InputGlyphs.Name(GameInput.SpectatePrevious)}: previous"
+                    : SpectateKeysHint;
+            }
         }
 
         // ------------------------------------------------------------------ results
@@ -487,7 +528,7 @@ namespace FishGame
             bool sharkStarved = false, sharkLeft = false;
             foreach (var p in m.Roster)
             {
-                string name = p.name == myName ? $"{p.name}  <color=#88b4bd>(you)</color>" : p.name;
+                string name = p.name == myName ? $"{p.name}  <color=#8fb0bb>(you)</color>" : p.name;
                 if (p.role == FishRole.Shark)
                 {
                     if (p.outcome == PlayerOutcome.Died) sharkStarved = true;
@@ -513,15 +554,15 @@ namespace FishGame
                 tally = fishWin ? $"{escaped.Count} of {fish} fish escaped"
                       : escaped.Count == 0 ? (fish == 1 ? "The fish didn't escape" : "No fish escaped")
                       : $"Only {escaped.Count} of {fish} fish escaped - more than half had to";
-            _resSub.text = why != null ? $"{why} - {tally.Substring(0, 1).ToLowerInvariant()}{tally.Substring(1)}" : tally;
+            _resSub.text = (why != null ? $"{why}: {tally.Substring(0, 1).ToLowerInvariant()}{tally.Substring(1)}" : tally).ToUpperInvariant();
 
             // Did *you* win? Fish win together, the shark wins alone.
             bool known = me != null;
             bool won = known && (me.IsSharkBody ? !fishWin : fishWin);
-            _resYou.style.display = known ? DisplayStyle.Flex : DisplayStyle.None;
+            _resYouSlab.style.display = known ? DisplayStyle.Flex : DisplayStyle.None;
             _resYou.text = won ? "YOU WON" : "YOU LOST";
-            _resYou.EnableInClassList("won", won);
-            _resYou.EnableInClassList("lost", !won);
+            _resYouSlab.EnableInClassList("won", won);
+            _resYouSlab.EnableInClassList("lost", !won);
 
             _columns.Clear();
             if (escaped.Count > 0 || survived.Count == 0) Column("ESCAPED", "escaped", escaped, "Nobody escaped");
@@ -529,7 +570,7 @@ namespace FishGame
             Column("EATEN BY THE SHARK", "eaten", eaten, "Nobody was eaten");
             if (died.Count > 0) Column("DIDN'T SURVIVE", "died", died, null);
 
-            _resShark.text = sharks.Count == 0 ? "" : $"THE SHARK  <color=#ff5d6c><b>{string.Join(", ", sharks)}</b></color>";
+            _resShark.text = sharks.Count == 0 ? "" : $"THE SHARK  <color=#ff6b6b>{string.Join(", ", sharks)}</color>";
             _resShark.style.display = sharks.Count > 0 ? DisplayStyle.Flex : DisplayStyle.None;
             _resLeft.text = left.Count == 0 ? "" : $"Left the game: {string.Join(", ", left)}";
             _resLeft.style.display = left.Count > 0 ? DisplayStyle.Flex : DisplayStyle.None;
