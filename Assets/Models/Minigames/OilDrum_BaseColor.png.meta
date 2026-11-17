@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<<< HEAD:Assets/Models/Minigames/OilDrum_BaseColor.png.meta
 guid: 8ededcd984ecf674e9db4dd6e907c48e
+========
+guid: a7a12b7bc1a692944ad5176b74116bed
+>>>>>>>> origin/Seagulls:Assets/Coral Reef Decor Pack/Seagull/textures/TEX_Seagull_N_(convert.io).png.meta
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -7,7 +11,7 @@ TextureImporter:
   mipmaps:
     mipMapMode: 0
     enableMipMap: 1
-    sRGBTexture: 1
+    sRGBTexture: 0
     linearTexture: 0
     fadeOut: 0
     borderMipMap: 0
@@ -56,7 +60,7 @@ TextureImporter:
   spriteTessellationMethod: 0
   spriteTessellationDetail: -1
   spriteGeometrySubdivision: -1
-  textureType: 0
+  textureType: 1
   textureShape: 1
   singleChannelComponent: 0
   flipbookRows: 1

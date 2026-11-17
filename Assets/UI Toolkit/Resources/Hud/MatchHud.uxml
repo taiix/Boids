@@ -34,7 +34,7 @@
                 <ui:Label name="health-value" text="100%" class="vval xb"/>
             </ui:VisualElement>
             <ui:VisualElement name="hunger-row" class="vrow">
-                <fg:HudHungerLabel name="hunger-label" text="HUNGER" starving-text="STARVING" class="vlabel cb"/>
+                <fg:HudHungerLabel name="hunger-label" text="HUNGER" starving-text="STARVING" paused-text="PAUSED" class="vlabel cb"/>
                 <ui:VisualElement class="vbar vbar--hunger">
                     <ui:VisualElement name="hunger-fill" class="vfill--hunger"/>
                 </ui:VisualElement>

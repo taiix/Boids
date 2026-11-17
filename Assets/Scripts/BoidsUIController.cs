@@ -28,6 +28,7 @@ public class BoidsUIController : MonoBehaviour
 
     private void OnGUI()
     {
+        if (FishGame.ScreenshotMode.Hidden) return;   // F1: the UI's hidden for a screenshot
         GUI.Box(new Rect(10, 10, 350, 450), "Boid Controls");
 
         GUILayout.BeginArea(new Rect(20, 35, 330, 420));
