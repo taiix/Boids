@@ -2435,7 +2435,7 @@ MonoBehaviour:
   feedbackSeconds: 1.5
   controlsRoot: {fileID: 1683553996}
   controlsLabel: {fileID: 1683553997}
---- !u!1 &280424583
+--- !u!1 &313547859
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2443,51 +2443,48 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 280424585}
-  - component: {fileID: 280424584}
+  - component: {fileID: 313547861}
+  - component: {fileID: 313547860}
   m_Layer: 0
-  m_Name: Underwater Set Pieces
+  m_Name: Seagulls
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &280424584
+--- !u!114 &313547860
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 280424583}
+  m_GameObject: {fileID: 313547859}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bd178933939e3b342909e283db8adf56, type: 3}
+  m_Script: {fileID: 11500000, guid: bcb8d9ef9415af44ea0a877d8f99375c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FishGame.UnderwaterSetPieces
-  sink: 1.2
-  passableMaterial: grass
-  rockLayer: 3
-  seaweeds:
-  - {fileID: 2605152628424658703, guid: a216a1677befcc24f9bc130488c385cb, type: 3}
-  - {fileID: 3402496881491192059, guid: 907378407d1ee384d905d972023abd87, type: 3}
-  seaweedHeight: 7.9
-  seaweedScale: {x: 0.7, y: 1.6}
---- !u!4 &280424585
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.Seagulls
+  prefab: {fileID: 8537004062303561760, guid: 7f7d4ca884eed3243ab9d749f0142019, type: 3}
+  count: 12
+  startAfloat: 0.6
+  raft: {x: 2, y: 4}
+  scale: {x: 0.95, y: 1.15}
+  radius: 60
+  edgeMargin: 15
+  startleRadius: 14
+--- !u!4 &313547861
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 280424583}
+  m_GameObject: {fileID: 313547859}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2065458707}
-  - {fileID: 2003705808}
-  - {fileID: 1167901681}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &333846311
@@ -14208,4 +14205,4 @@ SceneRoots:
   - {fileID: 492313105}
   - {fileID: 1917631960}
   - {fileID: 1445197435}
-  - {fileID: 280424585}
+  - {fileID: 313547861}

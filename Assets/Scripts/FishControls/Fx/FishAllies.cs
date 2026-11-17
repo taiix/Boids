@@ -93,11 +93,17 @@ namespace FishGame
                 foreach (var go in _glows[fp]) if (go != null) Destroy(go);
                 _glows.Remove(fp);
             }
+
+            // Not in a screenshot (F1, ScreenshotMode).
+            bool show = !ScreenshotMode.Hidden;
+            foreach (var kv in _glows)
+                foreach (var go in kv.Value)
+                    if (go != null && go.activeSelf != show) go.SetActive(show);
         }
 
         void OnGUI()
         {
-            if (_revealedSharks.Count == 0 || MatchHud.RoundOver) return;
+            if (_revealedSharks.Count == 0 || MatchHud.RoundOver || ScreenshotMode.Hidden) return;
             var cam = WaterFx.ViewCamera; // Camera.main is null for a networked player (its camera isn't tagged)
             var me = Local();
             if (cam == null || me == null) return;

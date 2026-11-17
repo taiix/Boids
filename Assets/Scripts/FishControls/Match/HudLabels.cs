@@ -15,11 +15,13 @@ namespace FishGame
         [UxmlAttribute] public string noMatchText = "NO MATCH";
     }
 
-    /// <summary>The hunger bar's name: its text normally, this once hunger has run out.</summary>
+    /// <summary>The hunger bar's name: its text normally, these once hunger has run out / while it's paused
+    /// for testing (Shift+H).</summary>
     [UxmlElement]
     public partial class HudHungerLabel : Label
     {
         [UxmlAttribute] public string starvingText = "STARVING";
+        [UxmlAttribute] public string pausedText = "PAUSED";
     }
 
     /// <summary>The voice panel's word: its text while you're quiet, these the rest of the time.</summary>
