@@ -537,6 +537,24 @@ public class FishPlayer : NetworkBehaviour
             if (_offlineLocal) SwapBodyOffline();
             else CmdSwitchRole();
         }
+
+        // Shift+H stops this body's hunger going down (and starts it again), for testing without starving.
+        // The server keeps the stats, so a client asks it.
+        var keys = Keyboard.current;
+        if (_controlsLive && keys != null && keys.hKey.wasPressedThisFrame
+            && (keys.leftShiftKey.isPressed || keys.rightShiftKey.isPressed) && TryGetComponent(out FishVitals v))
+        {
+            bool pause = !v.HungerPaused;
+            if (_offlineLocal || isServer) v.SetHungerPaused(pause);
+            else CmdPauseHunger(pause);
+            MatchHud.Flash(pause ? "HUNGER PAUSED  (Shift+H to turn it back on)" : "HUNGER BACK ON", 2.5f);
+        }
+    }
+
+    [Command]
+    private void CmdPauseHunger(bool pause)
+    {
+        if (TryGetComponent(out FishVitals v)) v.SetHungerPaused(pause);
     }
 
     /// <summary>True for a body driven by the offline sandbox (no host or client running).</summary>

@@ -390,6 +390,7 @@ namespace FishGame
         void OnGUI()
         {
             if (MatchHud.RoundOver) return;   // the results are up: no more in-round markers
+            if (ScreenshotMode.Hidden) return;   // F1: the UI's hidden for a screenshot
             var cam = Cam;
             if (cam != null && _ripples.Count > 0) DrawRipples(cam);
             if (cam != null && _tasks.Count > 0) DrawTasks(cam);

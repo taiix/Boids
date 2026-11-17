@@ -264,9 +264,10 @@ namespace FishGame
             if (hp != _shownHealth) { _shownHealth = hp; _healthVal.text = $"{hp}%"; }
             if (gp != _shownHunger) { _shownHunger = gp; _hungerVal.text = $"{gp}%"; }
             bool starving = v != null && !v.IsDead && g <= 0f;
-            _hungerLabel.text = starving ? _hungerLabel.starvingText : _hungerNormal;
+            bool paused = v != null && v.HungerPaused;   // testing, Shift+H
+            _hungerLabel.text = paused ? _hungerLabel.pausedText : starving ? _hungerLabel.starvingText : _hungerNormal;
             // blink while starving
-            _hungerLabel.EnableInClassList("vlabel--alert", starving && Mathf.Repeat(Time.unscaledTime, 1f) < 0.6f);
+            _hungerLabel.EnableInClassList("vlabel--alert", starving && !paused && Mathf.Repeat(Time.unscaledTime, 1f) < 0.6f);
         }
 
         void UpdateVoice()
