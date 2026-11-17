@@ -52,6 +52,8 @@ namespace FishGame
         [SyncVar] double _bleedUntil;
         // The shark at zero health: stunned until then, on the shared clock.
         [SyncVar] double _stunnedUntil;
+        // Testing (Shift+H, FishPlayer): this fish's hunger holds where it is - no draining, no starving.
+        [SyncVar] bool _hungerPaused;
 
         double _recoverUntil;   // authority: the shark's health refills until then
         bool _deathApplied;
@@ -67,6 +69,8 @@ namespace FishGame
         public float HealthNorm => maxHealth > 0f ? _health / maxHealth : 0f;
         public float HungerNorm => maxHunger > 0f ? _hunger / maxHunger : 0f;
         public bool IsDead => _isDead;
+        /// <summary>Testing (Shift+H): this fish's hunger isn't going down.</summary>
+        public bool HungerPaused => _hungerPaused;
         public bool IsBleeding => !_isDead && !OutOfRound && Now < _bleedUntil;
         /// <summary>The shark at zero health: it can't move until this runs out.</summary>
         public bool IsStunned => Now < _stunnedUntil;
@@ -119,12 +123,21 @@ namespace FishGame
                 return;
             }
 
-            if (_hunger > 0f)
-                _hunger = Mathf.Max(0f, _hunger - hungerDrainPerSecond * dt);
-            else
-                _health = Mathf.Max(0f, _health - starveDamagePerSecond * dt);
+            if (!_hungerPaused)   // (testing, Shift+H: hunger holds where it is)
+            {
+                if (_hunger > 0f)
+                    _hunger = Mathf.Max(0f, _hunger - hungerDrainPerSecond * dt);
+                else
+                    _health = Mathf.Max(0f, _health - starveDamagePerSecond * dt);
+            }
 
             if (_health <= 0f) OutOfHealth();
+        }
+
+        /// <summary>Testing (Shift+H): stop this fish's hunger going down, or start it again. Authority-only.</summary>
+        public void SetHungerPaused(bool paused)
+        {
+            if (Authority) _hungerPaused = paused;
         }
 
         /// <summary>Restore hunger (called by the eating system). Authority-only.</summary>
