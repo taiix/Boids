@@ -52,17 +52,19 @@ public static class FishSpeciesBuilder
         // a mackerel bends from further forward.
         //       name             source                    play   length player  rate swing hinge speed spacing
         new Def("Clownfish",     "Clownfish_prefab",       true,  0.62f, 0.95f, 2.4f, 26f, 0.50f, 0.90f, 0.85f),
-        new Def("YellowTang",    "Yellowtang_prefab",      true,  0.75f, 1.05f, 1.9f, 22f, 0.56f, 1.00f, 1.00f),
+        new Def("YellowTang",    "Yellowtang_prefab",      false, 0.75f, 1.05f, 1.9f, 22f, 0.56f, 1.00f, 1.00f),
         new Def("Angelfish",     "Emperor_angelfish_prefab", true, 0.80f, 1.05f, 1.8f, 22f, 0.58f, 0.95f, 1.05f),
         new Def("MoorishIdol",   "Moorish_idol_prefab",    false, 0.85f, 1.00f, 1.5f, 20f, 0.60f, 0.85f, 1.10f),
         new Def("Mackerel",      "Mackerel_prefab",        false, 1.05f, 1.00f, 2.8f, 20f, 0.42f, 1.30f, 1.20f),
-        new Def("Butterflyfish", "Butterfly_fish_prefab",  false, 0.60f, 1.00f, 2.0f, 22f, 0.58f, 0.80f, 0.90f),
+        new Def("Butterflyfish", "Butterfly_fish_prefab",  true,  0.60f, 1.00f, 2.0f, 22f, 0.58f, 0.80f, 0.90f),
     };
     const int PinkIndex = 6; // appended after the deluxe species: the original school fish
 
     // Schools take species in this order, biggest school first. The three playable fish come first and
     // recur, so every player has schools of their own kind to hide in; the others add variety.
-    static readonly int[] SchoolCycle = { 1, 2, 0, 3, 4, 5, 1, 2, 0, PinkIndex, 1, 2, 0 };
+    // The Yellow Tang (1) is out since 2026-11-17: its texture is plain yellow and read as a broken shader in game.
+    // The Butterflyfish (5) took its place, as a playable fish and in its schools.
+    static readonly int[] SchoolCycle = { 5, 2, 0, 3, 4, 5, 5, 2, 0, PinkIndex, 5, 2, 0 };
 
     [MenuItem("Tools/Fish/Build Species")]
     public static void BuildMenu() => Debug.Log(Build());
@@ -170,6 +172,7 @@ public static class FishSpeciesBuilder
             // The tail swings out of the rest pose (up to twice the baked swing when a player sprints).
             b.Expand(new Vector3(2f * (1f - d.hinge) * Mathf.Sin(Mathf.Min(2f * d.swing, 70f) * Mathf.Deg2Rad) + 0.02f, 0.02f, 0.02f));
             mesh.bounds = b;
+            FishFinBaker.Bake(mesh, src);   // the side fins' flap data (vertex colours)
             mesh.UploadMeshData(false);
             if (isNew) AssetDatabase.CreateAsset(mesh, meshPath);
             else EditorUtility.SetDirty(mesh);

@@ -174,6 +174,15 @@ namespace FishGame
             if (NetworkServer.active) _player.ServerReleasePrey();   // limp jaws let go of whatever it held
         }
 
+        /// <summary>The shark, dazed for <paramref name="seconds"/>: it can't move or bite (SharkCondition), but
+        /// unlike running out of health it keeps its health and doesn't need to recover. Authority-only.</summary>
+        public void Daze(float seconds)
+        {
+            if (!Authority || _isDead || !IsShark || seconds <= 0f) return;
+            double until = Now + seconds;
+            if (until > _stunnedUntil) _stunnedUntil = until;
+        }
+
         void Die()
         {
             if (_isDead) return;

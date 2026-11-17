@@ -15,6 +15,8 @@ GameObject:
   - component: {fileID: 8764371453871138489}
   - component: {fileID: 2501106536869594982}
   - component: {fileID: 2358947279564170573}
+  - component: {fileID: 178457423088629129}
+  - component: {fileID: 8363452185189941435}
   m_Layer: 0
   m_Name: TrashBag
   m_TagString: Untagged
@@ -164,6 +166,7 @@ MonoBehaviour:
   groundFriction: 0.8
   bounce: 0.2
   slopeSlide: 1
+  slideAboveDegrees: 25
   spinDrag: 0.8
   radius: 0
   sinkIntoSand: 0.15
@@ -198,6 +201,51 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FishGame.VegetationPusher
   radius: 0.58
   clearance: 1
+--- !u!114 &178457423088629129
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5533592252895567413}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9842ab33caa475d43b74adce8742b5cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TrashMinigame
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  sendRate: 10
+  maxPushDistance: 8
+  settleSeconds: 0.4
+  shoveDistance: 0.35
+  pumpDistance: 0.08
+  pumpRate: 9
+  syncWindow: 0.3
+  syncGain: 0.25
+  syncDrain: 0.06
+--- !u!135 &8363452185189941435
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5533592252895567413}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 1.6331325
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &9063618181474412127
 GameObject:
   m_ObjectHideFlags: 0

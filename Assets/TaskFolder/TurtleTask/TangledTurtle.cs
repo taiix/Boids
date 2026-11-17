@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UIElements;
 
 namespace FishGame
 {
@@ -133,7 +134,7 @@ namespace FishGame
         }
 
         void OnEnable() { All.Add(this); }
-        void OnDisable() { All.Remove(this); }
+        void OnDisable() { All.Remove(this); CloseNet(null); }
         void OnDestroy()
         {
             if (_leftovers != null) Destroy(_leftovers.gameObject);
@@ -264,6 +265,28 @@ namespace FishGame
             if (rope >= 0 && CanBite(null, rope)) _testBiters[fakeFish] = rope;
             else _testBiters.Remove(fakeFish);
         }
+
+        /// <summary>Testing (Tools > Reef Run > Minigames): the first knot that's still tied, where a fish bites it.</summary>
+        public bool DebugFirstKnot(out int rope, out Vector3 at)
+        {
+            rope = -1; at = default;
+            if (!_built || _freed) return false;
+            for (int i = 0; i < 4; i++)
+                if (!RopeCut(i) && _ropes[i] != null) { rope = i; at = KnotPoint(i); return true; }
+            return false;
+        }
+
+        /// <summary>Testing: open the net game at <paramref name="rope"/>, with a pretend fish biting its partner
+        /// knot for as long as it's open (a pair has to be bitten together, so alone it would only slip).</summary>
+        public void DebugOpenNet(FishPlayer me, int rope)
+        {
+            if (me == null || _net.open) return;
+            OpenNet(me, rope);
+            if (!_net.open) return;
+            _debugPartner = true;
+            DebugBite(-99, PartnerOf(rope));
+        }
+        bool _debugPartner;
 
         /// <summary>Testing: the word on a rope's knot.</summary>
         public string DebugWord(int rope) => WordOf(rope);
@@ -471,6 +494,173 @@ namespace FishGame
 
         // ================================================================= every machine: this machine's fish
 
+        // ================================================================= the net minigame (this machine's fish)
+
+        // Strands of net go round the turtle; one is weak (orange). Space when it passes the fish's mouth
+        // cuts it - and keeps the fish biting for BiteSeconds, long enough to reach the next weak strand.
+        // A miss (or letting the bite run out) stops the bite, so pairs have to keep a rhythm together.
+        struct NetGame
+        {
+            public bool open;
+            public int rope, weak, cuts;
+            public float rotation, biteUntil, flash, openedAt;
+            public bool flashGood;
+            public bool Biting => open && Time.time < biteUntil;
+        }
+        NetGame _net;
+        NetRing _netRing;
+        VisualElement _netPiece;
+        Vector2 _ringAt;
+        float _ringSize, _turtleRadius;
+        Camera _netCam;   // the camera following our fish (the scene has no MainCamera tag)
+        FishPlayer _netFish;
+        static InputAction s_cutAction;
+
+        int _netMisses;                    // this session at the net, for MatchLog
+        const float NetSpin = 1.5f;        // rad/s
+        const float BiteSeconds = 2.1f;    // one good cut keeps you biting this long
+        const float BiteWindow = 0.3f;     // radians either side of the mouth
+
+        void OpenNet(FishPlayer me, int rope)
+        {
+            var ui = MinigameHud.Open("NetBite");
+            if (ui == null || me == null) return;
+            _net = new NetGame { open = true, rope = rope, rotation = Random.value * 6.28f, openedAt = Time.unscaledTime };
+            _netMisses = 0;
+            MatchLog.Write("start", "Turtle net", -1f, $"rope={rope}");
+            _netRing = ui.Q<NetRing>("ring");
+            var key = ui.Q<Label>("cut-key");
+            if (key != null) key.text = GameInput.UsingPad ? GameInput.PuzzleSubmit.PadLabel : "SPACE";
+            var quit = ui.Q<Label>("quit-key");
+            if (quit != null) quit.text = MinigameHud.KeyText(GameInput.Interact);
+            var word = ui.Q<Label>("word");
+            if (word != null) word.text = WordOf(rope);
+            _netRing.window = BiteWindow;
+            // the ring sits over the real turtle (FollowTurtle): no translate, we place it ourselves
+            _netPiece = ui.Q(className: "mg-net");
+            if (_netPiece != null) _netPiece.style.translate = new Translate(0, 0);
+            _ringSize = -1f;
+            _turtleRadius = 1f;
+            var shell = model != null ? model : transform;
+            foreach (var rend in shell.GetComponentsInChildren<Renderer>())
+                _turtleRadius = Mathf.Max(_turtleRadius, Mathf.Max(rend.bounds.extents.x, rend.bounds.extents.z) * 0.8f);
+            _net.weak = NextWeak(1.2f);
+            _netFish = me;
+            me.SetTaskLocked(true);
+            MinigameHud.SetHint($"Someone has to chew the other {WordOf(rope)} knot at the same time");
+            foreach (var cam in FindObjectsByType<FishOrbitCamera>(FindObjectsInactive.Exclude))
+                if (cam.Target == me.transform)
+                {
+                    cam.TurnToward(TurtleCentre - me.transform.position, 24f);
+                    _netCam = cam.GetComponentInChildren<Camera>();
+                }
+        }
+
+        void CloseNet(FishPlayer me)
+        {
+            if (!_net.open) return;
+            if (_debugPartner) { _debugPartner = false; DebugBite(-99, -1); }
+            MatchLog.Write(_freed ? "solved" : "left", "Turtle net", Time.unscaledTime - _net.openedAt,
+                $"cuts={_net.cuts} misses={_netMisses} pair={Progress(PairOf(_net.rope)):0.00}");
+            _net.open = false;
+            MinigameHud.Close();
+            if (_netFish != null) _netFish.SetTaskLocked(false);
+            _netFish = null;
+        }
+
+        Vector3 TurtleCentre => model != null ? model.position : transform.position;
+
+        // Keep the ring wrapped round the real turtle on screen, just outside its shell.
+        void FollowTurtle()
+        {
+            var cam = _netCam != null ? _netCam : Camera.main;
+            if (_netPiece == null || _netPiece.panel == null || cam == null) return;
+            Vector3 centre = TurtleCentre;
+            if (Vector3.Dot(centre - cam.transform.position, cam.transform.forward) <= 0.5f) return;   // behind us
+            var panel = _netPiece.panel;
+            Vector2 c = RuntimePanelUtils.CameraTransformWorldToPanel(panel, centre, cam);
+            Vector2 e = RuntimePanelUtils.CameraTransformWorldToPanel(panel, centre + cam.transform.right * _turtleRadius, cam);
+            // NetRing draws its ring at 0.33 of its size; the net goes a little outside the shell
+            float size = Mathf.Clamp((e - c).magnitude * 1.2f / 0.33f, 300f, 560f);
+
+            float k = _ringSize < 0f ? 1f : 1f - Mathf.Exp(-10f * Time.unscaledDeltaTime);
+            _ringAt = _ringSize < 0f ? c : Vector2.Lerp(_ringAt, c, k);
+            _ringSize = _ringSize < 0f ? size : Mathf.Lerp(_ringSize, size, k);
+            _netRing.style.width = _ringSize;
+            _netRing.style.height = _ringSize;
+
+            // place the piece so the ring's middle lands on the turtle (below the clock, on screen)
+            var ring = _netRing.layout;
+            float left = _ringAt.x - (ring.x + ring.width * 0.5f);
+            float top = _ringAt.y - (ring.y + ring.height * 0.5f);
+            var root = panel.visualTree.layout;
+            _netPiece.style.left = Mathf.Clamp(left, 0f, Mathf.Max(0f, root.width - _netPiece.layout.width));
+            _netPiece.style.top = Mathf.Clamp(top, 110f, Mathf.Max(110f, root.height - _netPiece.layout.height - 20f));
+        }
+
+        // The strand that reaches the mouth in about `seconds`.
+        int NextWeak(float seconds)
+        {
+            int n = _netRing != null ? _netRing.strands : 10, best = 0;
+            float bestErr = float.MaxValue;
+            for (int i = 0; i < n; i++)
+            {
+                float a = _net.rotation + i * Mathf.PI * 2f / n;
+                // strands move with +rotation; time until strand i's angle reaches the top (-pi/2)
+                float need = Mathf.Repeat(-Mathf.PI / 2f - a, Mathf.PI * 2f);
+                float err = Mathf.Abs(need / NetSpin - seconds);
+                if (err < bestErr) { bestErr = err; best = i; }
+            }
+            return best;
+        }
+
+        void TickNet()
+        {
+            if (_netRing == null) return;
+            GameInput.ReportPuzzle();
+            float dt = PauseMenu.IsOpen ? 0f : Mathf.Min(Time.deltaTime, 0.05f);
+            _net.rotation += NetSpin * dt;
+            _net.flash = Mathf.MoveTowards(_net.flash, 0f, dt * 2.5f);
+
+            if (s_cutAction == null)
+            {
+                s_cutAction = new InputAction("net_cut", InputActionType.Button);
+                s_cutAction.AddBinding("<Keyboard>/space");
+                s_cutAction.AddBinding("<Gamepad>/buttonSouth");
+                s_cutAction.Enable();
+            }
+            if (dt > 0f && (s_cutAction.WasPressedThisFrame() || GameInput.PuzzleSubmit.WasPressedThisFrame()))
+            {
+                float a = _net.rotation + _net.weak * Mathf.PI * 2f / _netRing.strands;   // this frame's angle
+                float off = Mathf.Abs(Mathf.DeltaAngle(a * Mathf.Rad2Deg, -90f)) * Mathf.Deg2Rad;
+                if (off <= BiteWindow)
+                {
+                    _net.cuts++;
+                    _net.biteUntil = Time.time + BiteSeconds;
+                    _net.flash = 1f; _net.flashGood = true;
+                    _net.weak = NextWeak(Random.Range(1.0f, 1.6f));
+                    MinigameHud.Flash(off < BiteWindow * 0.4f ? "SNIP!" : "NIBBLE", true);
+                    GameFeel.Shake(0.05f);
+                }
+                else
+                {
+                    _net.biteUntil = 0f;
+                    _netMisses++;
+                    _net.flash = 1f; _net.flashGood = false;
+                    MinigameHud.Flash("MISSED", false);
+                }
+            }
+
+            _netRing.rotation = _net.rotation;
+            _netRing.weak = _net.weak;
+            _netRing.flash = _net.flash;
+            _netRing.flashGood = _net.flashGood;
+            _netRing.biting = _net.Biting ? Mathf.Clamp01((_net.biteUntil - Time.time) / BiteSeconds) : 0f;
+            _netRing.MarkDirtyRepaint();
+            _netRing.progress = Progress(PairOf(_net.rope));
+            FollowTurtle();
+        }
+
         static FishPlayer LocalFish()
         {
             if (NetworkClient.active)
@@ -498,8 +688,16 @@ namespace FishGame
             var me = LocalFish();
             bool fish = me != null && !IsShark(me) && !Gone(me);
             int rope = fish && _built && !_freed ? NearestKnot(me.transform.position) : -1;
-            if (rope >= 0) s_atRopeFrame = Time.frameCount;
-            bool holding = rope >= 0 && !PauseMenu.IsOpen && GameInput.Interact.IsPressed();
+            if (rope >= 0 || _net.open) s_atRopeFrame = Time.frameCount;
+
+            // E at a knot opens the net minigame; biting only happens while it says so (a strand cut on time).
+            if (_net.open && (rope != _net.rope || me == null || GameInput.Interact.WasPressedThisFrame()
+                              || (Time.unscaledTime - _net.openedAt > 0.3f && MinigameStation.PlayerWantsToMove())))
+                CloseNet(me);
+            else if (!_net.open && rope >= 0 && !PauseMenu.IsOpen && GameInput.Interact.WasPressedThisFrame())
+                OpenNet(me, rope);
+            if (_net.open) TickNet();
+            bool holding = _net.open && rope == _net.rope && !PauseMenu.IsOpen && _net.Biting;
 
             int want = holding ? rope : -1;
             if (want != _sentRope && me != null)
@@ -514,13 +712,15 @@ namespace FishGame
 
         void Hud(FishPlayer me, int rope, bool holding)
         {
-            if (_freed) return;
+            if (_freed || _net.open) return;   // the net minigame's panel says it all
             if (rope >= 0)
             {
                 string word = WordOf(rope);
                 bool together = (_biting & (1 << PartnerOf(rope))) != 0;
-                string line = !holding
-                    ? $"Knot: <b>{word}</b> — hold {InputGlyphs.Name(GameInput.Interact)} to bite.  Bite it together with the other {word} knot!"
+                string line = !_net.open
+                    ? $"Knot: <b>{word}</b> — press {InputGlyphs.Name(GameInput.Interact)} to bite.  Bite it together with the other {word} knot!"
+                    : !holding
+                    ? $"Knot: <b>{word}</b> — cut the orange strand as it passes your mouth.  Together with the other {word} knot!"
                     : together
                         ? $"Biting the <b>{word}</b> knot together — keep going!"
                         : $"<color=#ff7a66>The net pulls tighter!</color>  The other <b>{word}</b> knot has to be bitten at the same time.";

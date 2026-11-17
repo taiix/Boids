@@ -669,7 +669,7 @@ MonoBehaviour:
   breakFreeDamage: 30
   breakFreeMinHealth: 5
   breakFreeSpeed: 10
-  sharkStunSeconds: 1.5
+  sharkStunSeconds: 3
   RoundLive: 0
   BlendFlock: 0
 --- !u!114 &2267869316475219035

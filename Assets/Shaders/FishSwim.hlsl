@@ -57,6 +57,23 @@ AttributesMesh ApplyMeshModification(AttributesMesh input, float3 timeParameters
             float rate  = input.uv3.x * lerp(0.85, 1.15, ((user >> 8) & 0xFFu) / 255.0);
             cycles = timeParameters.x * rate + phase;
         }
+        // Side fins (pectorals, FishFinBaker): they row up and down about the line where they meet the body,
+        // the root still and the tip moving most. Always going, a little faster as the tail beats faster.
+        float finW = input.color.a;
+        if (finW > 0.001 && finW < 0.95)
+        {
+            float side = input.positionOS.x >= 0.0 ? 1.0 : -1.0;
+            float3 root = float3(side * input.color.b, input.color.r - 0.5, input.color.g - 0.5);
+            float finPhase = (user & 0x10000u) ? (user & 0xFFFFu) / 65536.0 * 1.5 : (user & 0xFFu) / 255.0;
+            float finAngle = side * 0.6 * (finW / 0.9) * sin(6.28318530718 * (timeParameters.x * 2.2 + finPhase));
+            // about the body's length (Z): the fin rises and falls; a touch of sweep back on the down-stroke
+            float fs, fc;
+            sincos(finAngle, fs, fc);
+            float3 p = input.positionOS - root;
+            p = float3(p.x * fc - p.y * fs, p.x * fs + p.y * fc, p.z - abs(finAngle) * 0.15 * abs(p.x));
+            input.positionOS = p + root;
+        }
+
         float d = s - hinge;
         if (d > 0.0)
         {

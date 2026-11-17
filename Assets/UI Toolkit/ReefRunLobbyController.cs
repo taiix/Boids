@@ -36,7 +36,7 @@ namespace ReefRun
         public const int MaxSlots = 4;
         /// <summary>Steam lobby data key holding the survival clock length in seconds.</summary>
         public const string ClockKey = "clock";
-        static readonly int[] ClockOptions = { 300, 600, 900 };
+        static readonly int[] ClockOptions = { 300, 450, 600 };   // 7:30 default since the 2026-11-17 balance pass
 
         static readonly Color Orange = new(1f, 0.72f, 0.3f);
         static readonly Color Navy = new(0.02f, 0.09f, 0.16f);
@@ -57,7 +57,7 @@ namespace ReefRun
         Button _readyBtn, _startBtn, _backBtn, _visFriendsBtn, _visPublicBtn;
         readonly Button[] _clockBtns = new Button[ClockOptions.Length];
         bool _searchFocused;
-        int _clockSeconds = 600;
+        int _clockSeconds = 450;
         bool _public;
 
         UIDocument _doc;
@@ -270,7 +270,10 @@ namespace ReefRun
             int ready = _players.FindAll(p => p.ready).Count;
             bool host = NetworkServer.active;
 
-            _fishCount.text = n >= 2 ? $"{n - 1} of you" : "Everyone, until a second player joins";
+            if (_fishCount != null)
+            {
+                _fishCount.text = n >= 2 ? $"{n - 1} of you" : "Everyone, until a second player joins";
+            }
 
             bool meReady = Me?.ready ?? false;
             _readyLabel.text = meReady ? "CANCEL READY" : "READY UP";

@@ -1,0 +1,20 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:rr="ReefRun" xmlns:fg="FishGame" editor-extension-mode="False">
+    <Style src="../MatchHud.uss"/>
+    <Style src="Minigame.uss"/>
+    <ui:VisualElement name="minigame" class="hud mg">
+        <fg:SandVignette name="vignette" class="mg-vignette"/>
+        <ui:VisualElement class="mg-piece mg-hide">
+            <rr:ReefSlab class="slab slab--orange mg-tab"><ui:Label text="UNDER THE SAND" class="mg-tab-text cb"/></rr:ReefSlab>
+            <fg:Heartbeat name="beat" class="mg-hide-beat"/>
+            <fg:BreathBubbles name="breath" class="mg-hide-bubbles"/>
+            <rr:ReefSlab class="slab mg-keys">
+                <ui:Label name="tap-key" text="SPACE" class="key"/><ui:Label text="with the heartbeat" class="mg-key-word"/>
+                <ui:Label name="leave-key" text="E" class="key"/><ui:Label text="come out" class="mg-key-word mg-key-word--last"/>
+            </rr:ReefSlab>
+        </ui:VisualElement>
+        <ui:VisualElement name="mg-flash" class="mg-flash" style="top: 560px;">
+            <rr:ReefSlab class="slab slab--orange flash-slab"><ui:Label name="mg-flash-text" text="TWITCH!" class="flash-text xbi"/></rr:ReefSlab>
+        </ui:VisualElement>
+        <ui:Label name="mg-onboard" text="" class="mg-onboard" style="bottom: 330px;"/>
+    </ui:VisualElement>
+</ui:UXML>

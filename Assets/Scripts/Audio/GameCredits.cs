@@ -1,7 +1,7 @@
 namespace FishGame
 {
     /// <summary>
-    /// Who made the sound and music the game uses, shown on the main menu's Credits screen. Keep it in step
+    /// Who made the sound, music and outside art the game uses, shown on the main menu's Credits screen. Keep it in step
     /// with Assets/Audio/CREDITS.md, which also lists the source pages and what each file is used for.
     /// Everything here is free for commercial use; only the CC-BY item legally requires credit, but every
     /// author is credited.
@@ -36,6 +36,10 @@ namespace FishGame
                 "\"Aquaria\" (deep ambience) - cynicmusic / pixelsphere.org - CC0",
                 "Heartbeat sounds - bart - CC0",
                 "Acid burn sounds - mikhog - CC-BY 3.0 (creativecommons.org/licenses/by/3.0)",
+            }),
+            ("ART", new[]
+            {
+                "\"Underwater environment\" - ConradJustin (sketchfab.com/ConradJustin) - CC-BY 4.0 (creativecommons.org/licenses/by/4.0), reduced and re-textured for the game",
             }),
             ("", new[]
             {

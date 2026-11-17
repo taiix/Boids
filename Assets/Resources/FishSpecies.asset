@@ -25,7 +25,7 @@ MonoBehaviour:
     schoolPrefab: {fileID: 8878572744190387995, guid: 328a99911553508439145192d17fe5d6, type: 3}
     swimMesh: {fileID: 4300000, guid: ba770267f39010e45a5ea4a6cbc5cc23, type: 2}
     swimMaterial: {fileID: 2100000, guid: 6b65b6bb787e80f418679bab5fd7d722, type: 2}
-    playable: 1
+    playable: 0
     playerSize: 1.05
     speedScale: 1
     spacingScale: 1
@@ -57,7 +57,7 @@ MonoBehaviour:
     schoolPrefab: {fileID: 9159197664315560195, guid: 7b975d4d8e923e0499dc01f3981052f7, type: 3}
     swimMesh: {fileID: 4300000, guid: bc86233c04d24ba469cbaa81078969b2, type: 2}
     swimMaterial: {fileID: 2100000, guid: 95f7454b3ab780e47bce482407d9fe40, type: 2}
-    playable: 0
+    playable: 1
     playerSize: 1
     speedScale: 0.8
     spacingScale: 0.9
@@ -69,4 +69,4 @@ MonoBehaviour:
     playerSize: 1
     speedScale: 1
     spacingScale: 1
-  schoolCycle: 01000000020000000000000003000000040000000500000001000000020000000000000006000000010000000200000000000000i
+  schoolCycle: 05000000020000000000000003000000040000000500000005000000020000000000000006000000050000000200000000000000i

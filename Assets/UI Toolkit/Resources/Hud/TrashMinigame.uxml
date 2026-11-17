@@ -1,0 +1,26 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:rr="ReefRun" xmlns:fg="FishGame" editor-extension-mode="False">
+    <Style src="MatchHud.uss"/>
+    <Style src="TrashMinigame.uss"/>
+    <ui:VisualElement name="trash-minigame" class="hud tm">
+        <ui:VisualElement name="tm-piece" class="tm-piece">
+            <rr:ReefSlab class="slab slab--orange tm-tab">
+                <ui:Label text="ROLL IT TO THE HOLE" class="tm-tab-text cb"/>
+                <fg:PusherPips name="pips" class="tm-pips"/>
+            </rr:ReefSlab>
+            <fg:TrashGauge name="gauge" class="tm-gauge"/>
+            <ui:VisualElement name="speed" class="tm-speed">
+                <fg:SpeedRing name="speed-ring" class="tm-ring"/>
+                <ui:Label name="hint" text="" class="tm-distance xbi"/>
+            </ui:VisualElement>
+            <rr:ReefSlab class="slab tm-keys">
+                <ui:Label name="hit-key" text="SPACE" class="key"/><ui:Label text="on the lit box" class="tm-key-word"/>
+                <ui:Label name="quit-key" text="E" class="key"/><ui:Label text="let go" class="tm-key-word tm-key-word--last"/>
+            </rr:ReefSlab>
+        </ui:VisualElement>
+        <ui:VisualElement name="tm-flash" class="tm-flash">
+            <rr:ReefSlab name="flash-slab" class="slab slab--orange flash-slab">
+                <ui:Label name="feedback" text="SHOVE" class="flash-text xbi"/>
+            </rr:ReefSlab>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

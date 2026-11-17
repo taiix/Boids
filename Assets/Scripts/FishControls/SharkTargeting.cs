@@ -185,6 +185,7 @@ namespace FishGame
             {
                 Vector3 p = f.transform.position;
                 bool revealed = _revealed.Contains(f) || _heard.ContainsKey(f); // any distance, seen through rocks and fog
+                if (!revealed && Buried(f)) continue;
                 if (!revealed && (p - shark).sqrMagnitude > range2) continue;
                 // The camera sits behind the shark: fish between the two are behind you, not targets.
                 if (Vector3.Dot(p - shark, look) <= 0f) continue;
@@ -281,6 +282,17 @@ namespace FishGame
         // ---- hearing ----
         void OnHeard(Vector3 heardAt, float error, GameObject fish) => Reveal(heardAt, error, fish, heardSeconds);
 
+        /// <summary>Every shark on this machine hears a noise (e.g. a fish twitching in the sand): a ripple at
+        /// <paramref name="at"/>, and the fish tinted and lockable for a moment.</summary>
+        public static void HearNoise(Vector3 at, float error, GameObject fish)
+        {
+            foreach (var t in FindObjectsByType<SharkTargeting>(FindObjectsInactive.Exclude))
+                if (t.isActiveAndEnabled) t.Reveal(at, error, fish, t.heardSeconds);
+        }
+
+        // Buried in the sand and not heard (or revealed): the shark doesn't see it.
+        static bool Buried(GameObject f) => f.TryGetComponent(out FishPlayer fp) && fp.IsBuried;
+
         // A ripple at heardAt; a named fish is also tinted and lockable for `seconds`.
         void Reveal(Vector3 at, float error, GameObject fish, float seconds)
         {
@@ -316,7 +328,7 @@ namespace FishGame
         }
 
         bool IsHuntable(FishPlayer fp) =>
-            fp.gameObject != gameObject && fp.isActiveAndEnabled && !fp.IsSharkBody && !fp.IsOut && !fp.IsBeingEaten;
+            fp.gameObject != gameObject && fp.isActiveAndEnabled && !fp.IsSharkBody && !fp.IsOut && !fp.IsBeingEaten && !fp.IsBuried;
 
         void TrackMotion()
         {

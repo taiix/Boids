@@ -1,0 +1,23 @@
+== average vs average, 4 fish (with the real task list: 3 turtles, 34 trash pieces)
+rules this morning                           fish win    3%  made it  18%  eaten 3.3  clock cut   67s  clock out at  523s  catches 9.3  first catch  44s
++ daze 3 s, 7:30 round, rewards x1.5         fish win   38%  made it  54%  eaten 1.9  clock cut  124s  clock out at  327s  catches 6.2  first catch  45s
++ trash fix                                  fish win   39%  made it  55%  eaten 1.8  clock cut  144s  clock out at  306s  catches 6.0  first catch  43s
++ trash fix + 2 leaks, 3 coral, 2 lines (now) fish win   41%  made it  55%  eaten 1.8  clock cut  155s  clock out at  297s  catches 6.1  first catch  40s
+
+== now, skill vs skill (4 fish)
+sharp fish vs sharp shark                    fish win   56%  made it  66%  eaten 1.3  clock cut  178s  clock out at  277s  catches 5.2  first catch  45s
+sharp fish vs average shark                  fish win   74%  made it  76%  eaten 0.9  clock cut  199s  clock out at  259s  catches 4.6  first catch  52s
+sharp fish vs sloppy shark                   fish win   88%  made it  85%  eaten 0.6  clock cut  206s  clock out at  252s  catches 3.8  first catch  58s
+average fish vs sharp shark                  fish win   28%  made it  47%  eaten 2.1  clock cut  153s  clock out at  297s  catches 6.5  first catch  43s
+average fish vs average shark                fish win   38%  made it  54%  eaten 1.8  clock cut  160s  clock out at  293s  catches 6.1  first catch  37s
+average fish vs sloppy shark                 fish win   67%  made it  70%  eaten 1.2  clock cut  182s  clock out at  275s  catches 4.9  first catch  50s
+sloppy fish vs sharp shark                   fish win    6%  made it  25%  eaten 3.0  clock cut   84s  clock out at  360s  catches 6.1  first catch  36s
+sloppy fish vs average shark                 fish win    9%  made it  30%  eaten 2.8  clock cut   89s  clock out at  356s  catches 5.9  first catch  40s
+sloppy fish vs sloppy shark                  fish win   20%  made it  40%  eaten 2.4  clock cut   94s  clock out at  353s  catches 5.3  first catch  41s
+
+== now, player count (average vs average)
+2 fish                                       fish win   17%  made it  41%  eaten 1.2  clock cut   58s  clock out at  385s  catches 3.8  first catch  65s
+3 fish                                       fish win   45%  made it  47%  eaten 1.6  clock cut   99s  clock out at  348s  catches 5.3  first catch  51s
+4 fish                                       fish win   38%  made it  55%  eaten 1.8  clock cut  155s  clock out at  297s  catches 6.1  first catch  39s
+5 fish                                       fish win   74%  made it  64%  eaten 1.8  clock cut  214s  clock out at  242s  catches 6.3  first catch  34s
+6 fish                                       fish win   79%  made it  72%  eaten 1.7  clock cut  262s  clock out at  199s  catches 6.1  first catch  32s

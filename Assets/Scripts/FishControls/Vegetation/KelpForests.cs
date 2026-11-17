@@ -205,6 +205,7 @@ namespace FishGame
             foreach (var s in FindObjectsByType<Mirror.NetworkStartPosition>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 points.Add(s.transform.position);
             points.AddRange(RoleSpawnZone.Centres());
+            points.AddRange(UnderwaterSetPieces.Centres());   // the big rock formations
             return points;
         }
 

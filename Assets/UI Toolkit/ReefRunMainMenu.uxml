@@ -1,6 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:rr="ReefRun" editor-extension-mode="False">
-    <Style src="project://database/Assets/UI%20Toolkit/ReefRunMainMenu.uss?fileID=7433441132597879392&amp;guid=5ad911a4c18773b4286870dda3da6375&amp;type=3#ReefRunMainMenu"/>
     <ui:Template name="ReefRunSettings" src="project://database/Assets/UI%20Toolkit/ReefRunSettings.uxml?fileID=9197481963319205126&amp;guid=37e4694b96f20f349ac1f914ab281645&amp;type=3#ReefRunSettings"/>
+    <Style src="project://database/Assets/UI%20Toolkit/ReefRunMainMenu.uss?fileID=7433441132597879392&amp;guid=5ad911a4c18773b4286870dda3da6375&amp;type=3#ReefRunMainMenu"/>
     <ui:VisualElement name="stage" picking-mode="Ignore" class="mm-stage">
         <ui:VisualElement name="veil" picking-mode="Ignore" class="mm-veil"/>
         <ui:VisualElement name="shade-top" picking-mode="Ignore" class="mm-shade mm-shade--top"/>
@@ -9,9 +9,7 @@
             <ui:VisualElement picking-mode="Ignore" class="mm-title">
                 <ui:Label text="REEF" class="mm-logo-word mm-logo-word--reef"/>
                 <ui:Label text="RUN" class="mm-logo-word mm-logo-word--run"/>
-                <ui:Label text="One of you will be the shark. Everyone else had better stay out of its mouth." class="mm-tagline"/>
             </ui:VisualElement>
-
             <ui:VisualElement name="nav" picking-mode="Ignore" class="mm-nav">
                 <ui:Button name="play-btn" class="mm-host">
                     <rr:ReefSlab picking-mode="Ignore" class="mm-slab mm-host-slab">
@@ -26,7 +24,6 @@
                 </rr:ReefSlab>
                 <ui:Label name="nav-hint" text="" class="mm-hint"/>
             </ui:VisualElement>
-
             <rr:ReefSlab name="player-card" class="mm-slab mm-player">
                 <ui:VisualElement name="player-image" class="mm-player-av"/>
                 <ui:VisualElement>
@@ -34,7 +31,6 @@
                     <ui:Label name="player-sub" text="Steam offline" class="mm-player-sub"/>
                 </ui:VisualElement>
             </rr:ReefSlab>
-
             <ui:Label name="version-label" text="v0.4.1 EARLY ACCESS" class="mm-version"/>
         </ui:VisualElement>
         <ui:Instance template="ReefRunSettings" name="settings-instance" picking-mode="Ignore" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0;"/>
