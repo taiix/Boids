@@ -541,6 +541,7 @@ GameObject:
   - component: {fileID: 8116857360294041939}
   - component: {fileID: 3634344391742712691}
   - component: {fileID: 1072645484033913010}
+  - component: {fileID: 7890482037327240323}
   m_Layer: 0
   m_Name: PlayerFish
   m_TagString: Untagged
@@ -727,6 +728,7 @@ MonoBehaviour:
   Role: 1
   Outcome: 0
   PlayerName: 
+  Species: 0
   eatRange: 1.6
   mouthOffset: 1
   remoteEatSlack: 1.5
@@ -736,9 +738,11 @@ MonoBehaviour:
   breakFreeDamage: 30
   breakFreeMinHealth: 5
   breakFreeSpeed: 10
-  sharkStunSeconds: 1.5
+  sharkStunSeconds: 3
+  woundedSwallowSeconds: 1.5
   RoundLive: 0
   BlendFlock: 0
+  ghostHintSeconds: 3
 --- !u!114 &7517325213802545162
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -761,6 +765,8 @@ MonoBehaviour:
   feedRestore: 30
   bleedSecondsOnDamage: 20
   disableOnDeath: []
+  sharkStunSeconds: 6
+  sharkRecoverSeconds: 8
 --- !u!114 &8528821972739466466
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -782,6 +788,9 @@ MonoBehaviour:
   sendInterval: 0.05
   sharkLowPassHz: 900
   sharkDistortion: 0.45
+  clearHearing: 12
+  farHearingError: 8
+  hearingInterval: 0.8
   jitterBufferMs: 120
 --- !u!114 &8116857360294041939
 MonoBehaviour:
@@ -835,6 +844,18 @@ MonoBehaviour:
   minFacing: 0.3
   remoteSlack: 1.5
   pushSpeedMargin: 0.6
+--- !u!114 &7890482037327240323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5638104583358399087}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84390569e8e89fa4e9a957160cd4cee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
 --- !u!1 &6744179510574502864
 GameObject:
   m_ObjectHideFlags: 0

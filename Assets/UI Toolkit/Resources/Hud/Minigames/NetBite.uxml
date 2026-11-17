@@ -1,0 +1,21 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:rr="ReefRun" xmlns:fg="FishGame" editor-extension-mode="False">
+    <Style src="../MatchHud.uss"/>
+    <Style src="Minigame.uss"/>
+    <ui:VisualElement name="minigame" class="hud mg">
+        <ui:VisualElement class="mg-piece mg-net">
+            <rr:ReefSlab class="slab slab--orange mg-tab">
+                <ui:Label text="CHEW THE NET" class="mg-tab-text cb"/>
+                <ui:Label name="word" text="PEARL" class="mg-tab-extra xbi"/>
+            </rr:ReefSlab>
+            <fg:NetRing name="ring" class="mg-net-ring"/>
+            <rr:ReefSlab class="slab mg-keys">
+                <ui:Label name="cut-key" text="SPACE" class="key"/><ui:Label text="bite the orange strand" class="mg-key-word"/>
+                <ui:Label name="quit-key" text="E" class="key"/><ui:Label text="let go" class="mg-key-word mg-key-word--last"/>
+            </rr:ReefSlab>
+        </ui:VisualElement>
+        <ui:VisualElement name="mg-flash" class="mg-flash" style="top: 370px;">
+            <rr:ReefSlab class="slab slab--orange flash-slab"><ui:Label name="mg-flash-text" text="SNIP!" class="flash-text xbi"/></rr:ReefSlab>
+        </ui:VisualElement>
+        <ui:Label name="mg-onboard" text="" class="mg-onboard"/>
+    </ui:VisualElement>
+</ui:UXML>

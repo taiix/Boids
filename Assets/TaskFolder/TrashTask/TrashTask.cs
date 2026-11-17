@@ -223,6 +223,7 @@ namespace FishGame
         public void ServerCollected(int points, Vector3 where)
         {
             _collected += points;
+            MatchLog.Write("trash_sunk", "Trash push", -1f, $"points={points} total={_collected}/{_goal}");
             var match = MatchManager.Instance;
             if (match != null) match.ReduceRemaining(secondsPerPoint * points);
             if (!_complete && _collected >= _goal)

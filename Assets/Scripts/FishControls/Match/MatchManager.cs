@@ -56,8 +56,11 @@ namespace FishGame
         public static float RoundSecondsOverride = -1f;
 
         [Header("Round")]
-        [Tooltip("How long the fish must survive before the exit opens, in seconds (600 = 10 min).")]
-        [SerializeField] float roundDurationSeconds = 600f;
+        [Tooltip("How long the fish must survive before the exit opens, in seconds (450 = 7:30). Online the lobby's clock choice overrides it.")]
+        [SerializeField] float roundDurationSeconds = 450f;
+        [Tooltip("Every task's time off the clock is multiplied by this (1.5 since the 2026-11-17 balance pass, " +
+                 "Balance/README.md), so each task keeps its own reward relative to the others.")]
+        [SerializeField] float taskRewardScale = 1.5f;
         [Tooltip("Offline sandbox only: start the round this many seconds after the scene is ready. Negative = " +
                  "wait for StartRound(). Online the clock starts when every player has loaded in.")]
         [SerializeField] float autoStartDelay = 2f;
@@ -201,7 +204,9 @@ namespace FishGame
         public void ReduceRemaining(float seconds)
         {
             if (!Authority || _phase != MatchPhase.Playing || seconds <= 0f) return;
+            seconds *= taskRewardScale;
             _roundEndTime -= seconds;
+            MatchLog.Write("clock_cut", "", seconds, $"left={RemainingSeconds:0}");
             double min = Now + 1.0;              // never let a single task instantly end the round
             if (_roundEndTime < min) _roundEndTime = min;
             if (logTransitions) Debug.Log($"[Match] Task shaved {seconds:0.#}s -> {RemainingSeconds:0}s left");
@@ -216,6 +221,7 @@ namespace FishGame
         {
             if (!Authority || !RoundRunning) return;
             if (logTransitions) Debug.Log($"[Match] Task done: {what}");
+            MatchLog.Write("task_done", what, -1f, $"at={where.x:0}/{where.z:0}");
             if (Offline) TaskDone?.Invoke(where, what);
             else RpcTaskCompleted(where, what);
         }
@@ -344,6 +350,7 @@ namespace FishGame
             }
 
             if (!who.TryGetComponent(out FishPlayer fp)) return;
+            MatchLog.Write(shark ? "shark_died" : "fish_died", "", -1f, $"remaining={RemainingSeconds:0}");
             // A starving shark lets go of its catch first, so the fish isn't left stuck in a dead shark's jaws.
             if (shark) fp.ServerReleasePrey();
             ServerSetOutcome(fp, PlayerOutcome.Died);
@@ -443,6 +450,9 @@ namespace FishGame
 
         void OnPhaseChanged(MatchPhase _, MatchPhase now)
         {
+            if (now == MatchPhase.Playing) MatchLog.BeginRound();
+            else if (now == MatchPhase.FishWin || now == MatchPhase.SharkWin) MatchLog.EndRound(now.ToString());
+            else if (now == MatchPhase.Escape) MatchLog.Write("escape_open", "");
             if (logTransitions) Debug.Log($"[Match] Phase -> {now}");
         }
 

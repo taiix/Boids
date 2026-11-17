@@ -1,0 +1,35 @@
+/* ============================================================
+   REEF RUN - trash push minigame (TrashMinigame.uxml, driven by TrashMinigameUI.cs)
+   Same parts as the station minigames (Minigames/Minigame.uss): no panel, the gauge
+   carries its own backing; the job on the HUD's orange tab; the controls in the
+   HUD's prompt pill. Orange = what to hit, red = danger, teal = key tiles only.
+   Authored at 1920x1080 (HudPanelSettings scales).
+   ============================================================ */
+
+.tm { align-items: center; }
+
+.tm-piece { position: absolute; top: 104px; left: 50%; translate: -50% 0; align-items: center; }
+
+/* the job, tucked onto the gauge's top-left */
+.tm-tab { align-self: flex-start; margin-left: 150px; margin-bottom: -18px; padding: 3px 22px 4px 18px;
+          flex-direction: row; align-items: center; }
+.hud .tm-tab-text { font-size: 20px; letter-spacing: 2px; color: var(--navy); }
+.tm-pips { width: 112px; height: 30px; margin-left: 12px; }
+
+.tm-gauge { width: 880px; height: 290px; }
+
+/* the speed ring, up in the space under the arc; the distance in it */
+.tm-speed { width: 150px; height: 150px; margin-top: -132px; align-items: center; justify-content: center; }
+.tm-ring  { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.hud .tm-distance { font-size: 34px; padding: 0; margin: 0; }
+
+/* the controls: the HUD prompt pill */
+.tm-keys { flex-direction: row; align-items: center; height: 46px; padding: 0 26px; margin-top: 16px; }
+.hud .tm-keys .key { margin: 0 8px 0 0; }
+.hud .tm-key-word { font-size: 18px; margin-right: 24px; padding: 0; -unity-font-definition: url("../../Fonts/Barlow-SemiBold.ttf"); }
+.hud .tm-key-word--last { margin-right: 0; }
+
+/* the shout */
+.tm-flash { position: absolute; left: 0; right: 0; top: 290px; align-items: center; opacity: 0; }
+.tm-flash--miss .flash-slab { --slab-color: #d94040; }
+.hud .tm-flash--miss .flash-text { color: #ffffff; }

@@ -91,8 +91,9 @@ public class FishPlayer : NetworkBehaviour
     [SerializeField] float breakFreeMinHealth = 5f;
     [Tooltip("How fast a fish that breaks free shoots out of the jaws (m/s).")]
     [SerializeField] float breakFreeSpeed = 10f;
-    [Tooltip("Seconds the shark can't bite again after a fish breaks free, so it gets a head start.")]
-    [SerializeField] float sharkStunSeconds = 1.5f;
+    [Tooltip("Seconds the shark is dazed (can't swim or bite) after a fish breaks free, so the fish gets away. " +
+             "Only blocking bites wasn't enough: the shark just followed and bit again (Balance/README.md).")]
+    [SerializeField] float sharkStunSeconds = 3f;
 
     [Tooltip("How long the shark shakes a fish caught while still wounded from a graze before swallowing it. " +
              "It can't tear free.")]
@@ -492,7 +493,8 @@ public class FishPlayer : NetworkBehaviour
 
         // Fish only (pellets are fish food): prompt when a pellet is in reach - unless we're next to a
         // task, where E joins it (or bites the turtle's rope) instead.
-        bool taskOwnsE = NetworkedSequenceTask.LocalNearAnyTask || TangledTurtle.LocalAtRope;
+        bool taskOwnsE = NetworkedSequenceTask.LocalNearAnyTask || TangledTurtle.LocalAtRope || TrashMinigame.LocalNearAny
+                        || FishGame.MinigameStation.LocalNearAny;
         if (_controlsLive && !IsSharkBody && !taskOwnsE && PelletInReach() != null)
             MatchHud.ShowPrompt($"Press {GameInput.Interact.Token} to eat");
 
@@ -791,6 +793,30 @@ public class FishPlayer : NetworkBehaviour
     [Header("Ghost hint")]
     [Tooltip("How long the living fish see the shark (through rocks and fog) when a ghost reveals it.")]
     [SerializeField] float ghostHintSeconds = 3f;
+    // ---- hiding in the sand (FishGame.SandHide drives it on the fish's own machine) ----
+    [SyncVar] private bool _buried;
+    /// <summary>Buried in the sand: the shark can't see or lock this fish unless it hears it.</summary>
+    public bool IsBuried => _buried;
+
+    /// <summary>Local fish: bury / unbury (offline it's set straight away).</summary>
+    public void SetBuried(bool buried)
+    {
+        if (IsOffline) _buried = buried;
+        else if (_buried != buried) CmdSetBuried(buried);
+    }
+
+    [Command] private void CmdSetBuried(bool buried) => _buried = buried;
+
+    /// <summary>Local fish: a noise the shark can hear (a twitch in the sand) - a ripple where we are.</summary>
+    public void MakeNoise(float error)
+    {
+        if (IsOffline) FishGame.SharkTargeting.HearNoise(transform.position, error, gameObject);
+        else CmdNoise(error);
+    }
+
+    [Command] private void CmdNoise(float error) => RpcNoise(transform.position, Mathf.Clamp(error, 0f, 10f));
+    [ClientRpc] private void RpcNoise(Vector3 at, float error) => FishGame.SharkTargeting.HearNoise(at, error, gameObject);
+
     [SyncVar] private bool _ghostHintUsed;
 
     /// <summary>Every machine: a ghost revealed this shark to the fish - for how long, and who did it.</summary>
@@ -1007,6 +1033,8 @@ public class FishPlayer : NetworkBehaviour
     {
         var shark = Holder();
         _heldBy = 0;
+        // the shark is dazed: the same stunned state as running out of health, just shorter
+        if (shark != null && shark.TryGetComponent(out FishVitals sharkVitals)) sharkVitals.Daze(sharkStunSeconds);
         _struggle = 0f;
         _noEscape = false;
 

@@ -3,8 +3,6 @@
     <ui:VisualElement name="stage" class="stage">
         <ui:VisualElement name="shade" picking-mode="Ignore" class="shade"/>
         <ui:VisualElement name="ui" picking-mode="Ignore" class="ui">
-
-            <!-- ============ players / actions / game settings ============ -->
             <ui:VisualElement picking-mode="Ignore" class="players-col">
                 <ui:VisualElement picking-mode="Ignore" class="header">
                     <ui:Button name="back-btn" class="leave">
@@ -18,9 +16,7 @@
                     <ui:Label name="lobby-eyebrow" text="FRIENDS LOBBY" class="title f-xbi"/>
                     <ui:Label name="lobby-count" text="1 / 4" class="count f-xbi"/>
                 </ui:VisualElement>
-
                 <ui:VisualElement name="roster" class="grid"/>
-
                 <ui:VisualElement picking-mode="Ignore" class="actions">
                     <ui:Button name="ready-btn" class="btn btn-teal">
                         <rr:ReefSlab picking-mode="Ignore" class="slab slab--from-left btn-slab btn-slab--left">
@@ -35,7 +31,6 @@
                         </rr:ReefSlab>
                     </ui:Button>
                 </ui:VisualElement>
-
                 <rr:ReefSlab class="slab slab--from-left settings">
                     <ui:VisualElement class="settings-head">
                         <ui:Label text="GAME SETTINGS" class="settings-title f-xbi"/>
@@ -49,8 +44,8 @@
                         <ui:Label text="Round length" class="srow-label"/>
                         <ui:VisualElement name="clock-seg" class="seg">
                             <ui:Button name="clock-300" text="5:00" class="seg-btn"/>
-                            <ui:Button name="clock-600" text="10:00" class="seg-btn seg-btn--gap seg-btn--on"/>
-                            <ui:Button name="clock-900" text="15:00" class="seg-btn seg-btn--gap"/>
+                            <ui:Button name="clock-450" text="7:30" class="seg-btn seg-btn--gap seg-btn--on"/>
+                            <ui:Button name="clock-600" text="10:00" class="seg-btn seg-btn--gap"/>
                         </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:VisualElement class="srow">
@@ -66,15 +61,12 @@
                     </ui:VisualElement>
                 </rr:ReefSlab>
             </ui:VisualElement>
-
-            <!-- ============ role briefing ============ -->
             <ui:VisualElement class="brief-col">
                 <ui:VisualElement class="role">
                     <ui:VisualElement class="role-head role-head--fish">
                         <ui:VisualElement name="fish-fade" picking-mode="Ignore" class="role-fade"/>
-                        <ui:VisualElement class="role-line">
+                        <ui:VisualElement name="VisualElement" class="role-line">
                             <ui:Label text="FISH" class="role-name"/>
-                            <ui:Label name="fish-count" text="3 of you" class="role-count"/>
                         </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:Label text="Stay alive until the clock hits &lt;color=#ffb84d&gt;0:00&lt;/color&gt;." class="role-goal"/>
@@ -84,8 +76,8 @@
                             <ui:Label text="Eat food pellets" class="rr-title"/>
                             <ui:Label text="Hunger drains all game. Starve and you lose health." class="rr-desc"/>
                             <ui:VisualElement class="minibars">
-                                <ui:VisualElement class="minibar" style="background-color: #d94040;"/>
-                                <ui:VisualElement class="minibar" style="background-color: #e6b333; width: 54px;"/>
+                                <ui:VisualElement class="minibar" style="background-color: rgb(217, 64, 64);"/>
+                                <ui:VisualElement class="minibar" style="background-color: rgb(230, 179, 51); width: 54px;"/>
                             </ui:VisualElement>
                         </ui:VisualElement>
                     </ui:VisualElement>
@@ -104,13 +96,11 @@
                         </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:VisualElement>
-
                 <ui:VisualElement class="role role--grow">
                     <ui:VisualElement class="role-head role-head--shark">
                         <ui:VisualElement name="shark-fade" picking-mode="Ignore" class="role-fade"/>
                         <ui:VisualElement class="role-line">
                             <ui:Label text="SHARK" class="role-name role-name--shark"/>
-                            <ui:Label text="1 of you, drawn at random" class="role-count"/>
                         </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:Label text="Eat every fish before time runs out." class="role-goal"/>
@@ -118,7 +108,7 @@
                         <ui:Label text="LMB" class="key"/>
                         <ui:VisualElement class="rr-text">
                             <ui:Label text="Dash + bite" class="rr-title"/>
-                            <ui:Label text="Short burst. Connect and it's dinner." class="rr-desc"/>
+                            <ui:Label text="Short burst. Connect and it&apos;s dinner." class="rr-desc"/>
                         </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:VisualElement class="rr">
@@ -146,8 +136,6 @@
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
-
-            <!-- ============ friends ============ -->
             <ui:VisualElement class="friends">
                 <ui:VisualElement class="friends-head">
                     <ui:Label text="FRIENDS" class="friends-title"/>

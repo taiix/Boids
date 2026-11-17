@@ -1,0 +1,67 @@
+/* ============================================================
+   REEF RUN - station minigames (net, leak, coral, line, hiding).
+   Each layout also loads ../MatchHud.uss: palette, fonts, ReefSlab, key tiles.
+
+   No shared panel. Each game is one shaped piece placed by what it's about
+   (the gauge over the drum, the strip low while you hide), drawn with its own
+   backing - plus three small HUD parts used the same way everywhere:
+     .mg-tab   the job, on the HUD's orange slab (like "HUNT STARTING")
+     .mg-keys  the controls, in the HUD's own prompt pill ("Press E to eat")
+     .mg-flash the shout (SNIP!, BURST!) on the orange / red flash slab
+   Colour: orange = the thing to act on, red = danger, teal = key tiles only.
+   Authored at 1920x1080.
+   ============================================================ */
+
+.mg { align-items: center; }
+
+/* a piece, positioned per game below */
+.mg-piece { position: absolute; align-items: flex-start; }
+
+/* the job's name, tucked onto the piece's top-left corner */
+.mg-tab { padding: 3px 22px 4px 18px; margin-bottom: -4px; flex-direction: row; align-items: center; }
+.hud .mg-tab-text { font-size: 20px; letter-spacing: 2px; color: var(--navy); }
+.hud .mg-tab-extra { font-size: 20px; letter-spacing: 1px; color: var(--navy); margin-left: 14px; opacity: 0.75; }
+
+/* the controls: the HUD prompt pill, small */
+.mg-keys { flex-direction: row; align-items: center; height: 46px; padding: 0 26px; margin-top: 10px; align-self: center; }
+.hud .mg-keys .key { margin: 0 8px 0 0; }
+.hud .mg-key-word { font-size: 18px; margin-right: 24px; -unity-font-definition: url("../../../Fonts/Barlow-SemiBold.ttf"); }
+.hud .mg-key-word--last { margin-right: 0; }
+
+/* a small reading, no label (11 m, 3 left) */
+.hud .mg-note { font-size: 20px; color: var(--text); -unity-font-definition: url("../../../Fonts/Barlow-SemiBold.ttf"); }
+.hud .mg-note--dim { color: var(--dim); }
+.hud .mg-note--bad { color: var(--red); }
+
+/* first time only: one line on how it works, fading out (MinigameHud) */
+.hud .mg-onboard { position: absolute; left: 0; right: 0; bottom: 210px; -unity-text-align: middle-center;
+                   font-size: 20px; color: var(--text); opacity: 0;
+                   -unity-font-definition: url("../../../Fonts/Barlow-SemiBold.ttf"); }
+
+/* the shout */
+.mg-flash { position: absolute; left: 0; right: 0; align-items: center; opacity: 0; }
+.mg-flash--miss .flash-slab { --slab-color: #d94040; }
+.hud .mg-flash--miss .flash-text { color: #ffffff; }
+
+/* ---------- where each game sits ---------- */
+/* the net: a ring over the turtle, high and centred like the trash gauge */
+.mg-net { top: 130px; left: 50%; translate: -50% 0; }
+.mg-net-ring { width: 420px; height: 420px; }
+
+/* the leak: an upright pressure tube off to the right of the drum */
+.mg-leak { top: 150px; left: 1210px; }
+.mg-leak-tube { width: 220px; height: 520px; }
+
+/* the coral: a scrub disc to the left of the coral */
+.mg-coral { top: 170px; left: 470px; }
+.mg-coral-pad { width: 420px; height: 420px; }
+
+/* the line: the knot board in the middle (a puzzle wants your eyes) */
+.mg-line { top: 120px; left: 50%; translate: -50% 0; }
+.mg-line-board { width: 800px; height: 470px; }
+
+/* hiding: a low strip above the vitals; the edges of the screen go dark */
+.mg-vignette { position: absolute; left: 0; top: 0; right: 0; bottom: 0; }
+.mg-hide { bottom: 34px; left: 50%; translate: -50% 0; align-items: center; }
+.mg-hide-beat { width: 760px; height: 120px; }
+.mg-hide-bubbles { width: 360px; height: 40px; margin-top: 6px; }

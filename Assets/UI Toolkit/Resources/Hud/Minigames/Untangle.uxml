@@ -1,0 +1,21 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:rr="ReefRun" xmlns:fg="FishGame" editor-extension-mode="False">
+    <Style src="../MatchHud.uss"/>
+    <Style src="Minigame.uss"/>
+    <ui:VisualElement name="minigame" class="hud mg">
+        <ui:VisualElement class="mg-piece mg-line">
+            <rr:ReefSlab class="slab slab--orange mg-tab">
+                <ui:Label text="UNPICK THE LINE" class="mg-tab-text cb"/>
+                <ui:Label name="count" text="5 CROSSED" class="mg-tab-extra xbi"/>
+            </rr:ReefSlab>
+            <fg:KnotBoard name="board" class="mg-line-board mg-pick"/>
+            <rr:ReefSlab class="slab mg-keys">
+                <ui:Label name="drag-key" text="DRAG" class="key"/><ui:Label text="pull knots apart" class="mg-key-word"/>
+                <ui:Label name="quit-key" text="E" class="key"/><ui:Label text="leave it" class="mg-key-word mg-key-word--last"/>
+            </rr:ReefSlab>
+        </ui:VisualElement>
+        <ui:VisualElement name="mg-flash" class="mg-flash" style="top: 330px;">
+            <rr:ReefSlab class="slab slab--orange flash-slab"><ui:Label name="mg-flash-text" text="FREE!" class="flash-text xbi"/></rr:ReefSlab>
+        </ui:VisualElement>
+        <ui:Label name="mg-onboard" text="" class="mg-onboard"/>
+    </ui:VisualElement>
+</ui:UXML>

@@ -134,7 +134,7 @@ namespace FishGame
         public Transform Target => target;
 
         // A menu or the results screen has the mouse: it mustn't also swing the camera or flip views.
-        static bool MouseTaken => PauseMenu.IsOpen || RoundScreen.ShowingResults;
+        static bool MouseTaken => PauseMenu.IsOpen || RoundScreen.ShowingResults || MinigameHud.HasMouse;
 
         void Awake()
         {
@@ -166,6 +166,23 @@ namespace FishGame
                 _pitch = 0f;
             }
         }
+        /// <summary>
+        /// Swing the view round to look along <paramref name="direction"/> (from behind the fish), easing
+        /// over <paramref name="seconds"/>. The mouse still works meanwhile. Used e.g. by the trash
+        /// minigame to look past the fish toward the sinkhole.
+        /// </summary>
+        public void TurnToward(Vector3 direction, float pitch = 12f, float seconds = 0.5f)
+        {
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 1e-6f) return;
+            _turnYaw = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
+            _turnPitch = Mathf.Clamp(pitch, -pitchLimit, pitchLimit);
+            _turnRate = 4f / Mathf.Max(0.05f, seconds);
+            _turnUntil = Time.unscaledTime + seconds * 1.5f;
+            _freeYaw = _freePitch = 0f;
+        }
+        float _turnYaw, _turnPitch, _turnRate, _turnUntil = -1f;
+
         public void SetTarget(Transform t)
         {
             _spectating = null;
@@ -223,6 +240,14 @@ namespace FishGame
                 _yaw = Mathf.LerpAngle(_yaw, yaw, k);
                 _pitch = Mathf.Lerp(_pitch, pitch, k);
                 return;
+            }
+
+            // Swinging round on request (TurnToward).
+            if (Time.unscaledTime < _turnUntil)
+            {
+                float k = 1f - Mathf.Exp(-_turnRate * Time.unscaledDeltaTime);
+                _yaw = Mathf.LerpAngle(_yaw, _turnYaw, k);
+                _pitch = Mathf.Lerp(_pitch, _turnPitch, k);
             }
 
             // Flip steering mode on the toggle key.

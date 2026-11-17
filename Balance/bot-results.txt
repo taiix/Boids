@@ -1,0 +1,39 @@
+Reef Run minigame balance bots - 2026-11-17 20:47
+400 runs per game per skill. Times in seconds of play (no swimming).
+
+=== sharp (timing sd 25 ms, lapses 2%, stray presses 0.01/s, reaction 0.22 s)
+  trash bag    (1 pt, 1 fish): median 19.9  (p10 12.3 / p90 27.2)  avg speed 77%  hit rate 92%  stalled 0
+  trash scrap  (1 pt, 1 fish): median 21.3  (p10 12.6 / p90 28.5)  avg speed 78%  hit rate 92%  stalled 0
+  trash netball (2 pt, 2 fish): median 25.2  (p10 15.7 / p90 35.6)  avg speed 81%  hits that synced 82%  stalled(>300s) 0
+  turtle net   (2 fish, 45 s):  median 22.7  (p10 22.4 / p90 31.7)  both biting 77% of the time  failed 0
+  leak         (20 s):          median 9.9  (p10 9.9 / p90 9.9)  bursts/run 0.0  not sealed in 180 s 0
+  coral        (15 s):          median 9.1  (p10 9.1 / p90 9.1)  sand stuns/run 0.0  failed 0
+  untangle     (15 s):          median 5.0  (p10 3.7 / p90 6.6)  drags/run 2.1  gave up 0
+  hiding (time until breath runs out): median 35.0  (p10 32.8 / p90 37.2)  twitches/run 0.4  missed beats/run 0.6
+
+=== average (timing sd 50 ms, lapses 6%, stray presses 0.04/s, reaction 0.30 s)
+  trash bag    (1 pt, 1 fish): median 26.1  (p10 16.3 / p90 35.9)  avg speed 59%  hit rate 71%  stalled 0
+  trash scrap  (1 pt, 1 fish): median 26.6  (p10 16.5 / p90 39.3)  avg speed 60%  hit rate 72%  stalled 0
+  trash netball (2 pt, 2 fish): median 37.3  (p10 23.5 / p90 54.7)  avg speed 58%  hits that synced 58%  stalled(>300s) 0
+  turtle net   (2 fish, 45 s):  median 32.7  (p10 22.7 / p90 52.3)  both biting 64% of the time  failed 0
+  leak         (20 s):          median 12.6  (p10 10.8 / p90 15.7)  bursts/run 1.0  not sealed in 180 s 0
+  coral        (15 s):          median 9.6  (p10 9.1 / p90 10.7)  sand stuns/run 0.0  failed 0
+  untangle     (15 s):          median 8.1  (p10 6.3 / p90 12.7)  drags/run 2.8  gave up 0
+  hiding (time until breath runs out): median 32.2  (p10 28.3 / p90 35.0)  twitches/run 1.2  missed beats/run 1.6
+
+=== sloppy (timing sd 90 ms, lapses 15%, stray presses 0.10/s, reaction 0.45 s)
+  trash bag    (1 pt, 1 fish): median 71.6  (p10 34.8 / p90 120.6)  avg speed 21%  hit rate 48%  stalled 0
+  trash scrap  (1 pt, 1 fish): median 80.0  (p10 42.5 / p90 128.6)  avg speed 20%  hit rate 47%  stalled 0
+  trash netball (2 pt, 2 fish): median 195.6  (p10 92.3 / p90 279.6)  avg speed 10%  hits that synced 34%  stalled(>300s) 119
+  turtle net   (2 fish, 45 s):  median 75.1  (p10 33.6 / p90 157.1)  both biting 40% of the time  failed 3
+  leak         (20 s):          median 79.9  (p10 39.0 / p90 135.7)  bursts/run 40.4  not sealed in 180 s 379
+  coral        (15 s):          median 13.6  (p10 10.8 / p90 18.8)  sand stuns/run 0.5  failed 0
+  untangle     (15 s):          median 13.7  (p10 9.0 / p90 24.2)  drags/run 3.8  gave up 0
+  hiding (time until breath runs out): median 24.4  (p10 19.9 / p90 28.8)  twitches/run 3.1  missed beats/run 3.9
+
+=== trash variants (bag, 1 fish): sweep / box width / miss penalty
+  0.85s / 0.20 / 0.15:  sharp 26 s (75% hits)  average 71 s (53% hits)  sloppy 187 s (24% hits)
+  0.85s / 0.30 / 0.15:  sharp 20 s (88% hits)  average 32 s (68% hits)  sloppy 108 s (43% hits)
+  0.85s / 0.20 / 0.08:  sharp 22 s (74% hits)  average 47 s (53% hits)  sloppy 155 s (29% hits)
+  0.85s / 0.30 / 0.08:  sharp 20 s (89% hits)  average 27 s (65% hits)  sloppy 80 s (43% hits)
+  1.00s / 0.30 / 0.08:  sharp 20 s (92% hits)  average 26 s (72% hits)  sloppy 71 s (48% hits)

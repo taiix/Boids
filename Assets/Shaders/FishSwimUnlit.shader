@@ -137,6 +137,7 @@ Shader "HDRP/Fish Swim (Unlit)"
     #define HAVE_MESH_MODIFICATION
     #define ATTRIBUTES_NEED_TEXCOORD2
     #define ATTRIBUTES_NEED_TEXCOORD3
+    #define ATTRIBUTES_NEED_COLOR       // side-fin data (FishFinBaker): where the fin joins, and its flap weight
 
     ENDHLSL
 

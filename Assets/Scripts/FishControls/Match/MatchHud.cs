@@ -52,11 +52,15 @@ namespace FishGame
         static string s_event;
         static int s_eventFrame = -10;
 
+        // A station minigame or the trash push is open: its own tip and keys own the screen.
+        static bool MinigameBusy => FishGame.MinigameHud.IsOpen || FishGame.TrashMinigameUI.IsOpen;
+
         /// <summary>Show an interaction prompt (e.g. "Press E to eat") this frame. "{action}" (a GameInput
         /// action's Token) is drawn as that action's button - a key tile, or the controller's glyph; "press X" /
         /// "[X]" as a literal key tile.</summary>
         public static void ShowPrompt(string text)
         {
+            if (MinigameBusy) return;   // a minigame on screen has its own keys; nothing else talks over it
             s_prompt = text;
             s_promptFrame = Time.frameCount;
         }
@@ -65,6 +69,7 @@ namespace FishGame
         /// two never fight over one spot. Rich text colour tags work.</summary>
         public static void ShowStatus(string text)
         {
+            if (MinigameBusy) return;
             s_status = text;
             s_statusFrame = Time.frameCount;
         }
@@ -72,6 +77,7 @@ namespace FishGame
         /// <summary>Show a progress bar (0-1) under the prompt this frame, e.g. a hold-to-complete task.</summary>
         public static void ShowProgress(string label, float progress01)
         {
+            if (MinigameBusy) return;
             s_progressLabel = label;
             s_progress = Mathf.Clamp01(progress01);
             s_progressFrame = Time.frameCount;

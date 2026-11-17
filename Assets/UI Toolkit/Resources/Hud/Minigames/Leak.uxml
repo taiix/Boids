@@ -1,0 +1,18 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:rr="ReefRun" xmlns:fg="FishGame" editor-extension-mode="False">
+    <Style src="../MatchHud.uss"/>
+    <Style src="Minigame.uss"/>
+    <ui:VisualElement name="minigame" class="hud mg">
+        <ui:VisualElement class="mg-piece mg-leak">
+            <rr:ReefSlab class="slab slab--orange mg-tab"><ui:Label text="PLUG THE LEAK" class="mg-tab-text cb"/></rr:ReefSlab>
+            <fg:PressureGauge name="gauge" class="mg-leak-tube"/>
+            <rr:ReefSlab class="slab mg-keys">
+                <ui:Label name="pump-key" text="D" class="key"/><ui:Label text="up" class="mg-key-word"/>
+                <ui:Label name="vent-key" text="A" class="key"/><ui:Label text="down" class="mg-key-word mg-key-word--last"/>
+            </rr:ReefSlab>
+        </ui:VisualElement>
+        <ui:VisualElement name="mg-flash" class="mg-flash" style="top: 250px;">
+            <rr:ReefSlab class="slab slab--orange flash-slab"><ui:Label name="mg-flash-text" text="BURST!" class="flash-text xbi"/></rr:ReefSlab>
+        </ui:VisualElement>
+        <ui:Label name="mg-onboard" text="" class="mg-onboard"/>
+    </ui:VisualElement>
+</ui:UXML>

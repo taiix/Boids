@@ -134,6 +134,11 @@ namespace FishGame
             return Vector3.Dot(to.normalized, side.normalized) >= Mathf.Cos(sharpSpread * Mathf.Deg2Rad);
         }
         public bool CanBePushed => !_sunk;
+
+        /// <summary>Server / offline: push from the balance minigame, in "fish worth" (0 = none, 1 = one fish
+        /// balancing perfectly). Set every frame by <see cref="TrashMinigame"/>.</summary>
+        public float MinigameSpeed { get; set; }
+
         public float Radius { get; private set; }
         public Vector3 Centre => transform.position;
 
@@ -228,6 +233,24 @@ namespace FishGame
                 float target = Mathf.Min(maxSpeed, pushSpeed * count / fishNeeded);
                 float along = Vector3.Dot(_velocity, dir);
                 if (along < target) _velocity += dir * Mathf.Min(acceleration * dt, target - along);
+            }
+
+            // The balance minigame (TrashMinigame): its pushers drive it straight at the nearest sinkhole,
+            // as fast as they're keeping the needle on the line.
+            if (MinigameSpeed > 0.01f)
+            {
+                var goal = Sinkhole.Nearest(_rb.position, out float goalDist);
+                if (goal != null && goalDist > 1e-3f)
+                {
+                    Vector3 dir = goal.Centre - _rb.position;
+                    dir.y = 0f;
+                    dir.Normalize();
+                    float target = Mathf.Min(maxSpeed, pushSpeed * MinigameSpeed);
+                    float along = Vector3.Dot(_velocity, dir);
+                    if (along < target) _velocity += dir * Mathf.Min(acceleration * dt, target - along);
+                    moves = true;
+                    count = Mathf.Max(count, 1);
+                }
             }
 
             // The water: it drifts on after a push, slowing gradually, and - heavier than water - sinks.
