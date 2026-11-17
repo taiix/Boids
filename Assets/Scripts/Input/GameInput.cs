@@ -286,6 +286,7 @@ namespace FishGame
 
         internal static void Tick()
         {
+            KeepEnabled();
             CurrentSet = ResolveSet();
             SteamInputService.Tick(CurrentSet);
 
@@ -299,6 +300,21 @@ namespace FishGame
 
             UiPad.Tick();
             InputGlyphs.Tick();
+        }
+
+        // Every action is meant to stay on. In a player build the Input System, starting up (BeforeSceneLoad:
+        // InputActionState.InitializeGlobalActionState -> DestroyAllActionMapStates), wipes the state of every
+        // action enabled before it - and ours are made earlier, the first time anything touches this class
+        // (ResetStatics, at SubsystemRegistration). Wiped, they read as disabled and never fire again: no
+        // moving, no pause menu (only code reading Keyboard.current directly still worked). The editor skips
+        // that wipe, so it never showed there. Switch any that are off back on (cheap: a flag check each).
+        static void KeepEnabled()
+        {
+            foreach (var a in s_all)
+            {
+                if (a.Kbm != null && !a.Kbm.enabled) a.Kbm.Enable();
+                if (a.Pad != null && !a.Pad.enabled) a.Pad.Enable();
+            }
         }
 
         static InputSet ResolveSet()
