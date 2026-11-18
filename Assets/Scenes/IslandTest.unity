@@ -2435,6 +2435,61 @@ MonoBehaviour:
   feedbackSeconds: 1.5
   controlsRoot: {fileID: 1683553996}
   controlsLabel: {fileID: 1683553997}
+--- !u!1 &280424583
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 280424585}
+  - component: {fileID: 280424584}
+  m_Layer: 0
+  m_Name: Underwater Set Pieces
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &280424584
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 280424583}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd178933939e3b342909e283db8adf56, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.UnderwaterSetPieces
+  groundSink: 0.4
+  passableMaterial: grass
+  rockLayer: 3
+  seaweeds:
+  - {fileID: 2605152628424658703, guid: a216a1677befcc24f9bc130488c385cb, type: 3}
+  - {fileID: 3402496881491192059, guid: 907378407d1ee384d905d972023abd87, type: 3}
+  seaweedHeight: 7.9
+  seaweedScale: {x: 0.7, y: 1.6}
+--- !u!4 &280424585
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 280424583}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 2065458707}
+  - {fileID: 2003705808}
+  - {fileID: 1167901681}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &313547859
 GameObject:
   m_ObjectHideFlags: 0
@@ -2471,6 +2526,7 @@ MonoBehaviour:
   scale: {x: 0.95, y: 1.15}
   radius: 60
   edgeMargin: 15
+  wallMargin: 18
   startleRadius: 14
 --- !u!4 &313547861
 Transform:
@@ -2485,61 +2541,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &280424583
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 280424585}
-  - component: {fileID: 280424584}
-  m_Layer: 0
-  m_Name: Underwater Set Pieces
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &280424584
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 280424583}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bd178933939e3b342909e283db8adf56, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FishGame.UnderwaterSetPieces
-  sink: 1.2
-  passableMaterial: grass
-  rockLayer: 3
-  seaweeds:
-  - {fileID: 2605152628424658703, guid: a216a1677befcc24f9bc130488c385cb, type: 3}
-  - {fileID: 3402496881491192059, guid: 907378407d1ee384d905d972023abd87, type: 3}
-  seaweedHeight: 7.9
-  seaweedScale: {x: 0.7, y: 1.6}
---- !u!4 &280424585
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 280424583}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2065458707}
-  - {fileID: 2003705808}
-  - {fileID: 1167901681}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &333846311
@@ -6096,6 +6097,65 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2020258095}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &871263461
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 871263463}
+  - component: {fileID: 871263462}
+  m_Layer: 0
+  m_Name: Seabed Ripples
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &871263462
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 871263461}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef7cb738d433b6d4b87d3c2ae49d725a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishGame.SeabedRipples
+  crestSpacing: 0.6
+  strength: 2.4
+  crestSharpness: 1.8
+  direction: 25
+  troughShade: 0.3
+  swellStrength: 1
+  patchiness: 0.3
+  variety: 0.7
+  flatPatches: 0.4
+  crestBreakup: 0.6
+  crossRipples: 0.4
+  reefInfluence: 0.65
+  reefReach: 3
+  hollowInfluence: 0.7
+  hollowDepth: 1.2
+--- !u!4 &871263463
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 871263461}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &885862617
 GameObject:
@@ -14262,3 +14322,4 @@ SceneRoots:
   - {fileID: 1445197435}
   - {fileID: 280424585}
   - {fileID: 313547861}
+  - {fileID: 871263463}

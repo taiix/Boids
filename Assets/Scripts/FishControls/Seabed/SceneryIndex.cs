@@ -17,16 +17,25 @@ namespace FishGame
         const float MaxSize = 25f;   // bigger than this isn't scenery (the seabed, the arena's walls)
 
         static readonly Dictionary<Vector2Int, List<Bounds>> s_cells = new Dictionary<Vector2Int, List<Bounds>>();
+        static readonly List<Bounds> s_pieces = new List<Bounds>();   // each piece once
         static readonly List<Renderer> s_renderers = new List<Renderer>();
 
         /// <summary>Pieces in the index.</summary>
         public static int Count { get; private set; }
 
+        /// <summary>Goes up every time the index changes (so things built from it know to build again).</summary>
+        public static int Version { get; private set; }
+
+        /// <summary>Every piece's box, once each.</summary>
+        public static IReadOnlyList<Bounds> Pieces => s_pieces;
+
         /// <summary>Forget everything (before the reef is placed again).</summary>
         public static void Clear()
         {
             s_cells.Clear();
+            s_pieces.Clear();
             Count = 0;
+            Version++;
         }
 
         /// <summary>Add each of <paramref name="pieces"/> (skipping any gone or switched off).</summary>
@@ -53,8 +62,10 @@ namespace FishGame
                         if (!s_cells.TryGetValue(key, out var list)) s_cells[key] = list = new List<Bounds>();
                         list.Add(b);
                     }
+                s_pieces.Add(b);
                 Count++;
             }
+            Version++;
         }
 
         static Vector2Int Key(Vector3 p) => new Vector2Int(Mathf.FloorToInt(p.x / Cell), Mathf.FloorToInt(p.z / Cell));
